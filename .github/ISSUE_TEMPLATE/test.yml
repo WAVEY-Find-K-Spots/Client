@@ -1,0 +1,23 @@
+name: "🧪 Test (테스트 코드)"
+description: "테스트 코드 추가 및 리팩토링 테스트를 위해 사용합니다."
+title: "🧪 Test: "
+labels: ["🧪 Test (테스트 코드)"]
+type: Task
+body:
+  - type: textarea
+    id: overview
+    attributes:
+      label: "🛠️ Issue Overview"
+      placeholder: "예: 로그인 유효성 검사 유닛 테스트 추가"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: "📝 Issue Description"
+      placeholder: "예: Vitest를 사용하여 이메일 및 비밀번호 정규식 검증 로직에 대한 테스트 케이스 작성"
+  - type: textarea
+    id: todo
+    attributes:
+      label: "✅ To do"
+      placeholder: "예: - [ ] authUtils.test.ts 작성\n- [ ] 엣지 케이스 테스트 통과 확인"

@@ -1,0 +1,23 @@
+name: "👷 CI/CD (배포/파이프라인)"
+description: "CI/CD 파이프라인 및 배포 관련 작업을 위해 사용합니다."
+title: "👷 CI/CD: "
+labels: ["👷 CI/CD (배포/파이프라인)"]
+type: Task
+body:
+  - type: textarea
+    id: overview
+    attributes:
+      label: "🛠️ Issue Overview"
+      placeholder: "예: GitHub Actions 빌드 워크플로우 수정"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: "📝 Issue Description"
+      placeholder: "예: PR 생성 시 자동으로 실행되는 캐시 설정 최적화를 통해 빌드 속도 개선"
+  - type: textarea
+    id: todo
+    attributes:
+      label: "✅ To do"
+      placeholder: "예: - [ ] main.yml 캐시 액션 추가"

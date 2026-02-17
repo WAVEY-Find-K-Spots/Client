@@ -1,0 +1,23 @@
+name: "🚑 Hotfix (긴급 수정)"
+description: "즉시 해결이 필요한 치명적 오류 시 사용합니다."
+title: "🚑 Hotfix: "
+labels: ["🚑 Hotfix (긴급 수정)"]
+type: Bug
+body:
+  - type: textarea
+    id: overview
+    attributes:
+      label: "🛠️ Issue Overview"
+      placeholder: "예: 결제 페이지 진입 시 앱 크래시 발생"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: "📝 Issue Description"
+      placeholder: "예: 특정 상품 데이터가 없을 때 undefined 에러로 인해 화면 렌더링 실패"
+  - type: textarea
+    id: todo
+    attributes:
+      label: "✅ To do"
+      placeholder: "예: - [ ] 옵셔널 체이닝 추가 및 예외 처리"

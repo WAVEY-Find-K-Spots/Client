@@ -1,0 +1,23 @@
+name: "✨ Feat (기능 추가)"
+description: "새로운 UI 컴포넌트나 화면 기능을 구현할 때 사용합니다."
+title: "✨ Feat: "
+labels: ["✨ Feat (기능 추가)"]
+type: Feature
+body:
+  - type: textarea
+    id: overview
+    attributes:
+      label: "🛠️ Issue Overview"
+      placeholder: "예: 여행지 상세 페이지 리뷰 리스트 구현"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: "📝 Issue Description"
+      placeholder: "예: 사용자 리뷰를 무한 스크롤 형식으로 보여주는 리스트 컴포넌트 개발"
+  - type: textarea
+    id: todo
+    attributes:
+      label: "✅ To do"
+      placeholder: "예: - [ ] 인피니트 스크롤 커스텀 훅 개발"
