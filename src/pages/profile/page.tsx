@@ -12,12 +12,12 @@ const initialStamps = [
   { id: 4, name: 'Namsan Tower Cafe', nameKo: '남산타워 카페', collected: true, date: '2024.01.18', category: 'kdrama', lat: 37.5511, lng: 126.9882, address: '서울특별시 용산구 남산공원길 105', visitRecords: [{ date: '2024.01.18', time: '10:20', lat: 37.5512, lng: 126.9881, accuracy: 10 }] },
   { id: 5, name: 'Gangnam Station', nameKo: '강남역', collected: true, date: '2024.01.19', category: 'kpop', lat: 37.4980, lng: 127.0276, address: '서울특별시 강남구 강남대로 396', visitRecords: [{ date: '2024.01.19', time: '18:00', lat: 37.4981, lng: 127.0275, accuracy: 7 }] },
   { id: 6, name: 'Busan Cinema Street', nameKo: '부산 영화의 거리', collected: true, date: '2024.01.20', category: 'kmovie', lat: 35.1595, lng: 129.1606, address: '부산광역시 해운대구 중동', visitRecords: [{ date: '2024.01.20', time: '13:50', lat: 35.1596, lng: 129.1605, accuracy: 11 }] },
-  { id: 7, name: 'Hongdae', nameKo: '홍대', collected: false, date: null, category: 'kpop', lat: 37.5563, lng: 126.9230, address: '서울특별시 마포구 홍익로' },
-  { id: 8, name: 'Myeongdong', nameKo: '명동', collected: false, date: null, category: 'kdrama', lat: 37.5637, lng: 126.9820, address: '서울특별시 중구 명동길' },
-  { id: 9, name: 'Gangnam', nameKo: '강남', collected: false, date: null, category: 'kpop', lat: 37.4979, lng: 127.0276, address: '서울특별시 강남구 강남대로' },
-  { id: 10, name: 'Changdeokgung', nameKo: '창덕궁', collected: false, date: null, category: 'kheritage', lat: 37.5794, lng: 126.9910, address: '서울특별시 종로구 율곡로 99' },
-  { id: 11, name: 'Haeundae Beach', nameKo: '해운대 해수욕장', collected: false, date: null, category: 'kmovie', lat: 35.1587, lng: 129.1604, address: '부산광역시 해운대구 해운대해변로' },
-  { id: 12, name: 'DDP', nameKo: '동대문DDP', collected: false, date: null, category: 'kdrama', lat: 37.5669, lng: 127.0095, address: '서울특별시 중구 을지로 281' },
+  { id: 7, name: 'Hongdae', nameKo: '홍대', collected: false, date: null, category: 'kpop', lat: 37.5563, lng: 126.9230, address: '서울특별시 마포구 홍익로', visitRecords: [] },
+  { id: 8, name: 'Myeongdong', nameKo: '명동', collected: false, date: null, category: 'kdrama', lat: 37.5637, lng: 126.9820, address: '서울특별시 중구 명동길', visitRecords: [] },
+  { id: 9, name: 'Gangnam', nameKo: '강남', collected: false, date: null, category: 'kpop', lat: 37.4979, lng: 127.0276, address: '서울특별시 강남구 강남대로', visitRecords: [] },
+  { id: 10, name: 'Changdeokgung', nameKo: '창덕궁', collected: false, date: null, category: 'kheritage', lat: 37.5794, lng: 126.9910, address: '서울특별시 종로구 율곡로 99', visitRecords: [] },
+  { id: 11, name: 'Haeundae Beach', nameKo: '해운대 해수욕장', collected: false, date: null, category: 'kmovie', lat: 35.1587, lng: 129.1604, address: '부산광역시 해운대구 해운대해변로', visitRecords: [] },
+  { id: 12, name: 'DDP', nameKo: '동대문DDP', collected: false, date: null, category: 'kdrama', lat: 37.5669, lng: 127.0095, address: '서울특별시 중구 을지로 281', visitRecords: [] },
 ];
 
 const menuItems = [
@@ -185,7 +185,7 @@ export default function ProfilePage() {
     const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
     const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
 
-    const applyCollection = (visitRecord: { date: string; time: string; lat: number; lng: number; accuracy?: number }) => {
+    const applyCollection = (visitRecord: { date: string; time: string; lat: number; lng: number; accuracy: number }) => {
       setStamps(prevStamps =>
         prevStamps.map(stamp =>
           stamp.id === stampToCollect.id
@@ -213,6 +213,7 @@ export default function ProfilePage() {
             time: timeStr,
             lat: stampToCollect.lat ?? 37.5665,
             lng: stampToCollect.lng ?? 126.9780,
+            accuracy: 0,
           });
         },
         { enableHighAccuracy: true, timeout: 5000 }
@@ -223,6 +224,7 @@ export default function ProfilePage() {
         time: timeStr,
         lat: stampToCollect.lat ?? 37.5665,
         lng: stampToCollect.lng ?? 126.9780,
+        accuracy: 0,
       });
     }
   };
