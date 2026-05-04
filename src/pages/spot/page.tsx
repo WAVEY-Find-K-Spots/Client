@@ -221,7 +221,7 @@ export default function SpotDetailPage() {
           className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm mb-3"
         >
           <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5">장소 소개</h2>
-          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{spot.description}</p>
+          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{spot.content}</p>
         </motion.div>
 
         {/* Info Cards */}
