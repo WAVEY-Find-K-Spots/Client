@@ -23,7 +23,7 @@ function App() {
     if (currentPath === '/' || currentPath === __BASE_PATH__) {
       if (!hasSeenOnboarding) {
         if (window.REACT_APP_NAVIGATE) {
-          window.REACT_APP_NAVIGATE('/splash');
+          window.REACT_APP_NAVIGATE('/');
         }
       } else if (!isLoggedIn) {
         if (window.REACT_APP_NAVIGATE) {
