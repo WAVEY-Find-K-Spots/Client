@@ -5,7 +5,7 @@ interface Spot {
   id: number;
   name: string;
   category: string;
-  content: string;
+  description: string;
   location: string;
   image: string;
   rating: number;
@@ -63,7 +63,7 @@ export function SpotCard({ spot, isSelected = false, onMapView }: SpotCardProps)
 
         <div className="p-4">
           <h3 className="text-base font-bold text-gray-900 mb-1">{spot.name}</h3>
-          <p className="text-sm text-gray-500 mb-3 line-clamp-1">{spot.content}</p>
+          <p className="text-sm text-gray-500 mb-3 line-clamp-1">{spot.description}</p>
 
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
             <i className="ri-map-pin-line text-gray-400"></i>
@@ -153,7 +153,7 @@ export function SpotCard({ spot, isSelected = false, onMapView }: SpotCardProps)
 
               <div className="mb-6">
                 <h3 className="text-base font-bold text-gray-900 mb-2">콘텐츠 정보</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{spot.content}</p>
+                <p className="text-sm text-gray-600 leading-relaxed">{spot.description}</p>
               </div>
 
               {/* Quick Actions */}

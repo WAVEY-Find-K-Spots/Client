@@ -15,7 +15,7 @@ export function SpotList({ selectedCategory, searchQuery, onSpotSelect }: SpotLi
     const matchesSearch =
       searchQuery === '' ||
       spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      spot.content.toLowerCase().includes(searchQuery.toLowerCase());
+      (spot.description && spot.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
