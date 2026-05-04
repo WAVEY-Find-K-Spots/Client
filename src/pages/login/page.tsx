@@ -4,7 +4,7 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     localStorage.setItem('isLoggedIn', 'true');
     if (window.REACT_APP_NAVIGATE) {
-      window.REACT_APP_NAVIGATE('/');
+      window.REACT_APP_NAVIGATE('/home');
     }
   };
 
