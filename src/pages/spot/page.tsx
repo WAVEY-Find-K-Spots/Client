@@ -41,8 +41,8 @@ export default function SpotDetailPage() {
   }
 
   const getMediaContent = () => {
-    const category = spot.category?.toUpperCase() || '';
-    if (category.includes('KDRAMA') || category.includes('KMOVIE')) {
+    const categories = (spot.categories || []).map((cat) => cat.toUpperCase());
+    if (categories.includes('K-DRAMA') || categories.includes('K-MOVIE')) {
       return {
         spotify: { title: 'OST', items: [
           { title: 'Main Theme OST', artist: 'Various Artists', duration: '3:45' },
@@ -56,7 +56,7 @@ export default function SpotDetailPage() {
         ]},
       };
     }
-    if (category.includes('KPOP')) {
+    if (categories.includes('K-POP')) {
       return {
         spotify: { title: '앨범 & 싱글', items: [
           { title: 'Latest Album', artist: 'K-POP Artist', duration: '3:25' },
@@ -70,7 +70,7 @@ export default function SpotDetailPage() {
         ]},
       };
     }
-    if (category.includes('HERITAGE')) {
+    if (categories.includes('K-HERITAGE')) {
       return {
         spotify: { title: '국악', items: [
           { title: 'Korean Traditional Music', artist: 'National Gugak Center', duration: '4:30' },
