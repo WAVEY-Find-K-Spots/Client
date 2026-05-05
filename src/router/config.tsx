@@ -20,6 +20,10 @@ const NotFoundPage = lazy(() => import('../pages/NotFound'));
 const routes: RouteObject[] = [
   {
     path: '/',
+    element: <HomePage />,
+  },
+  {
+    path: '/splash',
     element: <SplashPage />,
   },
   {
