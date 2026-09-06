@@ -6,6 +6,7 @@ import PlanSheet, { type TransportMode } from "./components/PlanSheet";
 import NavOverlay from "./components/NavOverlay";
 import SpotPicker from "./components/SpotPicker";
 import { spots } from "@/mocks/spots";
+import { useRoute } from "@/store/route-context";
 import {
   Plus,
   MoreHorizontal,
@@ -44,12 +45,8 @@ const travelFallback: Record<TransportMode, string> = {
 };
 
 export default function RouteTab() {
-  const [mode, setMode] = useState<RouteMode>("plan");
-  const [routeIds, setRouteIds] = useState<string[]>([
-    "gyeongbokgung",
-    "bukchon",
-    "gwanghwamun",
-  ]);
+  const { routeIds, addToRoute, removeFromRoute, reorderRoute } = useRoute();
+  const [mode, setMode] = useState<RouteMode>(routeIds.length ? "plan" : "empty");
   const [transport, setTransport] = useState<TransportMode>("transit");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -93,18 +90,13 @@ export default function RouteTab() {
   };
 
   const handleRemove = (id: string) => {
-    const next = routeIds.filter((x) => x !== id);
-    setRouteIds(next);
-    if (next.length === 0) setMode("empty");
+    removeFromRoute(id);
+    if (routeIds.length <= 1) setMode("empty");
     showToast("루트에서 스팟을 삭제했어요");
   };
 
   const handleAdd = (ids: string[]) => {
-    const merged = [...routeIds];
-    ids.forEach((id) => {
-      if (!merged.includes(id)) merged.push(id);
-    });
-    setRouteIds(merged);
+    addToRoute(ids);
     if (routeIds.length === 0) {
       setMode("plan");
       setCurrent(0);
@@ -118,7 +110,7 @@ export default function RouteTab() {
   };
 
   const swapRoute = () => {
-    setRouteIds((p) => [...p].reverse());
+    reorderRoute([...routeIds].reverse());
     setCurrent(0);
     showToast("출발과 도착을 바꿨어요");
   };
@@ -206,7 +198,7 @@ export default function RouteTab() {
             onTransport={setTransport}
             onRemove={handleRemove}
             onReorder={(ids) => {
-              setRouteIds(ids);
+              reorderRoute(ids);
               setCurrent(0);
             }}
             onAddPick={() => setPickerOpen(true)}
