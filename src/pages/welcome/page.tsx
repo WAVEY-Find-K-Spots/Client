@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import waveyLogo from "@/assets/wavey.png";
+import { spots } from "@/mocks/spots";
+import { stamps } from "@/mocks/stamps";
 import {
   Compass,
   Route as RouteIcon,
@@ -9,6 +11,9 @@ import {
   Check,
   ArrowRight,
 } from "lucide-react";
+
+const spotPreview = spots.slice(0, 3);
+const stampPreview = stamps.filter((s) => s.gradient).slice(0, 5);
 
 type SlideKey = "spot" | "route" | "stamp";
 
@@ -65,21 +70,33 @@ function Illustration({ kind }: { kind: SlideKey }) {
       />
 
       {kind === "spot" && (
-        <>
-          {[
-            { l: "24%", t: "30%" },
-            { l: "60%", t: "22%" },
-            { l: "46%", t: "62%" },
-          ].map((p, i) => (
-            <span
-              key={i}
-              className="absolute -translate-x-1/2 -translate-y-full flex items-center justify-center w-9 h-9 rounded-full bg-ink"
-              style={{ left: p.l, top: p.t, boxShadow: "0 6px 14px rgba(44,24,16,0.25)" }}
-            >
-              <MapPin size={16} color="#F7EBE0" strokeWidth={2} />
-            </span>
-          ))}
-        </>
+        <div className="absolute inset-0 flex items-center justify-center gap-2.5">
+          {spotPreview.map((s, i) => {
+            const mid = i === 1;
+            return (
+              <div
+                key={s.id}
+                className={`relative rounded-[14px] overflow-hidden shadow-soft ${
+                  mid ? "w-[86px] h-[116px] z-10" : "w-[72px] h-[96px]"
+                }`}
+                style={{ transform: mid ? "none" : `rotate(${i === 0 ? -7 : 7}deg) translateY(8px)` }}
+              >
+                <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                <span className="absolute inset-x-0 bottom-0 px-1.5 py-1 text-[9px] font-semibold text-white bg-gradient-to-t from-ink/80 to-transparent">
+                  {s.name}
+                </span>
+                {mid && (
+                  <span
+                    className="absolute left-1/2 -top-1 -translate-x-1/2 flex items-center justify-center w-6 h-6 rounded-full bg-ink"
+                    style={{ boxShadow: "0 4px 10px rgba(44,24,16,0.3)" }}
+                  >
+                    <MapPin size={12} color="#F7EBE0" strokeWidth={2.4} />
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {kind === "route" && (
@@ -98,27 +115,29 @@ function Illustration({ kind }: { kind: SlideKey }) {
       )}
 
       {kind === "stamp" && (
-        <div className="absolute inset-0 flex items-center justify-center gap-4">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="relative w-[70px] h-[70px] rounded-full p-[5px] bg-cream"
-              style={{ border: "2px solid #A8623E" }}
-            >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-4 w-[224px]">
+            {stampPreview.map((st, i) => (
               <span
-                className="block w-full h-full rounded-full"
-                style={{ background: "linear-gradient(158deg,#7a3d28,#c96a42)" }}
-              />
-              {i < 2 && (
+                key={st.id}
+                className="relative w-[58px] h-[58px] rounded-full p-[4px] bg-cream"
+                style={{ border: "2px solid #A8623E" }}
+              >
                 <span
-                  className="absolute left-1/2 -translate-x-1/2 top-full -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-brand"
-                  style={{ boxShadow: "0 4px 10px rgba(168,98,62,0.45)" }}
-                >
-                  <Check size={12} color="#fff" strokeWidth={3} />
-                </span>
-              )}
-            </span>
-          ))}
+                  className="block w-full h-full rounded-full"
+                  style={{ background: st.gradient }}
+                />
+                {i % 2 === 0 && (
+                  <span
+                    className="absolute left-1/2 -translate-x-1/2 top-full -translate-y-1/2 flex items-center justify-center w-[18px] h-[18px] rounded-full bg-brand"
+                    style={{ boxShadow: "0 4px 10px rgba(168,98,62,0.45)" }}
+                  >
+                    <Check size={11} color="#fff" strokeWidth={3} />
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>
