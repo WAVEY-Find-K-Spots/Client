@@ -48,23 +48,21 @@ export default function LoginPage() {
     <div className="min-h-full flex flex-col bg-page">
       <StatusBar variant="dark" />
 
-      <div className="flex-1 flex flex-col items-center px-8">
+      <div className="flex-1 flex flex-col items-center justify-center px-8 pb-10">
         {/* brand */}
-        <div className="mt-[24%] flex flex-col items-center">
-          <img
-            src={waveyLogo}
-            alt="WAVEY"
-            className="w-[230px] max-w-[72%] h-auto mix-blend-multiply select-none"
-          />
-          <p className="mt-2 text-[13px] text-muted text-center leading-relaxed">
-            드라마와 K-POP, 영화 속
-            <br />
-            그 장소로 떠나는 여행
-          </p>
-        </div>
+        <img
+          src={waveyLogo}
+          alt="WAVEY"
+          className="w-[220px] max-w-[70%] h-auto select-none"
+        />
+        <p className="mt-1 text-[13px] text-muted text-center leading-relaxed">
+          드라마와 K-POP, 영화 속
+          <br />
+          그 장소로 떠나는 여행
+        </p>
 
         {/* social login */}
-        <div className="mt-auto w-full flex flex-col items-center pb-3">
+        <div className="mt-9 flex flex-col items-center">
           <span className="text-[12px] font-medium text-muted">간편 로그인</span>
 
           <div className="mt-4 flex items-center justify-center gap-5">
