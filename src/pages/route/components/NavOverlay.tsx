@@ -116,14 +116,14 @@ export default function NavOverlay({
           {/* drag handle */}
           <div
             ref={handleRef}
-            className="flex justify-center pb-1 cursor-pointer select-none"
+            className="flex flex-col items-center pt-2.5 pb-2 gap-2 cursor-pointer select-none"
           >
             <span className="w-10 h-1 rounded-full bg-line" />
-            <span className="flex items-center justify-center w-5 h-5 ml-1">
+            <span className="flex items-center justify-center w-4 h-4">
               {isExpanded ? (
-                <ChevronDown size={14} color="#A89890" strokeWidth={2.2} />
+                <ChevronDown size={15} color="#A89890" strokeWidth={2.4} />
               ) : (
-                <ChevronUp size={14} color="#A89890" strokeWidth={2.2} />
+                <ChevronUp size={15} color="#A89890" strokeWidth={2.4} />
               )}
             </span>
           </div>
