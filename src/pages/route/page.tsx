@@ -13,6 +13,9 @@ import {
   Map,
   Eye,
   Check,
+  Repeat,
+  Share2,
+  Trash2,
 } from "lucide-react";
 
 type RouteMode = "empty" | "plan" | "nav";
@@ -45,12 +48,19 @@ const travelFallback: Record<TransportMode, string> = {
 };
 
 export default function RouteTab() {
-  const { routeIds, addToRoute, removeFromRoute, reorderRoute } = useRoute();
+  const { routeIds, addToRoute, removeFromRoute, reorderRoute, clearRoute } = useRoute();
   const [mode, setMode] = useState<RouteMode>(routeIds.length ? "plan" : "empty");
   const [transport, setTransport] = useState<TransportMode>("transit");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setConfirmClear(false);
+  };
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
@@ -114,6 +124,42 @@ export default function RouteTab() {
     setCurrent(0);
     showToast("출발과 도착을 바꿨어요");
   };
+
+  const doClear = () => {
+    clearRoute();
+    setMode("empty");
+    setCurrent(0);
+    closeMenu();
+    showToast("루트를 비웠어요");
+  };
+
+  const menuItems = [
+    {
+      icon: Repeat,
+      label: "출발·도착 바꾸기",
+      onClick: () => {
+        swapRoute();
+        closeMenu();
+      },
+      disabled: stops.length < 2,
+    },
+    {
+      icon: Share2,
+      label: "루트 공유하기",
+      onClick: () => {
+        showToast("루트 링크를 복사했어요");
+        closeMenu();
+      },
+      disabled: stops.length === 0,
+    },
+    {
+      icon: Trash2,
+      label: "루트 비우기",
+      danger: true,
+      onClick: () => setConfirmClear(true),
+      disabled: stops.length === 0,
+    },
+  ];
 
   const renderHeader = (right: ReactNode) => (
     <div className="flex items-center justify-between px-5 pt-1 pb-2 shrink-0">
@@ -181,7 +227,7 @@ export default function RouteTab() {
               </button>
               <button
                 type="button"
-                onClick={() => showToast("더보기 메뉴")}
+                onClick={() => setMenuOpen(true)}
                 aria-label="더보기"
                 className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-cream cursor-pointer"
               >
@@ -273,6 +319,67 @@ export default function RouteTab() {
           onAdd={handleAdd}
           onClose={() => setPickerOpen(false)}
         />
+      )}
+
+      {/* 더보기 메뉴 */}
+      {menuOpen && (
+        <div className="absolute inset-0 z-[55]" onClick={closeMenu}>
+          <div
+            className="absolute right-4 top-[48px] w-[214px] rounded-[16px] bg-white shadow-soft overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {confirmClear ? (
+              <div className="p-4">
+                <p className="text-[13px] font-semibold text-ink">
+                  루트를 모두 비울까요?
+                </p>
+                <p className="text-[11px] text-muted mt-1 leading-relaxed">
+                  추가한 스팟이 모두 사라져요.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClear(false)}
+                    className="flex-1 h-9 rounded-full bg-cream text-[12px] font-semibold text-ink cursor-pointer whitespace-nowrap"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={doClear}
+                    className="flex-1 h-9 rounded-full bg-[#B4453A] text-white text-[12px] font-semibold cursor-pointer whitespace-nowrap"
+                  >
+                    비우기
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-[#F5F1EE]">
+                {menuItems.map((m) => {
+                  const Icon = m.icon;
+                  return (
+                    <button
+                      key={m.label}
+                      type="button"
+                      onClick={m.onClick}
+                      disabled={m.disabled}
+                      className={`w-full flex items-center gap-2.5 px-4 h-[46px] text-left cursor-pointer disabled:opacity-40 ${
+                        m.danger ? "text-[#B4453A]" : "text-ink"
+                      }`}
+                    >
+                      <Icon
+                        size={16}
+                        strokeWidth={2}
+                        color={m.danger ? "#B4453A" : "#2C1810"}
+                      />
+                      <span className="text-[13px] font-semibold">{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
