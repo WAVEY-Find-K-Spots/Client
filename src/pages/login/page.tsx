@@ -50,17 +50,12 @@ export default function LoginPage() {
 
       <div className="flex-1 flex flex-col items-center px-8">
         {/* brand */}
-        <div className="mt-[20%] flex flex-col items-center">
-          <div className="w-[104px] h-[104px] rounded-[30px] overflow-hidden shadow-soft">
-            <img
-              src={waveyLogo}
-              alt="WAVEY"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h1 className="mt-5 text-[26px] font-extrabold tracking-tight text-ink">
-            WAVEY
-          </h1>
+        <div className="mt-[24%] flex flex-col items-center">
+          <img
+            src={waveyLogo}
+            alt="WAVEY"
+            className="w-[230px] max-w-[72%] h-auto mix-blend-multiply select-none"
+          />
           <p className="mt-2 text-[13px] text-muted text-center leading-relaxed">
             드라마와 K-POP, 영화 속
             <br />
