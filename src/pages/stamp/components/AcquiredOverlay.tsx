@@ -52,8 +52,9 @@ export default function AcquiredOverlay({
         <span className="w-9 h-9" />
       </div>
 
-      {/* 중앙 애니메이션 영역 */}
-      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-6">
+      {/* 중앙 애니메이션 영역 — 높이가 모자라면 스크롤 */}
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+        <div className="min-h-full flex flex-col items-center justify-center px-6 py-6">
         <div className="relative wv-pop">
           {/* 바깥 점선 링 */}
           <div
@@ -101,6 +102,7 @@ export default function AcquiredOverlay({
               </span>
             </span>
           )}
+        </div>
         </div>
       </div>
 
