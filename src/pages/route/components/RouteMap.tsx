@@ -51,15 +51,6 @@ function pinIcon(label: number, opts: { current?: boolean; emphasized?: boolean 
   });
 }
 
-// pulsing ring, centered exactly on the coordinate — sits behind the current pin
-function pulseIcon(): L.DivIcon {
-  return L.divIcon({
-    className: "",
-    iconSize: [56, 56],
-    iconAnchor: [28, 28],
-    html: `<span style="display:block;width:56px;height:56px;border-radius:999px;background:rgba(168,98,62,0.3)" class="animate-ping"></span>`,
-  });
-}
 
 export default function RouteMap({ variant, stops, currentIndex, onLocate }: RouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,7 +109,16 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
       const current = variant === "nav" && currentIndex === i;
       const latlng: [number, number] = [s.coord.lat, s.coord.lng];
       if (current) {
-        L.marker(latlng, { icon: pulseIcon(), interactive: false, zIndexOffset: 900 }).addTo(layer);
+        // SVG circle marker — Leaflet projects it exactly onto the coordinate,
+        // CSS scales it concentrically (transform-box: fill-box)
+        L.circleMarker(latlng, {
+          radius: 9,
+          weight: 0,
+          fillColor: BRAND,
+          fillOpacity: 0.3,
+          className: "rm-pulse",
+          interactive: false,
+        }).addTo(layer);
       }
       L.marker(latlng, {
         icon: pinIcon(i + 1, { current, emphasized }),
