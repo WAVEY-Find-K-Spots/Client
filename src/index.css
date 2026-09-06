@@ -1,14 +1,61 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-*::-webkit-scrollbar {
-  display: none;
+:root {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, system-ui, sans-serif;
 }
 
-/* Hide scrollbar for IE, Edge and Firefox */
-* {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #f3e9df;
+}
+
+body {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Hide scrollbars inside the phone frame for a clean app feel */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Prevent horizontal overscroll bounce tint on the frame */
+.phone-viewport {
+  overscroll-behavior: contain;
+}
+
+/* Stamp acquired animation */
+@keyframes wv-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.wv-float {
+  animation: wv-float 2.2s ease-in-out infinite;
+}
+
+@keyframes wv-pop {
+  0% { transform: scale(0.55); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.wv-pop {
+  animation: wv-pop 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+}
+
+@keyframes wv-ring-grow {
+  0% { transform: scale(0.6); opacity: 0; }
+  55% { opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.wv-ring-grow {
+  animation: wv-ring-grow 1.4s ease-out 0.15s infinite;
 }
