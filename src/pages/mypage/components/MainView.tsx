@@ -1,4 +1,10 @@
 import StatusBar from "@/components/layout/StatusBar";
+import { useProfile } from "@/store/profile-context";
+import { useNotifications } from "@/store/notifications-context";
+import { useStamps } from "@/store/stamps-context";
+import { useRoute } from "@/store/route-context";
+import { stamps, earnedBadges } from "@/mocks/stamps";
+import type { MyPageView } from "../page";
 import {
   Settings,
   User,
@@ -10,60 +16,57 @@ import {
   Heart,
   Map,
   Star,
-  Globe,
   Bell,
   Shield,
   FileText,
-  Info,
   ChevronRight,
   LogOut,
 } from "lucide-react";
 
 interface MainViewProps {
-  onOpenRoutes: () => void;
-  onOpenEdit: () => void;
+  onOpen: (view: MyPageView) => void;
   onToast: (msg: string) => void;
 }
 
-const activityMenus = [
+const activityMenus: { label: string; icon: typeof Heart; goto: string }[] = [
   { label: "저장한 스팟", icon: Heart, goto: "spot" },
   { label: "내 루트 목록", icon: Map, goto: "routes" },
   { label: "스탬프북", icon: Bookmark, goto: "stamp" },
-  { label: "작성한 리뷰", icon: Star, goto: "review" },
+  { label: "작성한 리뷰", icon: Star, goto: "reviews" },
 ];
 
-const settingMenus = [
-  { label: "언어 설정", icon: Globe, hint: "한국어" },
-  { label: "알림 설정", icon: Bell, hint: "" },
-  { label: "개인정보 처리방침", icon: Shield, hint: "" },
-  { label: "이용약관", icon: FileText, hint: "" },
-  { label: "앱 버전", icon: Info, hint: "v1.0.0" },
+const settingMenus: { label: string; icon: typeof Settings; view: MyPageView }[] = [
+  { label: "설정", icon: Settings, view: "settings" },
+  { label: "알림 설정", icon: Bell, view: "notiSettings" },
+  { label: "개인정보 처리방침", icon: Shield, view: "policy" },
+  { label: "이용약관", icon: FileText, view: "terms" },
 ];
 
-const statItems = [
-  { icon: MapPin, value: "12", label: "방문 스팟" },
-  { icon: Route, value: "4", label: "완성 루트" },
-  { icon: Bookmark, value: "28", label: "저장 스팟" },
-  { icon: Award, value: "3", label: "획득 뱃지" },
-];
+export default function MainView({ onOpen, onToast }: MainViewProps) {
+  const { profile } = useProfile();
+  const { unreadCount } = useNotifications();
+  const { isEarned } = useStamps();
+  const { routeIds } = useRoute();
 
-export default function MainView({
-  onOpenRoutes,
-  onOpenEdit,
-  onToast,
-}: MainViewProps) {
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
 
+  const earnedCount = stamps.filter((s) => isEarned(s.id)).length;
+  const badgeCount = earnedBadges.length;
+
+  const statItems = [
+    { icon: MapPin, value: String(earnedCount), label: "방문 스팟" },
+    { icon: Route, value: String(routeIds.length), label: "루트 스팟" },
+    { icon: Bookmark, value: "28", label: "저장 스팟" },
+    { icon: Award, value: String(badgeCount), label: "획득 뱃지" },
+  ];
+
   const handleActivity = (goto: string) => {
     if (goto === "spot") navigate?.("/");
-    else if (goto === "routes") onOpenRoutes();
     else if (goto === "stamp") navigate?.("/stamp");
-    else onToast("작성한 리뷰 화면이 곧 열려요");
+    else onOpen(goto as MyPageView);
   };
-
-  const handleLogout = () => navigate?.("/login");
 
   return (
     <div className="min-h-full bg-page">
@@ -74,16 +77,29 @@ export default function MainView({
         <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
           마이페이지
         </h1>
-        <button
-          type="button"
-          onClick={() => onToast("설정 화면이 곧 열려요")}
-          aria-label="설정"
-          className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
-        >
-          <span className="flex items-center justify-center w-4 h-4">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate?.("/notifications")}
+            aria-label="알림"
+            className="relative flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
+          >
+            <Bell size={18} color="#A8623E" strokeWidth={1.9} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-brand text-white text-[9px] font-bold flex items-center justify-center border-2 border-page">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpen("settings")}
+            aria-label="설정"
+            className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
+          >
             <Settings size={18} color="#A8623E" strokeWidth={1.9} />
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* 프로필 카드 */}
@@ -92,15 +108,13 @@ export default function MainView({
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={onOpenEdit}
+              onClick={() => onOpen("edit")}
               className="relative shrink-0 cursor-pointer"
               aria-label="프로필 이미지"
             >
               <span
                 className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{
-                  background: "linear-gradient(135deg,#A8623E,#6B3F28)",
-                }}
+                style={{ background: "linear-gradient(135deg,#A8623E,#6B3F28)" }}
               >
                 <span className="flex items-center justify-center w-7 h-7">
                   <User size={28} color="#FFFFFF" strokeWidth={1.8} />
@@ -113,15 +127,15 @@ export default function MainView({
               </span>
             </button>
             <div className="flex-1 min-w-0">
-              <h2 className="text-[18px] font-semibold text-white">
-                여행자_시영
+              <h2 className="text-[18px] font-semibold text-white truncate">
+                {profile.nickname}
               </h2>
-              <p className="text-[12px] text-muted mt-0.5">
-                siyoung@wavey.kr
+              <p className="text-[12px] text-muted mt-0.5 truncate">
+                {profile.email}
               </p>
               <button
                 type="button"
-                onClick={onOpenEdit}
+                onClick={() => onOpen("edit")}
                 className="mt-1.5 text-[12px] font-medium text-brand cursor-pointer whitespace-nowrap"
               >
                 프로필 편집
@@ -149,9 +163,7 @@ export default function MainView({
                 <span className="text-[20px] font-extrabold leading-none text-ink">
                   {s.value}
                 </span>
-                <span className="text-[10px] text-muted mt-1">
-                  {s.label}
-                </span>
+                <span className="text-[10px] text-muted mt-1">{s.label}</span>
               </div>
             );
           })}
@@ -177,9 +189,7 @@ export default function MainView({
                 <span className="flex-1 text-[14px] font-semibold text-ink">
                   {m.label}
                 </span>
-                <span className="flex items-center justify-center w-4 h-4">
-                  <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
-                </span>
+                <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
               </button>
             );
           })}
@@ -196,7 +206,7 @@ export default function MainView({
               <button
                 key={m.label}
                 type="button"
-                onClick={() => onToast(`${m.label} 화면이 곧 열려요`)}
+                onClick={() => onOpen(m.view)}
                 className="w-full flex items-center gap-3 px-4 h-[52px] cursor-pointer text-left"
               >
                 <span className="flex items-center justify-center w-9 h-9 rounded-full bg-cream shrink-0">
@@ -205,12 +215,7 @@ export default function MainView({
                 <span className="flex-1 text-[14px] font-semibold text-ink">
                   {m.label}
                 </span>
-                {m.hint && (
-                  <span className="text-[12px] text-muted">{m.hint}</span>
-                )}
-                <span className="flex items-center justify-center w-4 h-4">
-                  <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
-                </span>
+                <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
               </button>
             );
           })}
@@ -221,7 +226,7 @@ export default function MainView({
       <div className="px-5 mt-6">
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => navigate?.("/login")}
           className="w-full h-[52px] rounded-[14px] bg-white border border-line flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
         >
           <span className="flex items-center justify-center w-4 h-4">
