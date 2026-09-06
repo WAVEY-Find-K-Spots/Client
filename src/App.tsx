@@ -4,17 +4,26 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
 import { RouteProvider } from "./store/route";
 import { StampsProvider } from "./store/stamps";
+import { ProfileProvider } from "./store/profile";
+import { SettingsProvider } from "./store/settings";
+import { NotificationsProvider } from "./store/notifications";
 
 
 function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <BrowserRouter basename={__BASE_PATH__}>
-        <RouteProvider>
-          <StampsProvider>
-            <AppRoutes />
-          </StampsProvider>
-        </RouteProvider>
+        <ProfileProvider>
+          <SettingsProvider>
+            <NotificationsProvider>
+              <RouteProvider>
+                <StampsProvider>
+                  <AppRoutes />
+                </StampsProvider>
+              </RouteProvider>
+            </NotificationsProvider>
+          </SettingsProvider>
+        </ProfileProvider>
       </BrowserRouter>
     </I18nextProvider>
   );
