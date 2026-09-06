@@ -24,7 +24,7 @@ export default function SpotPicker({ existingIds, onAdd, onClose }: SpotPickerPr
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col justify-end">
+    <div className="absolute inset-0 z-[60] flex flex-col justify-end">
       <div className="absolute inset-0 bg-ink/45" onClick={onClose} />
       <div className="relative bg-white rounded-t-[26px] flex flex-col max-h-[78%] min-h-0">
         {/* handle + title */}
@@ -97,7 +97,7 @@ export default function SpotPicker({ existingIds, onAdd, onClose }: SpotPickerPr
         </div>
 
         {/* confirm */}
-        <div className="px-5 pb-4 pt-2 shrink-0">
+        <div className="px-5 pb-6 pt-2 shrink-0">
           <button
             type="button"
             onClick={confirm}
