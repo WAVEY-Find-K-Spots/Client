@@ -32,6 +32,7 @@ interface PlanSheetProps {
   transport: TransportMode;
   onTransport: (m: TransportMode) => void;
   onRemove: (id: string) => void;
+  onReorder: (orderedIds: string[]) => void;
   onAddPick: () => void;
   onStart: () => void;
   travelToNext: (index: number) => string;
@@ -42,6 +43,7 @@ export default function PlanSheet({
   transport,
   onTransport,
   onRemove,
+  onReorder,
   onAddPick,
   onStart,
   travelToNext,
@@ -49,6 +51,48 @@ export default function PlanSheet({
   const [isExpanded, setIsExpanded] = useState(false);
   const handleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startY: 0, moved: false });
+
+  // ----- drag & drop reorder of the stop list -----
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const [dragId, setDragId] = useState<string | null>(null);
+  const dragPointer = useRef(-1);
+
+  const onGripDown = (id: string) => (e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragPointer.current = e.pointerId;
+    setDragId(id);
+  };
+
+  const onGripMove = (e: React.PointerEvent) => {
+    if (!dragId) return;
+    const from = stops.findIndex((s) => s.id === dragId);
+    if (from < 0) return;
+    let to = 0;
+    stops.forEach((s) => {
+      if (s.id === dragId) return;
+      const r = rowRefs.current.get(s.id)?.getBoundingClientRect();
+      if (r && e.clientY > r.top + r.height / 2) to += 1;
+    });
+    if (to !== from) {
+      const next = stops.map((s) => s.id);
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      onReorder(next);
+    }
+  };
+
+  const onGripUp = (e: React.PointerEvent) => {
+    if (dragPointer.current !== -1) {
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(dragPointer.current);
+      } catch {
+        /* pointer already released */
+      }
+    }
+    dragPointer.current = -1;
+    setDragId(null);
+  };
 
   const toggle = useCallback(() => setIsExpanded((p) => !p), []);
 
@@ -191,11 +235,30 @@ export default function PlanSheet({
             const notLast = i < stops.length - 1;
             return (
               <div key={s.id}>
-                <div className="flex items-center gap-2.5 bg-white rounded-[14px] py-2.5 pl-2 pr-1.5 border border-line/70">
+                <div
+                  ref={(el) => {
+                    if (el) rowRefs.current.set(s.id, el);
+                    else rowRefs.current.delete(s.id);
+                  }}
+                  className={`flex items-center gap-2.5 rounded-[14px] py-2.5 pl-1 pr-1.5 border transition-shadow ${
+                    dragId === s.id
+                      ? "bg-cream border-brand/40 shadow-soft"
+                      : "bg-white border-line/70"
+                  }`}
+                >
                   {/* drag handle */}
-                  <span className="flex items-center justify-center w-4 h-4 shrink-0">
-                    <GripVertical size={15} color="#DDD4CE" />
-                  </span>
+                  <div
+                    onPointerDown={onGripDown(s.id)}
+                    onPointerMove={onGripMove}
+                    onPointerUp={onGripUp}
+                    onPointerCancel={onGripUp}
+                    role="button"
+                    aria-label={`${s.name} 순서 이동`}
+                    className="flex items-center justify-center w-6 h-8 shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                    style={{ touchAction: "none" }}
+                  >
+                    <GripVertical size={15} color={dragId === s.id ? "#A8623E" : "#DDD4CE"} />
+                  </div>
                   {/* number badge */}
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-ink text-white text-[11px] font-bold shrink-0">
                     {i + 1}

@@ -205,6 +205,10 @@ export default function RouteTab() {
             transport={transport}
             onTransport={setTransport}
             onRemove={handleRemove}
+            onReorder={(ids) => {
+              setRouteIds(ids);
+              setCurrent(0);
+            }}
             onAddPick={() => setPickerOpen(true)}
             onStart={startNav}
             travelToNext={travelToNext}
