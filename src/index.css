@@ -44,6 +44,15 @@ body {
   animation: rm-pulse 1.6s ease-out infinite;
 }
 
+/* Onboarding slide transition */
+@keyframes wv-slidein {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.wv-slidein {
+  animation: wv-slidein 0.32s ease both;
+}
+
 /* Stamp acquired animation */
 @keyframes wv-float {
   0%, 100% { transform: translateY(0); }
