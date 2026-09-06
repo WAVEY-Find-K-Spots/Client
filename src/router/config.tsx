@@ -6,6 +6,7 @@ import SpotDetail from "@/pages/detail/page";
 import RouteTab from "@/pages/route/page";
 import StampTab from "@/pages/stamp/page";
 import MyPage from "@/pages/mypage/page";
+import LoginPage from "@/pages/login/page";
 
 const routes: RouteObject[] = [
   {
@@ -13,6 +14,7 @@ const routes: RouteObject[] = [
     element: <AppShell />,
     children: [
       { index: true, element: <SpotList /> },
+      { path: "login", element: <LoginPage /> },
       { path: "spot/:id", element: <SpotDetail /> },
       { path: "route", element: <RouteTab /> },
       { path: "stamp", element: <StampTab /> },

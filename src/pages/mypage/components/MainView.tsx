@@ -63,7 +63,7 @@ export default function MainView({
     else onToast("작성한 리뷰 화면이 곧 열려요");
   };
 
-  const handleLogout = () => onToast("로그아웃은 곧 지원할게요");
+  const handleLogout = () => navigate?.("/login");
 
   return (
     <div className="min-h-full bg-page">

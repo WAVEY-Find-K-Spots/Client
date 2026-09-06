@@ -1,8 +1,13 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import { Sparkles } from "lucide-react";
 
+const NO_NAV_ROUTES = ["/login"];
+
 export default function AppShell() {
+  const { pathname } = useLocation();
+  const showNav = !NO_NAV_ROUTES.includes(pathname);
+
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center gap-14 bg-[#f4e9de] lg:py-8 px-0">
       {/* Desktop backdrop accent panel */}
@@ -52,7 +57,7 @@ export default function AppShell() {
         {/* Detail CTA slot — mounted here, controlled by detail page via portal */}
         <div id="detail-cta-slot" className="absolute z-30 inset-x-0 bottom-[94px] pointer-events-none" />
         {/* Floating pill bottom navigation */}
-        <BottomNav />
+        {showNav && <BottomNav />}
       </div>
     </div>
   );
