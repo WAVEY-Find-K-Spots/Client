@@ -7,7 +7,6 @@ import {
   Compass,
   Route as RouteIcon,
   BadgeCheck,
-  MapPin,
   Check,
   ArrowRight,
 } from "lucide-react";
@@ -85,14 +84,6 @@ function Illustration({ kind }: { kind: SlideKey }) {
                 <span className="absolute inset-x-0 bottom-0 px-1.5 py-1 text-[9px] font-semibold text-white bg-gradient-to-t from-ink/80 to-transparent">
                   {s.name}
                 </span>
-                {mid && (
-                  <span
-                    className="absolute left-1/2 -top-1 -translate-x-1/2 flex items-center justify-center w-6 h-6 rounded-full bg-ink"
-                    style={{ boxShadow: "0 4px 10px rgba(44,24,16,0.3)" }}
-                  >
-                    <MapPin size={12} color="#F7EBE0" strokeWidth={2.4} />
-                  </span>
-                )}
               </div>
             );
           })}
