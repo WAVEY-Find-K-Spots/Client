@@ -226,11 +226,11 @@ export default function PlanSheet({
 
       {/* scrollable spot list (hidden when collapsed) */}
       <div
-        className={`flex-1 min-h-0 overflow-hidden mt-1 px-5 transition-[opacity] duration-200 ${
+        className={`flex-1 min-h-0 overflow-hidden mt-3 px-5 transition-[opacity] duration-200 ${
           isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
-        <div className="h-full overflow-y-auto no-scrollbar">
+        <div className="h-full overflow-y-auto no-scrollbar pt-1">
           {stops.map((s, i) => {
             const notLast = i < stops.length - 1;
             return (
@@ -322,7 +322,7 @@ export default function PlanSheet({
           <button
             type="button"
             onClick={onAddPick}
-            className="w-full h-[52px] rounded-[14px] border-2 border-dashed border-line flex items-center justify-center gap-1.5 text-[13px] font-medium text-muted cursor-pointer whitespace-nowrap"
+            className="mt-3 w-full h-[52px] rounded-[14px] border-2 border-dashed border-line flex items-center justify-center gap-1.5 text-[13px] font-medium text-muted cursor-pointer whitespace-nowrap"
           >
             <span className="flex items-center justify-center w-4 h-4">
               <Plus size={16} />
