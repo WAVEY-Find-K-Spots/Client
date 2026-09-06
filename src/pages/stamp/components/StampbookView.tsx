@@ -1,30 +1,39 @@
 import { useMemo, useState } from "react";
 import { stamps, stampRegions, type StampItem } from "@/mocks/stamps";
+import { useStamps } from "@/store/stamps-context";
 import { Award, Check, Lock, CheckCircle } from "lucide-react";
 
 interface StampbookViewProps {
   onOpenStamp: (stamp: StampItem) => void;
 }
 
-const collectedCount = stamps.filter((s) => s.earned).length;
 const nextGoal = 15;
-const earnedRatio = Math.round((collectedCount / nextGoal) * 100);
-
-const stats = [
-  { value: String(collectedCount), label: "수집 스탬프" },
-  { value: "5", label: "방문 지역" },
-  { value: "3", label: "획득 뱃지" },
-];
 
 export default function StampbookView({ onOpenStamp }: StampbookViewProps) {
   const [region, setRegion] = useState("all");
+  const { isEarned, earnedDate } = useStamps();
+
+  const collectedCount = useMemo(
+    () => stamps.filter((s) => isEarned(s.id)).length,
+    [isEarned],
+  );
+  const earnedRatio = Math.min(100, Math.round((collectedCount / nextGoal) * 100));
+  const regionCount = useMemo(
+    () => new Set(stamps.filter((s) => isEarned(s.id)).map((s) => s.region)).size,
+    [isEarned],
+  );
+  const stats = [
+    { value: String(collectedCount), label: "수집 스탬프" },
+    { value: String(regionCount), label: "방문 지역" },
+    { value: "3", label: "획득 뱃지" },
+  ];
 
   const list = useMemo(() => {
     const base = region === "all" ? [...stamps] : stamps.filter((s) => s.region === region);
-    return base.sort((a, b) => Number(b.earned) - Number(a.earned));
-  }, [region]);
+    return base.sort((a, b) => Number(isEarned(b.id)) - Number(isEarned(a.id)));
+  }, [region, isEarned]);
 
-  const earnedInView = list.filter((s) => s.earned).length;
+  const earnedInView = list.filter((s) => isEarned(s.id)).length;
 
   return (
     <div className="px-5">
@@ -50,7 +59,7 @@ export default function StampbookView({ onOpenStamp }: StampbookViewProps) {
           />
         </div>
         <p className="mt-2 text-[11px] text-muted">
-          다음 뱃지까지 {nextGoal - collectedCount}개 남음
+          다음 뱃지까지 {Math.max(0, nextGoal - collectedCount)}개 남음
         </p>
 
         {/* 통계 */}
@@ -105,11 +114,17 @@ export default function StampbookView({ onOpenStamp }: StampbookViewProps) {
       {/* 스탬프 그리드 3열 */}
       <div className="mt-4 grid grid-cols-3 gap-x-2 gap-y-6">
         {list.map((s) =>
-          s.earned ? (
+          isEarned(s.id) ? (
             <button
               key={s.id}
               type="button"
-              onClick={() => onOpenStamp(s)}
+              onClick={() =>
+                onOpenStamp({
+                  ...s,
+                  earned: true,
+                  dateShort: s.dateShort ?? earnedDate(s.id),
+                })
+              }
               className="flex flex-col items-center cursor-pointer"
             >
               <div
@@ -132,7 +147,9 @@ export default function StampbookView({ onOpenStamp }: StampbookViewProps) {
               <p className="mt-3 text-[11px] font-semibold text-ink text-center leading-tight">
                 {s.name}
               </p>
-              <p className="mt-0.5 text-[9px] text-muted">{s.dateShort}</p>
+              <p className="mt-0.5 text-[9px] text-muted">
+                {s.dateShort ?? earnedDate(s.id)}
+              </p>
             </button>
           ) : (
             <div key={s.id} className="flex flex-col items-center">

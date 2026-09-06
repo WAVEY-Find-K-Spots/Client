@@ -3,32 +3,28 @@ import StatusBar from "@/components/layout/StatusBar";
 import StampbookView from "./components/StampbookView";
 import BadgeView from "./components/BadgeView";
 import AcquiredOverlay from "./components/AcquiredOverlay";
-import { stamps, type StampItem } from "@/mocks/stamps";
+import { type StampItem } from "@/mocks/stamps";
 import { Share2 } from "lucide-react";
 
 type View = "book" | "badge";
 
 export default function StampTab() {
   const [view, setView] = useState<View>("book");
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeStamp, setActiveStamp] = useState<StampItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-
-  const activeStamp = activeId
-    ? (stamps.find((s) => s.id === activeId) ?? null)
-    : null;
 
   const showToast = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 1800);
   };
 
-  const openStamp = (stamp: StampItem) => setActiveId(stamp.id);
+  const openStamp = (stamp: StampItem) => setActiveStamp(stamp);
 
-  const closeOverlay = () => setActiveId(null);
+  const closeOverlay = () => setActiveStamp(null);
 
   const goBook = () => {
     setView("book");
-    setActiveId(null);
+    setActiveStamp(null);
   };
 
   const title = view === "book" ? "스탬프북" : "뱃지 컬렉션";
