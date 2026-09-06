@@ -6,6 +6,7 @@ import { stamps, type StampItem } from "@/mocks/stamps";
 import { useRoute } from "@/store/route-context";
 import { useStamps, spotStampId } from "@/store/stamps-context";
 import { distanceMeters, formatDistance, getCurrentCoords, watchCoords } from "@/lib/geo";
+import { shareContent, type ShareResult } from "@/lib/share";
 import DetailHero from "./components/DetailHero";
 import RatingBlock from "./components/RatingBlock";
 import DetailInfo from "./components/DetailInfo";
@@ -16,6 +17,12 @@ import AcquiredOverlay from "@/pages/stamp/components/AcquiredOverlay";
 import { Plus, Check, Star } from "lucide-react";
 
 const CHECKIN_RADIUS_M = 150;
+
+const shareToastMsg: Record<ShareResult, string> = {
+  shared: "공유했어요",
+  copied: "공유 링크를 복사했어요",
+  failed: "공유하지 못했어요",
+};
 
 function buildEarnedStamp(stampId: string, spotName: string, date: string): StampItem {
   const base = stamps.find((s) => s.id === stampId);
@@ -231,6 +238,13 @@ export default function SpotDetail() {
           <AcquiredOverlay
             stamp={overlayStamp}
             onClose={() => setOverlayStamp(null)}
+            onShare={async () => {
+              const res = await shareContent({
+                title: `${overlayStamp.name} 스탬프 획득!`,
+                text: `WAVEY에서 ${overlayStamp.name} 방문 스탬프를 모았어요.`,
+              });
+              setToast(shareToastMsg[res]);
+            }}
             onShowBook={() => {
               setOverlayStamp(null);
               navigate?.("/stamp");

@@ -12,6 +12,7 @@ interface AcquiredOverlayProps {
   stamp: StampItem;
   onClose: () => void;
   onShowBook: () => void;
+  onShare?: () => void;
 }
 
 const particles = [
@@ -31,6 +32,7 @@ export default function AcquiredOverlay({
   stamp,
   onClose,
   onShowBook,
+  onShare,
 }: AcquiredOverlayProps) {
   const dateLabel = useMemo(() => formatVisitDate(stamp.dateShort), [stamp]);
 
@@ -120,6 +122,7 @@ export default function AcquiredOverlay({
         </button>
         <button
           type="button"
+          onClick={onShare}
           className="flex-1 h-[52px] rounded-full bg-brand text-white text-[14px] font-semibold cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
         >
           <span className="flex items-center justify-center w-4 h-4">

@@ -5,7 +5,14 @@ import StampbookView from "./components/StampbookView";
 import BadgeView from "./components/BadgeView";
 import AcquiredOverlay from "./components/AcquiredOverlay";
 import { type StampItem } from "@/mocks/stamps";
+import { shareContent, type ShareResult } from "@/lib/share";
 import { Share2 } from "lucide-react";
+
+const shareToast: Record<ShareResult, string> = {
+  shared: "공유했어요",
+  copied: "공유 링크를 복사했어요",
+  failed: "공유하지 못했어요",
+};
 
 type View = "book" | "badge";
 
@@ -20,6 +27,24 @@ export default function StampTab() {
   };
 
   const openStamp = (stamp: StampItem) => setActiveStamp(stamp);
+
+  const shareStampbook = async () => {
+    const res = await shareContent({
+      title: "WAVEY 스탬프북",
+      text: "내가 방문한 K-스팟 스탬프를 확인해보세요.",
+    });
+    showToast(shareToast[res]);
+  };
+
+  const shareStamp = async (stamp: StampItem) => {
+    const res = await shareContent({
+      title: `${stamp.name} 스탬프 획득!`,
+      text: `WAVEY에서 ${stamp.name} 방문 스탬프를 모았어요${
+        stamp.kContent ? ` (${stamp.kContent})` : ""
+      }.`,
+    });
+    showToast(shareToast[res]);
+  };
 
   const closeOverlay = () => setActiveStamp(null);
 
@@ -41,7 +66,7 @@ export default function StampTab() {
         </h1>
         <button
           type="button"
-          onClick={() => showToast("스탬프북을 공유했어요")}
+          onClick={shareStampbook}
           aria-label="공유하기"
           className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
         >
@@ -100,6 +125,7 @@ export default function StampTab() {
           <AcquiredOverlay
             stamp={activeStamp}
             onClose={closeOverlay}
+            onShare={() => shareStamp(activeStamp)}
             onShowBook={() => {
               goBook();
               showToast("스탬프북을 확인해보세요");
