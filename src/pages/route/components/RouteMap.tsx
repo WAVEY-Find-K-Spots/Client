@@ -232,12 +232,17 @@ export default function RouteMap({
                 className="flex items-center justify-center w-9 h-9 rounded-full bg-white cursor-pointer whitespace-nowrap"
                 style={{ boxShadow: "0 8px 18px rgba(44,24,16,0.16)" }}
               >
-                <Icon
-                  size={17}
-                  color={c.active ? "#A8623E" : "#2C1810"}
-                  strokeWidth={1.9}
-                  className={c.active ? "animate-pulse" : undefined}
-                />
+                <span
+                  className={`flex items-center justify-center w-[17px] h-[17px] ${
+                    c.active ? "animate-pulse" : ""
+                  }`}
+                >
+                  <Icon
+                    size={17}
+                    color={c.active ? "#A8623E" : "#2C1810"}
+                    strokeWidth={1.9}
+                  />
+                </span>
               </button>
             );
           })}
@@ -250,12 +255,13 @@ export default function RouteMap({
           className="absolute right-3 bottom-3 z-[500] flex items-center justify-center w-9 h-9 rounded-full bg-white cursor-pointer whitespace-nowrap"
           style={{ boxShadow: "0 8px 18px rgba(44,24,16,0.16)" }}
         >
-          <Crosshair
-            size={17}
-            color={locating ? "#A8623E" : "#2C1810"}
-            strokeWidth={1.9}
-            className={locating ? "animate-pulse" : undefined}
-          />
+          <span
+            className={`flex items-center justify-center w-[17px] h-[17px] ${
+              locating ? "animate-pulse" : ""
+            }`}
+          >
+            <Crosshair size={17} color={locating ? "#A8623E" : "#2C1810"} strokeWidth={1.9} />
+          </span>
         </button>
       )}
     </div>
