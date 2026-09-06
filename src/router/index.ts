@@ -1,6 +1,6 @@
 import { useNavigate, type NavigateFunction } from "react-router-dom";
 import { useRoutes } from "react-router-dom";
-import React, { useEffect, Suspense } from "react";
+import { useEffect } from "react";
 import routes from "./config";
 
 let navigateResolver: (navigate: ReturnType<typeof useNavigate>) => void;
@@ -21,10 +21,6 @@ export function AppRoutes() {
   useEffect(() => {
     window.REACT_APP_NAVIGATE = navigate;
     navigateResolver(window.REACT_APP_NAVIGATE);
-  }, [navigate]);
-  return React.createElement(
-    Suspense,
-    { fallback: React.createElement('div', null, 'Loading...') },
-    element
-  );
+  });
+  return element;
 }

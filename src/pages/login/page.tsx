@@ -1,63 +1,113 @@
-import { PlaceholderImage } from '../../components/base/PlaceholderImage';
+import { useState } from "react";
+import StatusBar from "@/components/layout/StatusBar";
+import waveyLogo from "@/assets/wavey.png";
+import { GoogleMark, AppleMark, KakaoMark } from "./SocialMarks";
+
+type Provider = "google" | "apple" | "kakao";
+
+const providers: {
+  key: Provider;
+  label: string;
+  className: string;
+  Mark: (p: { className?: string }) => React.ReactElement;
+}[] = [
+  {
+    key: "kakao",
+    label: "카카오",
+    className: "bg-[#FEE500] text-[#191919]",
+    Mark: KakaoMark,
+  },
+  {
+    key: "google",
+    label: "구글",
+    className: "bg-white border border-line text-ink",
+    Mark: GoogleMark,
+  },
+  {
+    key: "apple",
+    label: "Apple",
+    className: "bg-[#111111] text-white",
+    Mark: AppleMark,
+  },
+];
 
 export default function LoginPage() {
-  const handleGoogleLogin = () => {
-    localStorage.setItem('isLoggedIn', 'true');
-    if (window.REACT_APP_NAVIGATE) {
-      window.REACT_APP_NAVIGATE('/home');
-    }
+  const [pending, setPending] = useState<Provider | null>(null);
+
+  const navigate = (
+    window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
+  ).REACT_APP_NAVIGATE;
+
+  const login = (p: Provider) => {
+    if (pending) return;
+    setPending(p);
+    window.setTimeout(() => navigate?.("/"), 700);
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Status Bar */}
-      <div className="h-11 bg-transparent flex items-center justify-between px-6">
-        <span className="text-gray-900 text-sm font-semibold">9:41</span>
-        <div className="flex items-center gap-1">
-          <i className="ri-signal-wifi-fill text-gray-900 text-sm"></i>
-          <i className="ri-wifi-fill text-gray-900 text-sm"></i>
-          <i className="ri-battery-fill text-gray-900 text-sm"></i>
-        </div>
-      </div>
+    <div className="min-h-full flex flex-col bg-page">
+      <StatusBar variant="dark" />
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {/* Logo - Larger size */}
-        <div className="mb-8">
-          <PlaceholderImage
-            alt="WAVEY Logo"
-            className="h-20 w-20 mx-auto"
-            iconClassName="text-4xl"
-            label="앱 로고"
-          />
-        </div>
-
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-2 text-center">
-          Welcome to WAVEY
-        </h1>
-        <p className="text-sm text-gray-500 mb-12 text-center">
-          Your K-Culture Guide
+      <div className="flex-1 flex flex-col items-center justify-center px-8 pb-10">
+        {/* brand */}
+        <img
+          src={waveyLogo}
+          alt="WAVEY"
+          className="w-[220px] max-w-[70%] h-auto select-none"
+        />
+        <p className="mt-1 text-[13px] text-muted text-center leading-relaxed">
+          드라마와 K-POP, 영화 속
+          <br />
+          그 장소로 떠나는 여행
         </p>
 
-        {/* Google Login Button */}
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full max-w-sm py-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-50 transition-all cursor-pointer whitespace-nowrap shadow-sm"
-        >
-          <i className="ri-google-fill text-xl text-red-500"></i>
-          <span className="text-base font-semibold text-gray-900">Continue with Google</span>
-        </button>
+        {/* social login */}
+        <div className="mt-9 flex flex-col items-center">
+          <span className="text-[12px] font-medium text-muted">간편 로그인</span>
 
-        {/* Terms */}
-        <p className="text-xs text-gray-400 mt-8 text-center max-w-sm">
-          By continuing, you agree to our Terms of Service and Privacy Policy
-        </p>
-      </div>
+          <div className="mt-4 flex items-center justify-center gap-5">
+            {providers.map(({ key, label, className, Mark }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => login(key)}
+                disabled={pending !== null}
+                aria-label={`${label} 계정으로 로그인`}
+                className={`relative flex items-center justify-center w-14 h-14 rounded-full shadow-soft transition active:scale-95 disabled:opacity-60 cursor-pointer ${className}`}
+              >
+                <Mark className="w-6 h-6" />
+                {pending === key && (
+                  <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-current animate-spin" />
+                )}
+              </button>
+            ))}
+          </div>
 
-      {/* Home Indicator */}
-      <div className="pb-2 flex justify-center">
-        <div className="w-32 h-1 bg-gray-300 rounded-full"></div>
+          <p className="mt-6 text-[11px] text-muted text-center leading-relaxed">
+            로그인 시 <span className="text-sub underline">이용약관</span> 및{" "}
+            <span className="text-sub underline">개인정보처리방침</span>에
+            <br />
+            동의하게 됩니다
+          </p>
+
+          <div className="mt-4 flex items-center gap-3 text-[12px] font-medium text-muted">
+            <button
+              type="button"
+              onClick={() => navigate?.("/")}
+              className="underline underline-offset-2 cursor-pointer whitespace-nowrap"
+            >
+              로그인 없이 둘러보기
+            </button>
+            <span className="w-px h-3 bg-line" />
+            <button
+              type="button"
+              onClick={() => navigate?.("/welcome")}
+              className="underline underline-offset-2 cursor-pointer whitespace-nowrap"
+            >
+              WAVEY 소개
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
