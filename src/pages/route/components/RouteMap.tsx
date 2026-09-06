@@ -27,21 +27,37 @@ function pinIcon(label: number, opts: { current?: boolean; emphasized?: boolean 
   const badge = opts.current
     ? `<span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:1px 6px;border-radius:999px;background:${BRAND};color:#fff;font-size:10px;font-weight:700">현재</span>`
     : "";
-  const pulse = opts.current
-    ? `<span style="position:absolute;top:50%;left:50%;width:56px;height:56px;transform:translate(-50%,-50%);border-radius:999px;background:rgba(168,98,62,0.3)" class="animate-ping"></span>`
-    : "";
+  const circle = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:999px;background:${INK};color:#fff;font-weight:700;font-size:${opts.current ? 16 : opts.emphasized ? 14 : 11}px;box-shadow:${ring}">${badge}${label}</div>`;
+
+  // current spot: centered on the exact coordinate, no pointer tail
+  if (opts.current) {
+    return L.divIcon({
+      className: "",
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+      html: `<div style="position:relative;display:flex;align-items:center;justify-content:center">${circle}</div>`,
+    });
+  }
+
   return L.divIcon({
     className: "",
-    iconSize: [size, size],
+    iconSize: [size, size + 6],
     iconAnchor: [size / 2, size + 6],
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center">
-        ${pulse}
-        <div style="position:relative;display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:999px;background:${INK};color:#fff;font-weight:700;font-size:${opts.current ? 16 : opts.emphasized ? 14 : 11}px;box-shadow:${ring}">
-          ${badge}${label}
-        </div>
+        ${circle}
         <div style="width:0;height:0;margin-top:-1px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${INK}"></div>
       </div>`,
+  });
+}
+
+// pulsing ring, centered exactly on the coordinate — sits behind the current pin
+function pulseIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    iconSize: [56, 56],
+    iconAnchor: [28, 28],
+    html: `<span style="display:block;width:56px;height:56px;border-radius:999px;background:rgba(168,98,62,0.3)" class="animate-ping"></span>`,
   });
 }
 
@@ -100,7 +116,11 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
     stops.forEach((s, i) => {
       const emphasized = variant === "nav" && (i === 0 || i === stops.length - 1);
       const current = variant === "nav" && currentIndex === i;
-      L.marker([s.coord.lat, s.coord.lng], {
+      const latlng: [number, number] = [s.coord.lat, s.coord.lng];
+      if (current) {
+        L.marker(latlng, { icon: pulseIcon(), interactive: false, zIndexOffset: 900 }).addTo(layer);
+      }
+      L.marker(latlng, {
         icon: pinIcon(i + 1, { current, emphasized }),
         zIndexOffset: current ? 1000 : emphasized ? 500 : 0,
       })
