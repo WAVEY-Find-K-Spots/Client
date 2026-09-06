@@ -53,7 +53,7 @@ export default function LoginPage() {
         <img
           src={waveyLogo}
           alt="WAVEY"
-          className="w-[220px] max-w-[70%] h-auto select-none"
+          className="w-[220px] max-w-[70%] h-auto select-none mix-blend-multiply"
         />
         <p className="mt-1 text-[13px] text-muted text-center leading-relaxed">
           드라마와 K-POP, 영화 속

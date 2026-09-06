@@ -33,7 +33,7 @@ export default function WelcomePage() {
         <img
           src={waveyLogo}
           alt="WAVEY"
-          className="w-[148px] h-auto select-none"
+          className="w-[148px] h-auto select-none mix-blend-multiply"
         />
         <h1 className="mt-6 text-[24px] font-extrabold leading-snug tracking-tight text-ink">
           K-콘텐츠 속 그 장소,
