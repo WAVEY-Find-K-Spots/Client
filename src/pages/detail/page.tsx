@@ -2,14 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { spots } from "@/mocks/spots";
+import { stamps, type StampItem } from "@/mocks/stamps";
 import { useRoute } from "@/store/route-context";
+import { useStamps, spotStampId } from "@/store/stamps-context";
+import { distanceMeters, formatDistance, getCurrentCoords, watchCoords } from "@/lib/geo";
 import DetailHero from "./components/DetailHero";
 import RatingBlock from "./components/RatingBlock";
 import DetailInfo from "./components/DetailInfo";
 import ContentTab from "./components/ContentTab";
 import ReviewsTab from "./components/ReviewsTab";
 import NearbyTab from "./components/NearbyTab";
+import AcquiredOverlay from "@/pages/stamp/components/AcquiredOverlay";
 import { Plus, Check, Star } from "lucide-react";
+
+const CHECKIN_RADIUS_M = 150;
+
+function buildEarnedStamp(stampId: string, spotName: string, date: string): StampItem {
+  const base = stamps.find((s) => s.id === stampId);
+  return base
+    ? { ...base, earned: true, dateShort: date }
+    : { id: stampId, name: spotName, region: "seoul", earned: true, dateShort: date };
+}
 
 type TabKey = "info" | "content" | "reviews" | "nearby";
 const tabs: { key: TabKey; label: string }[] = [
@@ -22,9 +35,12 @@ const tabs: { key: TabKey; label: string }[] = [
 export default function SpotDetail() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<TabKey>("info");
-  const [stamped, setStamped] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [overlayStamp, setOverlayStamp] = useState<StampItem | null>(null);
 
   const { inRoute, toggleRoute } = useRoute();
+  const { isEarned, collectStamp } = useStamps();
   const spot = useMemo(() => spots.find((s) => s.id === id), [id]);
 
   const navigate = (
@@ -36,8 +52,33 @@ export default function SpotDetail() {
     const el = document.getElementById("app-scroll");
     if (el) el.scrollTop = 0;
     setTab("info");
-    setStamped(false);
+    setToast(null);
+    setScanning(false);
+    setOverlayStamp(null);
   }, [id]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2200);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // auto check-in: watch position while on this spot; grant the stamp when within range
+  useEffect(() => {
+    if (!spot) return;
+    const sid = spotStampId(spot.id);
+    if (isEarned(sid)) return;
+    const target = spot.coord;
+    let done = false;
+    const unwatch = watchCoords((c) => {
+      if (done || distanceMeters(c, target) > CHECKIN_RADIUS_M) return;
+      done = true;
+      const date = collectStamp(sid);
+      setOverlayStamp(buildEarnedStamp(sid, spot.name, date));
+    });
+    return unwatch;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spot?.id]);
 
   if (!spot) {
     return (
@@ -57,7 +98,31 @@ export default function SpotDetail() {
   const collapsed = tab !== "info";
   const routeAdded = inRoute(spot.id);
 
+  const stampId = spotStampId(spot.id);
+  const stamped = isEarned(stampId);
+
+  const handleCheckIn = () => {
+    if (stamped) {
+      setToast("이미 획득한 스탬프예요");
+      return;
+    }
+    setScanning(true);
+    getCurrentCoords()
+      .then((c) => {
+        const d = distanceMeters(c, spot.coord);
+        if (d <= CHECKIN_RADIUS_M) {
+          const date = collectStamp(stampId);
+          setOverlayStamp(buildEarnedStamp(stampId, spot.name, date));
+        } else {
+          setToast(`스팟에서 약 ${formatDistance(d)} 떨어져 있어요`);
+        }
+      })
+      .catch(() => setToast("위치를 확인할 수 없어요. 위치 권한을 허용해 주세요"))
+      .finally(() => setScanning(false));
+  };
+
   const ctaSlot = document.getElementById("detail-cta-slot");
+  const phoneFrame = document.getElementById("phone-frame");
 
   return (
     <div className="min-h-full bg-page">
@@ -130,8 +195,9 @@ export default function SpotDetail() {
             </button>
             <button
               type="button"
-              onClick={() => setStamped((v) => !v)}
-              className={`flex-1 h-[58px] rounded-full flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              onClick={handleCheckIn}
+              disabled={scanning}
+              className={`flex-1 h-[58px] rounded-full flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-70 ${
                 stamped ? "bg-brand text-white" : "bg-cream border border-brand text-brand"
               }`}
             >
@@ -143,11 +209,34 @@ export default function SpotDetail() {
                 />
               </span>
               <span className="text-[14px] font-semibold">
-                {stamped ? "스탬프 획득!" : "스탬프 획득"}
+                {stamped ? "스탬프 획득!" : scanning ? "위치 확인 중…" : "스탬프 획득"}
               </span>
             </button>
           </div>,
           ctaSlot
+        )}
+
+      {/* toast */}
+      {toast &&
+        createPortal(
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-[170px] z-[55] px-4 py-2 rounded-full bg-ink/90 text-[12px] font-medium text-white pointer-events-none whitespace-nowrap">
+            {toast}
+          </div>,
+          phoneFrame ?? document.body,
+        )}
+
+      {/* stamp acquired celebration */}
+      {overlayStamp &&
+        createPortal(
+          <AcquiredOverlay
+            stamp={overlayStamp}
+            onClose={() => setOverlayStamp(null)}
+            onShowBook={() => {
+              setOverlayStamp(null);
+              navigate?.("/stamp");
+            }}
+          />,
+          phoneFrame ?? document.body,
         )}
     </div>
   );
