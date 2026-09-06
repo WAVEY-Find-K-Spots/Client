@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { spots } from "@/mocks/spots";
+import { useRoute } from "@/store/route-context";
 import DetailHero from "./components/DetailHero";
 import RatingBlock from "./components/RatingBlock";
 import DetailInfo from "./components/DetailInfo";
@@ -21,9 +22,9 @@ const tabs: { key: TabKey; label: string }[] = [
 export default function SpotDetail() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<TabKey>("info");
-  const [routeAdded, setRouteAdded] = useState(false);
   const [stamped, setStamped] = useState(false);
 
+  const { inRoute, toggleRoute } = useRoute();
   const spot = useMemo(() => spots.find((s) => s.id === id), [id]);
 
   const navigate = (
@@ -35,7 +36,6 @@ export default function SpotDetail() {
     const el = document.getElementById("app-scroll");
     if (el) el.scrollTop = 0;
     setTab("info");
-    setRouteAdded(false);
     setStamped(false);
   }, [id]);
 
@@ -55,6 +55,7 @@ export default function SpotDetail() {
   }
 
   const collapsed = tab !== "info";
+  const routeAdded = inRoute(spot.id);
 
   const ctaSlot = document.getElementById("detail-cta-slot");
 
@@ -111,7 +112,7 @@ export default function SpotDetail() {
           <div className="px-5 flex gap-2.5 pointer-events-auto">
             <button
               type="button"
-              onClick={() => setRouteAdded((v) => !v)}
+              onClick={() => toggleRoute(spot.id)}
               className={`flex-1 h-[58px] rounded-full flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 routeAdded ? "bg-brand text-white" : "bg-ink text-white"
               }`}
