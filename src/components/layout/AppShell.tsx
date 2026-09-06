@@ -38,7 +38,7 @@ export default function AppShell() {
       </div>
 
       {/* Phone device frame — iPhone 16 ratio 393x852 */}
-      <div className="relative z-10 w-full min-h-screen lg:min-h-0 lg:w-[393px] lg:h-[852px] lg:rounded-[46px] lg:border-[10px] lg:border-ink/90 lg:shadow-2xl overflow-hidden bg-page phone-viewport">
+      <div className="relative z-10 w-full max-w-[440px] mx-auto min-h-screen lg:min-h-0 lg:max-w-none lg:w-[393px] lg:h-[852px] lg:rounded-[46px] lg:border-[10px] lg:border-ink/90 lg:shadow-2xl overflow-hidden bg-page phone-viewport">
         {/* Scrollable app content */}
         <div
           id="app-scroll"
