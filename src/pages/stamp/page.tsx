@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import StatusBar from "@/components/layout/StatusBar";
 import StampbookView from "./components/StampbookView";
 import BadgeView from "./components/BadgeView";
@@ -93,17 +94,19 @@ export default function StampTab() {
         </div>
       )}
 
-      {/* 스탬프 획득 오버레이 */}
-      {activeStamp && (
-        <AcquiredOverlay
-          stamp={activeStamp}
-          onClose={closeOverlay}
-          onShowBook={() => {
-            goBook();
-            showToast("스탬프북을 확인해보세요");
-          }}
-        />
-      )}
+      {/* 스탬프 획득 오버레이 — 스크롤 컨테이너가 아닌 폰 프레임에 붙여 현재 화면을 덮도록 */}
+      {activeStamp &&
+        createPortal(
+          <AcquiredOverlay
+            stamp={activeStamp}
+            onClose={closeOverlay}
+            onShowBook={() => {
+              goBook();
+              showToast("스탬프북을 확인해보세요");
+            }}
+          />,
+          document.getElementById("phone-frame") ?? document.body,
+        )}
     </div>
   );
 }
