@@ -148,13 +148,13 @@ export default function PlanSheet({
         style={{ touchAction: 'none' }}
       >
         {/* handle bar */}
-        <div className="flex flex-col items-center justify-center pt-3 pb-1">
+        <div className="flex flex-col items-center pt-2.5 pb-2 gap-2">
           <span className="w-10 h-1 rounded-full bg-line" />
-          <span className="flex items-center justify-center w-5 h-5 mt-1">
+          <span className="flex items-center justify-center w-4 h-4">
             {isExpanded ? (
-              <ChevronDown size={14} color="#A89890" strokeWidth={2.2} />
+              <ChevronDown size={15} color="#A89890" strokeWidth={2.4} />
             ) : (
-              <ChevronUp size={14} color="#A89890" strokeWidth={2.2} />
+              <ChevronUp size={15} color="#A89890" strokeWidth={2.4} />
             )}
           </span>
         </div>
