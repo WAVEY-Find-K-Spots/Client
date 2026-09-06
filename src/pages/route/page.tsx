@@ -214,7 +214,8 @@ export default function RouteTab() {
             variant="nav"
             stops={stops}
             currentIndex={current}
-            onLocate={() => showToast("현재 위치로 이동")}
+            onLocate={() => showToast("현재 위치로 이동했어요")}
+            onLocateError={() => showToast("위치를 확인할 수 없어요. 권한을 허용해 주세요")}
           />
           <NavOverlay
             stops={stops}

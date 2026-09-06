@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import type { Spot } from "@/mocks/spots";
-import { Crosshair, Layers, ZoomIn, ZoomOut } from "lucide-react";
+import { getCurrentCoords, type LatLng } from "@/lib/geo";
+import { Crosshair, Navigation, ZoomIn, ZoomOut } from "lucide-react";
 
 type MapVariant = "empty" | "plan" | "nav";
 
@@ -10,6 +11,7 @@ interface RouteMapProps {
   stops: Spot[];
   currentIndex?: number;
   onLocate?: () => void;
+  onLocateError?: () => void;
 }
 
 // Seoul city center — fallback view when no stops are selected
@@ -52,10 +54,18 @@ function pinIcon(label: number, opts: { current?: boolean; emphasized?: boolean 
 }
 
 
-export default function RouteMap({ variant, stops, currentIndex, onLocate }: RouteMapProps) {
+export default function RouteMap({
+  variant,
+  stops,
+  currentIndex,
+  onLocate,
+  onLocateError,
+}: RouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const userLayerRef = useRef<L.LayerGroup | null>(null);
+  const [locating, setLocating] = useState(false);
 
   // init map once
   useEffect(() => {
@@ -70,6 +80,7 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
       attribution: "&copy; OpenStreetMap",
     }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
+    userLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
     const ro = new ResizeObserver(() => map.invalidateSize());
@@ -81,6 +92,7 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
+      userLayerRef.current = null;
     };
   }, []);
 
@@ -141,22 +153,57 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
     }
   }, [stopsKey, variant, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleLocate = () => {
-    const map = mapRef.current;
-    if (map) {
-      if (stops.length >= 2) {
-        map.fitBounds(L.latLngBounds(stops.map((s) => [s.coord.lat, s.coord.lng])), {
-          padding: [48, 48],
-          maxZoom: 16,
-        });
-      } else if (stops.length === 1) {
-        map.setView([stops[0].coord.lat, stops[0].coord.lng], 15);
-      }
-    }
-    onLocate?.();
+  const drawUser = (c: LatLng) => {
+    const layer = userLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    L.circle([c.lat, c.lng], {
+      radius: 70,
+      color: "#2563EB",
+      weight: 1,
+      opacity: 0.5,
+      fillColor: "#2563EB",
+      fillOpacity: 0.12,
+      interactive: false,
+    }).addTo(layer);
+    L.circleMarker([c.lat, c.lng], {
+      radius: 7,
+      color: "#fff",
+      weight: 3,
+      fillColor: "#2563EB",
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(layer);
   };
 
-  const zoom = (delta: number) => mapRef.current?.setZoom((mapRef.current?.getZoom() ?? 12) + delta);
+  // move to the device's real location and mark it
+  const locateMe = () => {
+    const map = mapRef.current;
+    if (!map || locating) return;
+    setLocating(true);
+    getCurrentCoords()
+      .then((c) => {
+        drawUser(c);
+        map.setView([c.lat, c.lng], 16, { animate: true });
+        onLocate?.();
+      })
+      .catch(() => onLocateError?.())
+      .finally(() => setLocating(false));
+  };
+
+  // frame the whole route
+  const fitToRoute = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (stops.length >= 2) {
+      map.fitBounds(
+        L.latLngBounds(stops.map((s) => [s.coord.lat, s.coord.lng])),
+        { padding: [48, 48], maxZoom: 16 },
+      );
+    } else if (stops.length === 1) {
+      map.setView([stops[0].coord.lat, stops[0].coord.lng], 15);
+    }
+  };
 
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -165,10 +212,15 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
       {variant === "nav" ? (
         <div className="absolute right-3 top-[92px] z-[500] flex flex-col gap-2">
           {[
-            { icon: Crosshair, label: "현재 위치", onClick: handleLocate },
-            { icon: Layers, label: "지도 레이어", onClick: onLocate },
-            { icon: ZoomIn, label: "확대", onClick: () => zoom(1) },
-            { icon: ZoomOut, label: "축소", onClick: () => zoom(-1) },
+            {
+              icon: Crosshair,
+              label: "내 위치로 이동",
+              onClick: locateMe,
+              active: locating,
+            },
+            { icon: Navigation, label: "경로 전체 보기", onClick: fitToRoute },
+            { icon: ZoomIn, label: "확대", onClick: () => mapRef.current?.zoomIn() },
+            { icon: ZoomOut, label: "축소", onClick: () => mapRef.current?.zoomOut() },
           ].map((c) => {
             const Icon = c.icon;
             return (
@@ -180,7 +232,12 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
                 className="flex items-center justify-center w-9 h-9 rounded-full bg-white cursor-pointer whitespace-nowrap"
                 style={{ boxShadow: "0 8px 18px rgba(44,24,16,0.16)" }}
               >
-                <Icon size={17} color="#2C1810" strokeWidth={1.9} />
+                <Icon
+                  size={17}
+                  color={c.active ? "#A8623E" : "#2C1810"}
+                  strokeWidth={1.9}
+                  className={c.active ? "animate-pulse" : undefined}
+                />
               </button>
             );
           })}
@@ -188,12 +245,17 @@ export default function RouteMap({ variant, stops, currentIndex, onLocate }: Rou
       ) : (
         <button
           type="button"
-          onClick={handleLocate}
-          aria-label="현재 위치"
+          onClick={locateMe}
+          aria-label="내 위치로 이동"
           className="absolute right-3 bottom-3 z-[500] flex items-center justify-center w-9 h-9 rounded-full bg-white cursor-pointer whitespace-nowrap"
           style={{ boxShadow: "0 8px 18px rgba(44,24,16,0.16)" }}
         >
-          <Crosshair size={17} color="#2C1810" strokeWidth={1.9} />
+          <Crosshair
+            size={17}
+            color={locating ? "#A8623E" : "#2C1810"}
+            strokeWidth={1.9}
+            className={locating ? "animate-pulse" : undefined}
+          />
         </button>
       )}
     </div>
