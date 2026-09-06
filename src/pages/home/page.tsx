@@ -5,6 +5,7 @@ import SpotListItem from "./components/SpotListItem";
 import SearchPanel from "./components/SearchPanel";
 import FilterSheet, { type SpotFilterState } from "./components/FilterSheet";
 import { spots, spotCategories, type SpotType } from "@/mocks/spots";
+import { useNotifications } from "@/store/notifications-context";
 import { getDistanceKm } from "./distance";
 import {
   Search,
@@ -52,6 +53,7 @@ export default function SpotList() {
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
+  const { unreadCount } = useNotifications();
 
   const [cat, setCat] = useState<CatKey>("all");
   const [query, setQuery] = useState("");
@@ -194,13 +196,18 @@ export default function SpotList() {
         </h1>
         <button
           type="button"
-          onClick={() => showToast("알림이 준비 중이에요")}
-          className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-cream cursor-pointer"
+          onClick={() => navigate?.("/notifications")}
+          className="relative flex items-center justify-center w-10 h-10 rounded-[14px] bg-cream cursor-pointer"
           aria-label="알림"
         >
           <span className="flex items-center justify-center w-5 h-5">
             <Bell size={19} color="#A8623E" strokeWidth={2} />
           </span>
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-brand text-white text-[9px] font-bold flex items-center justify-center border-2 border-cream">
+              {unreadCount}
+            </span>
+          )}
         </button>
       </div>
 

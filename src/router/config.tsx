@@ -8,6 +8,7 @@ import StampTab from "@/pages/stamp/page";
 import MyPage from "@/pages/mypage/page";
 import LoginPage from "@/pages/login/page";
 import WelcomePage from "@/pages/welcome/page";
+import NotificationsPage from "@/pages/notifications/page";
 
 const routes: RouteObject[] = [
   {
@@ -21,6 +22,7 @@ const routes: RouteObject[] = [
       { path: "route", element: <RouteTab /> },
       { path: "stamp", element: <StampTab /> },
       { path: "mypage", element: <MyPage /> },
+      { path: "notifications", element: <NotificationsPage /> },
     ],
   },
   {
