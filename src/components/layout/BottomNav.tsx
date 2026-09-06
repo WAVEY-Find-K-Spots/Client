@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Compass, Route, BadgeCheck, User, type LucideIcon } from "lucide-react";
 
 interface TabItem {
@@ -42,7 +42,7 @@ const tabs: TabItem[] = [
 
 export default function BottomNav() {
   const { pathname } = useLocation();
-  const navigate = (window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }).REACT_APP_NAVIGATE;
+  const navigate = useNavigate();
 
   return (
     <nav
@@ -56,7 +56,7 @@ export default function BottomNav() {
           <button
             key={tab.key}
             type="button"
-            onClick={() => navigate?.(tab.path)}
+            onClick={() => navigate(tab.path)}
             className="flex flex-col items-center justify-center h-full w-[68px] cursor-pointer whitespace-nowrap"
             aria-current={active ? "page" : undefined}
           >
