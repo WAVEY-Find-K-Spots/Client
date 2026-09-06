@@ -90,13 +90,23 @@ export default function LoginPage() {
             동의하게 됩니다
           </p>
 
-          <button
-            type="button"
-            onClick={() => navigate?.("/")}
-            className="mt-4 text-[12px] font-medium text-muted underline underline-offset-2 cursor-pointer whitespace-nowrap"
-          >
-            로그인 없이 둘러보기
-          </button>
+          <div className="mt-4 flex items-center gap-3 text-[12px] font-medium text-muted">
+            <button
+              type="button"
+              onClick={() => navigate?.("/")}
+              className="underline underline-offset-2 cursor-pointer whitespace-nowrap"
+            >
+              로그인 없이 둘러보기
+            </button>
+            <span className="w-px h-3 bg-line" />
+            <button
+              type="button"
+              onClick={() => navigate?.("/welcome")}
+              className="underline underline-offset-2 cursor-pointer whitespace-nowrap"
+            >
+              WAVEY 소개
+            </button>
+          </div>
         </div>
       </div>
     </div>
