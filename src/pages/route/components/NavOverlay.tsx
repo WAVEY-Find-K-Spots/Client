@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { Spot } from "@/mocks/spots";
 import { ChevronLeft, Repeat, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 
-const MINI_COLLAPSED = 120;
+const MINI_COLLAPSED = 92;
 const MINI_EXPANDED = 260;
 
 interface NavOverlayProps {
@@ -128,7 +128,7 @@ export default function NavOverlay({
             </span>
           </div>
 
-          {isExpanded && (
+          {isExpanded ? (
             <>
               <p className="text-[15px] font-semibold text-ink mt-1">
                 {current + 1}번 {cur.name}에서 출발
@@ -138,40 +138,53 @@ export default function NavOverlay({
                   ? "모든 스팟을 둘러봤어요. 도착했어요!"
                   : `다음: ${nextSpot!.name}까지 ${travelToNext(current)}`}
               </p>
+
+              {/* progress bar */}
+              <div className="mt-3 h-1.5 rounded-full bg-line overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-brand transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-muted mt-1.5 text-right">
+                {Math.min(current + 1, stops.length)} / {stops.length} 스팟 완료
+              </p>
+
+              {/* prev / next buttons */}
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onPrev}
+                  disabled={current === 0}
+                  className="h-[46px] flex-1 rounded-full bg-cream text-ink text-[13px] font-semibold flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
+                >
+                  <ChevronLeft size={17} strokeWidth={2.2} />
+                  이전 스팟
+                </button>
+                <button
+                  type="button"
+                  onClick={onNext}
+                  className="h-[46px] flex-1 rounded-full bg-ink text-white text-[13px] font-semibold flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+                >
+                  {isLast ? "완료" : "다음 스팟"}
+                  <ChevronRight size={17} strokeWidth={2.2} color="#FFFFFF" />
+                </button>
+              </div>
             </>
+          ) : (
+            <button
+              type="button"
+              onClick={toggle}
+              className="flex items-center justify-between gap-2 -mt-0.5 cursor-pointer text-left"
+            >
+              <span className="text-[13px] font-semibold text-ink truncate">
+                {isLast ? "도착했어요" : `${current + 1}번 ${cur.name}`}
+              </span>
+              <span className="text-[11px] text-muted shrink-0">
+                {Math.min(current + 1, stops.length)} / {stops.length}
+              </span>
+            </button>
           )}
-
-          {/* progress bar */}
-          <div className="mt-3 h-1.5 rounded-full bg-line overflow-hidden">
-            <div
-              className="h-full rounded-full bg-brand transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-muted mt-1.5 text-right">
-            {Math.min(current + 1, stops.length)} / {stops.length} 스팟 완료
-          </p>
-
-          {/* prev / next buttons */}
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onPrev}
-              disabled={current === 0}
-              className="h-[46px] flex-1 rounded-full bg-cream text-ink text-[13px] font-semibold flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
-            >
-              <ChevronLeft size={17} strokeWidth={2.2} />
-              이전 스팟
-            </button>
-            <button
-              type="button"
-              onClick={onNext}
-              className="h-[46px] flex-1 rounded-full bg-ink text-white text-[13px] font-semibold flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
-            >
-              {isLast ? "완료" : "다음 스팟"}
-              <ChevronRight size={17} strokeWidth={2.2} color="#FFFFFF" />
-            </button>
-          </div>
         </div>
       </div>
     </div>
