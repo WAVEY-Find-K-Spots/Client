@@ -1,8 +1,10 @@
+import { useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import { useProfile } from "@/store/profile-context";
 import { useNotifications } from "@/store/notifications-context";
 import { useStamps } from "@/store/stamps-context";
 import { useRoute } from "@/store/route-context";
+import { useAuth } from "@/store/auth-context";
 import { stamps, earnedBadges } from "@/mocks/stamps";
 import type { MyPageView } from "../page";
 import {
@@ -47,6 +49,8 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
   const { unreadCount } = useNotifications();
   const { isEarned } = useStamps();
   const { routeIds } = useRoute();
+  const { logout } = useAuth();
+  const [logoutPending, setLogoutPending] = useState(false);
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
@@ -66,6 +70,19 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
     if (goto === "spot") navigate?.("/");
     else if (goto === "stamp") navigate?.("/stamp");
     else onOpen(goto as MyPageView);
+  };
+
+  const handleLogout = async () => {
+    if (logoutPending) return;
+    setLogoutPending(true);
+    try {
+      await logout();
+    } catch {
+      onToast("서버 로그아웃 요청에 실패해 로컬 로그인 정보만 삭제했습니다.");
+    } finally {
+      navigate?.("/login");
+      setLogoutPending(false);
+    }
   };
 
   return (
@@ -226,13 +243,16 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
       <div className="px-5 mt-6">
         <button
           type="button"
-          onClick={() => navigate?.("/login")}
+          onClick={handleLogout}
+          disabled={logoutPending}
           className="w-full h-[52px] rounded-[14px] bg-white border border-line flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
         >
           <span className="flex items-center justify-center w-4 h-4">
             <LogOut size={16} color="#A89890" strokeWidth={1.9} />
           </span>
-          <span className="text-[14px] font-medium text-muted">로그아웃</span>
+          <span className="text-[14px] font-medium text-muted">
+            {logoutPending ? "로그아웃 중..." : "로그아웃"}
+          </span>
         </button>
       </div>
 
