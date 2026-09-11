@@ -9,6 +9,7 @@ import MyPage from "@/pages/mypage/page";
 import LoginPage from "@/pages/login/page";
 import WelcomePage from "@/pages/welcome/page";
 import NotificationsPage from "@/pages/notifications/page";
+import OAuthCallbackPage from "@/pages/login/callback";
 
 const routes: RouteObject[] = [
   {
@@ -18,6 +19,7 @@ const routes: RouteObject[] = [
       { index: true, element: <SpotList /> },
       { path: "welcome", element: <WelcomePage /> },
       { path: "login", element: <LoginPage /> },
+      { path: "oauth/callback", element: <OAuthCallbackPage /> },
       { path: "spot/:id", element: <SpotDetail /> },
       { path: "route", element: <RouteTab /> },
       { path: "stamp", element: <StampTab /> },
