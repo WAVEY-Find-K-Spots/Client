@@ -27,9 +27,9 @@ export default function OAuthCallbackPage() {
     }
 
     completeSocialLogin(code)
-      .then((user) => {
+      .then(({ user, isNewUser }) => {
         updateProfile({ nickname: user.name, email: user.email });
-        navigate("/", { replace: true });
+        navigate(isNewUser ? "/welcome" : "/", { replace: true });
       })
       .catch((error: unknown) => {
         const message = error instanceof ApiError

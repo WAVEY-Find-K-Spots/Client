@@ -14,6 +14,7 @@ export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   tokenType: "Bearer";
+  isNewUser: boolean;
 }
 
 export interface AuthUser {

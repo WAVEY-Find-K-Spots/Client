@@ -1,11 +1,16 @@
 import { createContext, useContext } from "react";
 import type { AuthUser, SocialProvider } from "@/lib/auth/types";
 
+export interface SocialLoginResult {
+  user: AuthUser;
+  isNewUser: boolean;
+}
+
 export interface AuthContextValue {
   user: AuthUser | null;
   initializing: boolean;
   beginSocialLogin: (provider: SocialProvider) => Promise<void>;
-  completeSocialLogin: (code: string) => Promise<AuthUser>;
+  completeSocialLogin: (code: string) => Promise<SocialLoginResult>;
   logout: () => Promise<void>;
   withdraw: () => Promise<void>;
 }

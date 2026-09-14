@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const authenticatedUser = await authApi.getCurrentUser();
       setUser(authenticatedUser);
-      return authenticatedUser;
+      return { user: authenticatedUser, isNewUser: tokens.isNewUser };
     } catch (error) {
       tokenStorage.clear();
       throw error;
