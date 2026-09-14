@@ -10,6 +10,7 @@ import LoginPage from "@/pages/login/page";
 import WelcomePage from "@/pages/welcome/page";
 import NotificationsPage from "@/pages/notifications/page";
 import OAuthCallbackPage from "@/pages/login/callback";
+import VisionPage from "@/pages/vision/page";
 
 const routes: RouteObject[] = [
   {
@@ -25,6 +26,7 @@ const routes: RouteObject[] = [
       { path: "stamp", element: <StampTab /> },
       { path: "mypage", element: <MyPage /> },
       { path: "notifications", element: <NotificationsPage /> },
+      { path: "vision", element: <VisionPage /> },
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Compass, Route, BadgeCheck, User, type LucideIcon } from "lucide-react";
+import { Compass, Route, ScanLine, BadgeCheck, User, type LucideIcon } from "lucide-react";
 
 interface TabItem {
   key: string;
@@ -23,6 +23,13 @@ const tabs: TabItem[] = [
     icon: Route,
     path: "/route",
     match: (p) => p === "/route",
+  },
+  {
+    key: "vision",
+    label: "AI 렌즈",
+    icon: ScanLine,
+    path: "/vision",
+    match: (p) => p === "/vision",
   },
   {
     key: "stamp",
@@ -57,7 +64,7 @@ export default function BottomNav() {
             key={tab.key}
             type="button"
             onClick={() => navigate(tab.path)}
-            className="flex flex-col items-center justify-center h-full w-[68px] cursor-pointer whitespace-nowrap"
+            className="flex flex-col items-center justify-center h-full w-[60px] cursor-pointer whitespace-nowrap"
             aria-current={active ? "page" : undefined}
           >
             <span className="flex items-center justify-center w-5 h-5">
