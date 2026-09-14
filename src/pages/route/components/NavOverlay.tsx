@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { Spot } from "@/mocks/spots";
+import type { RouteStop } from "@/lib/route-adapters";
 import { ChevronLeft, Repeat, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 
 const MINI_COLLAPSED = 92;
 const MINI_EXPANDED = 260;
 
 interface NavOverlayProps {
-  stops: Spot[];
+  stops: RouteStop[];
   current: number;
   onBack: () => void;
   onSwap: () => void;

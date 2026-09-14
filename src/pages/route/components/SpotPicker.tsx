@@ -1,16 +1,40 @@
-import { useState } from "react";
-import { spots, spotGradientMap } from "@/mocks/spots";
+import { useEffect, useState } from "react";
+import { spotGradientMap } from "@/mocks/spots";
+import { searchSpots } from "@/lib/spots-api";
+import { toSpotCandidate, type SpotCandidate } from "@/lib/route-adapters";
 import { Check, Plus } from "lucide-react";
 
 interface SpotPickerProps {
-  existingIds: string[];
-  onAdd: (ids: string[]) => void;
+  routeId: number | null;
+  onAdd: (spotIds: number[]) => void;
   onClose: () => void;
 }
 
-export default function SpotPicker({ existingIds, onAdd, onClose }: SpotPickerProps) {
-  const candidates = spots.filter((s) => !existingIds.includes(s.id));
+export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps) {
+  const [candidates, setCandidates] = useState<SpotCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    searchSpots(routeId ? { excludeRouteId: routeId } : {})
+      .then((result) => {
+        if (cancelled) return;
+        setCandidates(result.spots.map(toSpotCandidate));
+      })
+      .catch(() => {
+        if (!cancelled) setError("스팟을 불러오지 못했어요.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeId]);
 
   const toggle = (id: string) =>
     setSelected((p) =>
@@ -19,7 +43,7 @@ export default function SpotPicker({ existingIds, onAdd, onClose }: SpotPickerPr
 
   const confirm = () => {
     if (selected.length === 0) return;
-    onAdd(selected);
+    onAdd(selected.map(Number));
     onClose();
   };
 
@@ -45,7 +69,13 @@ export default function SpotPicker({ existingIds, onAdd, onClose }: SpotPickerPr
 
         {/* list */}
         <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 pb-2">
-          {candidates.length === 0 ? (
+          {loading ? (
+            <p className="text-center text-[13px] text-muted py-10">
+              불러오는 중...
+            </p>
+          ) : error ? (
+            <p className="text-center text-[13px] text-muted py-10">{error}</p>
+          ) : candidates.length === 0 ? (
             <p className="text-center text-[13px] text-muted py-10">
               추가할 수 있는 스팟이 없어요
             </p>
