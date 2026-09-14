@@ -148,7 +148,7 @@ export default function WelcomePage() {
   const Icon = slide.icon;
 
   const go = (n: number) => setStep(Math.max(0, Math.min(slides.length - 1, n)));
-  const next = () => (last ? navigate?.("/login") : go(step + 1));
+  const next = () => (last ? navigate?.("/") : go(step + 1));
 
   const onPointerDown = (e: React.PointerEvent) => {
     dragX.current = e.clientX;
@@ -170,7 +170,7 @@ export default function WelcomePage() {
         <img src={waveyLogo} alt="WAVEY" className="w-[92px] h-auto select-none" />
         <button
           type="button"
-          onClick={() => navigate?.("/login")}
+          onClick={() => navigate?.("/")}
           className="text-[12px] font-medium text-muted cursor-pointer whitespace-nowrap"
         >
           건너뛰기

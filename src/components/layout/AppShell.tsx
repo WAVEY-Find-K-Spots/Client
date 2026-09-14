@@ -2,7 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import { Sparkles } from "lucide-react";
 
-const NO_NAV_ROUTES = ["/welcome", "/login", "/notifications"];
+const NO_NAV_ROUTES = ["/welcome", "/login", "/oauth/callback", "/notifications"];
 
 export default function AppShell() {
   const { pathname } = useLocation();

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import waveyLogo from "@/assets/wavey.png";
-import { GoogleMark, AppleMark, KakaoMark } from "./SocialMarks";
-
-type Provider = "google" | "apple" | "kakao";
+import { GoogleMark, KakaoMark } from "./SocialMarks";
+import { useAuth } from "@/store/auth-context";
+import type { SocialProvider } from "@/lib/auth/types";
 
 const providers: {
-  key: Provider;
+  key: SocialProvider;
   label: string;
   className: string;
   Mark: (p: { className?: string }) => React.ReactElement;
@@ -23,25 +23,27 @@ const providers: {
     className: "bg-white border border-line text-ink",
     Mark: GoogleMark,
   },
-  {
-    key: "apple",
-    label: "Apple",
-    className: "bg-[#111111] text-white",
-    Mark: AppleMark,
-  },
 ];
 
 export default function LoginPage() {
-  const [pending, setPending] = useState<Provider | null>(null);
+  const [pending, setPending] = useState<SocialProvider | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { beginSocialLogin } = useAuth();
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
 
-  const login = (p: Provider) => {
+  const login = async (provider: SocialProvider) => {
     if (pending) return;
-    setPending(p);
-    window.setTimeout(() => navigate?.("/"), 700);
+    setPending(provider);
+    setError(null);
+    try {
+      await beginSocialLogin(provider);
+    } catch {
+      setError("로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setPending(null);
+    }
   };
 
   return (
@@ -82,6 +84,12 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
+
+          {error && (
+            <p role="alert" className="mt-4 text-[12px] text-red-600 text-center">
+              {error}
+            </p>
+          )}
 
           <p className="mt-6 text-[11px] text-muted text-center leading-relaxed">
             로그인 시 <span className="text-sub underline">이용약관</span> 및{" "}

@@ -1,8 +1,10 @@
+import { useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import { useProfile } from "@/store/profile-context";
 import { useNotifications } from "@/store/notifications-context";
 import { useStamps } from "@/store/stamps-context";
 import { useRoute } from "@/store/route-context";
+import { useAuth } from "@/store/auth-context";
 import { stamps, earnedBadges } from "@/mocks/stamps";
 import type { MyPageView } from "../page";
 import {
@@ -47,6 +49,10 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
   const { unreadCount } = useNotifications();
   const { isEarned } = useStamps();
   const { routeIds } = useRoute();
+  const { logout, withdraw } = useAuth();
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [withdrawPending, setWithdrawPending] = useState(false);
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
@@ -66,6 +72,33 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
     if (goto === "spot") navigate?.("/");
     else if (goto === "stamp") navigate?.("/stamp");
     else onOpen(goto as MyPageView);
+  };
+
+  const handleLogout = async () => {
+    if (logoutPending) return;
+    setLogoutPending(true);
+    try {
+      await logout();
+    } catch {
+      onToast("서버 로그아웃 요청에 실패해 로컬 로그인 정보만 삭제했습니다.");
+    } finally {
+      navigate?.("/login");
+      setLogoutPending(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (withdrawPending) return;
+    setWithdrawPending(true);
+    try {
+      await withdraw();
+      navigate?.("/login");
+    } catch {
+      onToast("회원 탈퇴에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setWithdrawPending(false);
+      setConfirmWithdraw(false);
+    }
   };
 
   return (
@@ -226,15 +259,62 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
       <div className="px-5 mt-6">
         <button
           type="button"
-          onClick={() => navigate?.("/login")}
+          onClick={handleLogout}
+          disabled={logoutPending}
           className="w-full h-[52px] rounded-[14px] bg-white border border-line flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
         >
           <span className="flex items-center justify-center w-4 h-4">
             <LogOut size={16} color="#A89890" strokeWidth={1.9} />
           </span>
-          <span className="text-[14px] font-medium text-muted">로그아웃</span>
+          <span className="text-[14px] font-medium text-muted">
+            {logoutPending ? "로그아웃 중..." : "로그아웃"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirmWithdraw(true)}
+          className="w-full mt-3 h-9 flex items-center justify-center cursor-pointer whitespace-nowrap"
+        >
+          <span className="text-[12px] font-medium text-[#B4453A]">회원 탈퇴</span>
         </button>
       </div>
+
+      {confirmWithdraw && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center px-8"
+          onClick={() => !withdrawPending && setConfirmWithdraw(false)}
+        >
+          <div
+            className="w-full max-w-[320px] rounded-[16px] bg-white p-5 shadow-soft"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[15px] font-semibold text-ink">
+              정말 탈퇴하시겠어요?
+            </p>
+            <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
+              계정과 저장된 모든 정보가 삭제되며 복구할 수 없어요.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmWithdraw(false)}
+                disabled={withdrawPending}
+                className="flex-1 h-10 rounded-full bg-cream text-[13px] font-semibold text-ink cursor-pointer whitespace-nowrap disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleWithdraw}
+                disabled={withdrawPending}
+                className="flex-1 h-10 rounded-full bg-[#B4453A] text-white text-[13px] font-semibold cursor-pointer whitespace-nowrap disabled:opacity-50"
+              >
+                {withdrawPending ? "탈퇴 중..." : "탈퇴하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="h-24" />
     </div>
