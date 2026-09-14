@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { spotGradientMap } from "@/mocks/spots";
+import { spots as mockSpots, spotGradientMap } from "@/mocks/spots";
 import { searchSpots } from "@/lib/spots-api";
-import { toSpotCandidate, type SpotCandidate } from "@/lib/route-adapters";
+import { toSpotCandidate, type SpotCandidate, type StopType } from "@/lib/route-adapters";
 import { Check, Plus } from "lucide-react";
 
 interface SpotPickerProps {
@@ -10,23 +10,43 @@ interface SpotPickerProps {
   onClose: () => void;
 }
 
+// 백엔드 /spots 연동 확인용 임시 데모 데이터.
+// 실제 데이터가 비어있거나 API 호출이 실패할 때만 화면 확인용으로 보여준다.
+// spotId는 실제 백엔드 스팟과 무관한 값이라 "추가하기"를 눌러도 서버에는 반영되지 않을 수 있다.
+const MOCK_CANDIDATES: SpotCandidate[] = mockSpots.map((s, i) => ({
+  id: String(i + 1),
+  spotId: i + 1,
+  name: s.name,
+  loc: s.loc,
+  image: s.image,
+  type: s.type as StopType,
+  typeLabel: s.typeLabel,
+}));
+
 export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps) {
   const [candidates, setCandidates] = useState<SpotCandidate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError(null);
+    setNotice(null);
     searchSpots(routeId ? { excludeRouteId: routeId } : {})
       .then((result) => {
         if (cancelled) return;
+        if (result.spots.length === 0) {
+          setCandidates(MOCK_CANDIDATES);
+          setNotice("아직 실제 스팟 데이터가 없어 데모 스팟을 보여드려요.");
+          return;
+        }
         setCandidates(result.spots.map(toSpotCandidate));
       })
       .catch(() => {
-        if (!cancelled) setError("스팟을 불러오지 못했어요.");
+        if (cancelled) return;
+        setCandidates(MOCK_CANDIDATES);
+        setNotice("스팟을 불러오지 못해 데모 스팟을 보여드려요.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -65,6 +85,9 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
               취소
             </button>
           </div>
+          {notice && (
+            <p className="w-full px-5 mt-2 text-[11px] text-brand">{notice}</p>
+          )}
         </div>
 
         {/* list */}
@@ -73,8 +96,6 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
             <p className="text-center text-[13px] text-muted py-10">
               불러오는 중...
             </p>
-          ) : error ? (
-            <p className="text-center text-[13px] text-muted py-10">{error}</p>
           ) : candidates.length === 0 ? (
             <p className="text-center text-[13px] text-muted py-10">
               추가할 수 있는 스팟이 없어요
