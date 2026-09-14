@@ -1,28 +1,31 @@
 import { createContext, useContext } from "react";
+import type { RouteStop } from "@/lib/route-adapters";
 
-export const STORAGE_KEY = "wavey.route.ids";
-export const DEFAULT_IDS = ["gyeongbokgung", "bukchon", "gwanghwamun"];
+export const CURRENT_ROUTE_ID_KEY = "wavey.route.current-id";
 
-export function loadIds(): string[] {
+export function loadCurrentRouteId(): number | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_IDS;
-    const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === "string");
-    return DEFAULT_IDS;
+    const raw = localStorage.getItem(CURRENT_ROUTE_ID_KEY);
+    const id = raw ? Number(raw) : NaN;
+    return Number.isFinite(id) ? id : null;
   } catch {
-    return DEFAULT_IDS;
+    return null;
   }
 }
 
 export interface RouteContextValue {
+  routeId: number | null;
+  stops: RouteStop[];
+  loading: boolean;
+  error: string | null;
+  /** 마이페이지 등에서 쓰는 루트 스팟 개수 */
   routeIds: string[];
-  inRoute: (id: string) => boolean;
-  addToRoute: (ids: string | string[]) => void;
-  removeFromRoute: (id: string) => void;
-  toggleRoute: (id: string) => void;
-  reorderRoute: (orderedIds: string[]) => void;
-  clearRoute: () => void;
+  inRoute: (spotId: string) => boolean;
+  toggleRoute: (spotId: string) => void;
+  addToRoute: (spotIds: number[]) => Promise<void>;
+  removeFromRoute: (routeSpotId: number) => Promise<void>;
+  reorderRoute: (orderedRouteSpotIds: number[]) => Promise<void>;
+  clearRoute: () => Promise<void>;
 }
 
 export const RouteContext = createContext<RouteContextValue | null>(null);
