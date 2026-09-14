@@ -5,8 +5,8 @@ import RouteMap from "./components/RouteMap";
 import PlanSheet, { type TransportMode } from "./components/PlanSheet";
 import NavOverlay from "./components/NavOverlay";
 import SpotPicker from "./components/SpotPicker";
-import { spots } from "@/mocks/spots";
 import { useRoute } from "@/store/route-context";
+import { getDirections, type DirectionsResult, type TransportMode as ApiTransportMode } from "@/lib/routes-api";
 import {
   Plus,
   MoreHorizontal,
@@ -28,34 +28,38 @@ const modeLabel: Record<RouteMode, string> = {
 
 const modeOrder: RouteMode[] = ["empty", "plan", "nav"];
 
-const travelData: Record<string, Record<TransportMode, string>> = {
-  "gyeongbokgung|bukchon": {
-    walk: "도보 42분",
-    transit: "지하철 15분",
-    car: "자동차 9분",
-  },
-  "bukchon|gwanghwamun": {
-    walk: "도보 8분",
-    transit: "지하철 4분",
-    car: "자동차 3분",
-  },
+const transportToApi: Record<TransportMode, ApiTransportMode> = {
+  walk: "WALK",
+  transit: "TRANSIT",
+  car: "CAR",
 };
 
 const travelFallback: Record<TransportMode, string> = {
-  walk: "도보 18분",
-  transit: "대중교통 15분",
-  car: "자동차 8분",
+  walk: "도보 -분",
+  transit: "대중교통 -분",
+  car: "자동차 -분",
 };
 
 export default function RouteTab() {
-  const { routeIds, addToRoute, removeFromRoute, reorderRoute, clearRoute } = useRoute();
-  const [mode, setMode] = useState<RouteMode>(routeIds.length ? "plan" : "empty");
+  const {
+    routeId,
+    stops,
+    loading: routeLoading,
+    addToRoute,
+    removeFromRoute,
+    reorderRoute,
+    clearRoute,
+  } = useRoute();
+  const [mode, setMode] = useState<RouteMode>("empty");
+  const [modeInitialized, setModeInitialized] = useState(false);
   const [transport, setTransport] = useState<TransportMode>("transit");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [directions, setDirections] = useState<DirectionsResult | null>(null);
+  const [directionsLoading, setDirectionsLoading] = useState(false);
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -66,9 +70,12 @@ export default function RouteTab() {
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
 
-  const stops = routeIds
-    .map((id) => spots.find((s) => s.id === id))
-    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+  // 초기 로딩이 끝나면 그때 실제 스팟 유무로 화면 모드를 정한다
+  useEffect(() => {
+    if (routeLoading || modeInitialized) return;
+    setMode(stops.length ? "plan" : "empty");
+    setModeInitialized(true);
+  }, [routeLoading, modeInitialized, stops.length]);
 
   useEffect(() => {
     if (!toast) return;
@@ -78,12 +85,32 @@ export default function RouteTab() {
 
   const showToast = (msg: string) => setToast(msg);
 
+  // 스팟이 2개 이상이고 편집/탐색 화면일 때 이동수단별 경로를 계산
+  useEffect(() => {
+    if (routeId === null || stops.length < 2 || (mode !== "plan" && mode !== "nav")) {
+      setDirections(null);
+      return;
+    }
+    let cancelled = false;
+    setDirectionsLoading(true);
+    getDirections(routeId, transportToApi[transport])
+      .then((result) => {
+        if (!cancelled) setDirections(result);
+      })
+      .catch(() => {
+        if (!cancelled) setDirections(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDirectionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeId, stops.length, transport, mode]);
+
   const travelToNext = (index: number): string => {
-    const a = stops[index];
-    const b = stops[index + 1];
-    if (!b) return travelFallback[transport];
-    const val = travelData[`${a.id}|${b.id}`];
-    return val ? val[transport] : travelFallback[transport];
+    const segment = directions?.segments[index];
+    return segment?.durationText ?? travelFallback[transport];
   };
 
   const cycleMode = () => {
@@ -100,18 +127,19 @@ export default function RouteTab() {
   };
 
   const handleRemove = (id: string) => {
-    removeFromRoute(id);
-    if (routeIds.length <= 1) setMode("empty");
+    void removeFromRoute(Number(id));
+    if (stops.length <= 1) setMode("empty");
     showToast("루트에서 스팟을 삭제했어요");
   };
 
-  const handleAdd = (ids: string[]) => {
-    addToRoute(ids);
-    if (routeIds.length === 0) {
-      setMode("plan");
-      setCurrent(0);
-    }
-    showToast(`${ids.length}개 스팟을 추가했어요`);
+  const handleAdd = (spotIds: number[]) => {
+    void addToRoute(spotIds).then(() => {
+      if (stops.length === 0) {
+        setMode("plan");
+        setCurrent(0);
+      }
+    });
+    showToast(`${spotIds.length}개 스팟을 추가했어요`);
   };
 
   const startNav = () => {
@@ -120,13 +148,13 @@ export default function RouteTab() {
   };
 
   const swapRoute = () => {
-    reorderRoute([...routeIds].reverse());
+    void reorderRoute([...stops].reverse().map((s) => Number(s.id)));
     setCurrent(0);
     showToast("출발과 도착을 바꿨어요");
   };
 
   const doClear = () => {
-    clearRoute();
+    void clearRoute();
     setMode("empty");
     setCurrent(0);
     closeMenu();
@@ -169,6 +197,17 @@ export default function RouteTab() {
       <div className="flex items-center gap-2">{right}</div>
     </div>
   );
+
+  if (routeLoading || !modeInitialized) {
+    return (
+      <div className="relative h-full flex flex-col overflow-hidden pb-[88px] bg-page">
+        <StatusBar variant="dark" />
+        <div className="flex-1 flex items-center justify-center">
+          <span className="w-8 h-8 rounded-full border-2 border-line border-t-brand animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative h-full flex flex-col overflow-hidden pb-[88px] ${mode === "plan" ? "bg-white" : "bg-page"}`}>
@@ -244,12 +283,14 @@ export default function RouteTab() {
             onTransport={setTransport}
             onRemove={handleRemove}
             onReorder={(ids) => {
-              reorderRoute(ids);
+              void reorderRoute(ids.map(Number));
               setCurrent(0);
             }}
             onAddPick={() => setPickerOpen(true)}
             onStart={startNav}
             travelToNext={travelToNext}
+            summaryDuration={directionsLoading ? "계산 중..." : directions?.total.durationText}
+            summaryDistance={directionsLoading ? undefined : directions?.total.distanceText}
           />
         </>
       )}
@@ -315,7 +356,7 @@ export default function RouteTab() {
       {/* spot picker sheet */}
       {pickerOpen && (
         <SpotPicker
-          existingIds={routeIds}
+          routeId={routeId}
           onAdd={handleAdd}
           onClose={() => setPickerOpen(false)}
         />

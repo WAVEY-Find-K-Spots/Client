@@ -1,57 +1,197 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
+  addRouteSpot,
+  createRoute,
+  deleteRoute,
+  getMyRoutes,
+  getRouteDetail,
+  removeRouteSpot,
+  reorderRouteSpots,
+} from "@/lib/routes-api";
+import { toRouteStop, type RouteStop } from "@/lib/route-adapters";
+import {
+  CURRENT_ROUTE_ID_KEY,
   RouteContext,
-  STORAGE_KEY,
-  loadIds,
+  loadCurrentRouteId,
   type RouteContextValue,
 } from "./route-context";
 
 export function RouteProvider({ children }: { children: ReactNode }) {
-  const [routeIds, setRouteIds] = useState<string[]>(loadIds);
+  const [routeId, setRouteId] = useState<number | null>(null);
+  const [stops, setStops] = useState<RouteStop[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const persistRouteId = (id: number | null) => {
+    setRouteId(id);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(routeIds));
+      if (id === null) localStorage.removeItem(CURRENT_ROUTE_ID_KEY);
+      else localStorage.setItem(CURRENT_ROUTE_ID_KEY, String(id));
     } catch {
       /* storage unavailable — keep in-memory only */
     }
-  }, [routeIds]);
+  };
 
-  const addToRoute = useCallback((ids: string | string[]) => {
-    const list = Array.isArray(ids) ? ids : [ids];
-    setRouteIds((prev) => {
-      const merged = [...prev];
-      list.forEach((id) => {
-        if (!merged.includes(id)) merged.push(id);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function init() {
+      setLoading(true);
+      setError(null);
+      try {
+        const savedId = loadCurrentRouteId();
+        if (savedId !== null) {
+          const detail = await getRouteDetail(savedId);
+          if (cancelled) return;
+          setRouteId(savedId);
+          setStops(detail.spots.map(toRouteStop));
+          return;
+        }
+
+        const page = await getMyRoutes({ page: 0, size: 1 });
+        if (cancelled) return;
+        const existing = page.content[0];
+        if (existing) {
+          const detail = await getRouteDetail(existing.routeId);
+          if (cancelled) return;
+          persistRouteId(existing.routeId);
+          setStops(detail.spots.map(toRouteStop));
+        }
+      } catch {
+        if (!cancelled) {
+          persistRouteId(null);
+          setStops([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refresh = useCallback(async (id: number) => {
+    const detail = await getRouteDetail(id);
+    setStops(detail.spots.map(toRouteStop));
+  }, []);
+
+  const addToRoute = useCallback(
+    async (spotIds: number[]) => {
+      if (spotIds.length === 0) return;
+      setError(null);
+      try {
+        if (routeId === null) {
+          const detail = await createRoute({
+            name: "내 루트",
+            visibility: "PRIVATE",
+            spots: spotIds.map((spotId, i) => ({ spotId, sequenceOrder: i + 1 })),
+          });
+          persistRouteId(detail.routeId);
+          setStops(detail.spots.map(toRouteStop));
+          return;
+        }
+
+        let nextOrder = stops.length + 1;
+        for (const spotId of spotIds) {
+          await addRouteSpot(routeId, spotId, nextOrder);
+          nextOrder += 1;
+        }
+        await refresh(routeId);
+      } catch {
+        setError("스팟을 추가하지 못했어요.");
+      }
+    },
+    [routeId, stops.length, refresh],
+  );
+
+  const removeFromRoute = useCallback(
+    async (routeSpotId: number) => {
+      if (routeId === null) return;
+      setError(null);
+      try {
+        await removeRouteSpot(routeId, routeSpotId);
+        await refresh(routeId);
+      } catch {
+        setError("스팟을 삭제하지 못했어요.");
+      }
+    },
+    [routeId, refresh],
+  );
+
+  const reorderRoute = useCallback(
+    async (orderedRouteSpotIds: number[]) => {
+      if (routeId === null) return;
+      const prevStops = stops;
+      // optimistic reorder
+      setStops((prev) => {
+        const byId = new Map(prev.map((s) => [Number(s.id), s]));
+        return orderedRouteSpotIds
+          .map((id) => byId.get(id))
+          .filter((s): s is RouteStop => Boolean(s));
       });
-      return merged;
-    });
-  }, []);
+      try {
+        await reorderRouteSpots(
+          routeId,
+          orderedRouteSpotIds.map((id, i) => ({ routeSpotId: id, sequenceOrder: i + 1 })),
+        );
+      } catch {
+        setStops(prevStops);
+        setError("순서를 변경하지 못했어요.");
+      }
+    },
+    [routeId, stops],
+  );
 
-  const removeFromRoute = useCallback((id: string) => {
-    setRouteIds((prev) => prev.filter((x) => x !== id));
-  }, []);
+  const clearRoute = useCallback(async () => {
+    if (routeId === null) return;
+    setError(null);
+    try {
+      await deleteRoute(routeId);
+      persistRouteId(null);
+      setStops([]);
+    } catch {
+      setError("루트를 비우지 못했어요.");
+    }
+  }, [routeId]);
 
-  const toggleRoute = useCallback((id: string) => {
-    setRouteIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  }, []);
+  const inRoute = useCallback(
+    (spotId: string) => stops.some((s) => String(s.spotId) === spotId),
+    [stops],
+  );
 
-  const reorderRoute = useCallback((orderedIds: string[]) => setRouteIds(orderedIds), []);
-
-  const clearRoute = useCallback(() => setRouteIds([]), []);
+  const toggleRoute = useCallback(
+    (spotId: string) => {
+      const numericId = Number(spotId);
+      if (!Number.isFinite(numericId)) return;
+      const existing = stops.find((s) => s.spotId === numericId);
+      if (existing) {
+        void removeFromRoute(Number(existing.id));
+      } else {
+        void addToRoute([numericId]);
+      }
+    },
+    [stops, addToRoute, removeFromRoute],
+  );
 
   const value = useMemo<RouteContextValue>(
     () => ({
-      routeIds,
-      inRoute: (id: string) => routeIds.includes(id),
+      routeId,
+      stops,
+      loading,
+      error,
+      routeIds: stops.map((s) => s.id),
+      inRoute,
+      toggleRoute,
       addToRoute,
       removeFromRoute,
-      toggleRoute,
       reorderRoute,
       clearRoute,
     }),
-    [routeIds, addToRoute, removeFromRoute, toggleRoute, reorderRoute, clearRoute],
+    [routeId, stops, loading, error, inRoute, toggleRoute, addToRoute, removeFromRoute, reorderRoute, clearRoute],
   );
 
   return <RouteContext.Provider value={value}>{children}</RouteContext.Provider>;

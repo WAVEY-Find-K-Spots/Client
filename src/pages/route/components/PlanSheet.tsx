@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { Spot } from "@/mocks/spots";
+import type { RouteStop } from "@/lib/route-adapters";
 import { spotGradientMap } from "@/mocks/spots";
 import {
   MapPin,
@@ -28,7 +28,7 @@ const modeMeta: Record<
 };
 
 interface PlanSheetProps {
-  stops: Spot[];
+  stops: RouteStop[];
   transport: TransportMode;
   onTransport: (m: TransportMode) => void;
   onRemove: (id: string) => void;
@@ -36,6 +36,8 @@ interface PlanSheetProps {
   onAddPick: () => void;
   onStart: () => void;
   travelToNext: (index: number) => string;
+  summaryDuration?: string;
+  summaryDistance?: string;
 }
 
 export default function PlanSheet({
@@ -47,6 +49,8 @@ export default function PlanSheet({
   onAddPick,
   onStart,
   travelToNext,
+  summaryDuration,
+  summaryDistance,
 }: PlanSheetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -176,7 +180,7 @@ export default function PlanSheet({
                 <Clock size={16} color="#A8623E" strokeWidth={2} />
               </span>
               <span className="text-[12px] font-semibold text-ink leading-none">
-                약 2시간 30분
+                {summaryDuration ?? "-"}
               </span>
             </div>
             <span className="w-px h-8 bg-line" />
@@ -185,7 +189,7 @@ export default function PlanSheet({
                 <Navigation size={16} color="#A8623E" strokeWidth={2} />
               </span>
               <span className="text-[12px] font-semibold text-ink leading-none">
-                12.4km
+                {summaryDistance ?? "-"}
               </span>
             </div>
           </div>

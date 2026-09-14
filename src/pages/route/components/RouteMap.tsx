@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import type { Spot } from "@/mocks/spots";
+import type { RouteStop } from "@/lib/route-adapters";
 import { getCurrentCoords, type LatLng } from "@/lib/geo";
 import { Crosshair, Navigation, ZoomIn, ZoomOut } from "lucide-react";
 
@@ -8,7 +8,7 @@ type MapVariant = "empty" | "plan" | "nav";
 
 interface RouteMapProps {
   variant: MapVariant;
-  stops: Spot[];
+  stops: RouteStop[];
   currentIndex?: number;
   onLocate?: () => void;
   onLocateError?: () => void;
