@@ -29,7 +29,7 @@ const tabs: TabItem[] = [
     label: "스탬프",
     icon: BadgeCheck,
     path: "/stamp",
-    match: (p) => p === "/stamp",
+    match: (p) => p === "/stamp" || p === "/stamp-api",
   },
   {
     key: "mypage",
