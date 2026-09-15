@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { spots, type ReviewItem } from "@/mocks/spots";
+import { spots } from "@/mocks/spots";
 import { stamps } from "@/mocks/stamps";
 import { useRoute } from "@/store/route-context";
 import { useStamps, spotStampId } from "@/store/stamps-context";
@@ -10,12 +10,18 @@ import { ApiError } from "@/lib/auth/api";
 import { claimStamp } from "@/lib/stamps-api";
 import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
 import { getSpot, getNearbySpots } from "@/lib/spots-api";
-import { getSpotReviews } from "@/lib/reviews-api";
+import {
+  getSpotReviews,
+  createReview,
+  updateReview,
+  deleteReview,
+} from "@/lib/reviews-api";
 import {
   toDetailSpot,
   toNearbySpotView,
   toReviewItem,
   type NearbySpotView,
+  type ReviewView,
 } from "@/lib/spot-adapters";
 import {
   distanceMeters,
@@ -85,9 +91,10 @@ export default function SpotDetail() {
   const [reviewState, setReviewState] = useState<{
     rating: number;
     reviewCount: number;
-    reviews: ReviewItem[];
+    reviews: ReviewView[];
   } | null>(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const { inRoute, toggleRoute } = useRoute();
   const { isEarned, collectStamp } = useStamps();
@@ -161,8 +168,7 @@ export default function SpotDetail() {
   }, [tab, mockSpot, numericSpotId]);
 
   // 리뷰 탭 진입 시 실제 데이터 조회 (mock 스팟은 mock 리뷰로 폴백)
-  useEffect(() => {
-    if (tab !== "reviews") return;
+  const refreshReviews = useCallback(() => {
     if (mockSpot) {
       setReviewState({
         rating: mockSpot.rating,
@@ -172,11 +178,9 @@ export default function SpotDetail() {
       return;
     }
     if (numericSpotId == null) return;
-    let cancelled = false;
     setReviewsLoading(true);
     getSpotReviews(numericSpotId)
       .then((result) => {
-        if (cancelled) return;
         setReviewState({
           rating: result.averageRating,
           reviewCount: result.reviewCount,
@@ -184,17 +188,62 @@ export default function SpotDetail() {
         });
       })
       .catch(() => {
-        if (!cancelled) {
-          setReviewState({ rating: 0, reviewCount: 0, reviews: [] });
-        }
+        setReviewState({ rating: 0, reviewCount: 0, reviews: [] });
       })
-      .finally(() => {
-        if (!cancelled) setReviewsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .finally(() => setReviewsLoading(false));
+  }, [mockSpot, numericSpotId]);
+
+  useEffect(() => {
+    if (tab !== "reviews") return;
+    refreshReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, mockSpot, numericSpotId]);
+
+  const myReview =
+    user != null
+      ? reviewState?.reviews.find((r) => r.userId === user.id) ?? null
+      : null;
+
+  const handleReviewSubmit = async (input: { rating: number; body: string }) => {
+    if (numericSpotId == null) return;
+    if (!user) {
+      setToast("로그인이 필요한 서비스입니다.");
+      navigate?.("/login");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      if (myReview?.reviewId != null) {
+        await updateReview(myReview.reviewId, input);
+      } else {
+        await createReview(numericSpotId, input);
+      }
+      refreshReviews();
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "REVIEW409") {
+        setToast("이미 작성한 리뷰가 있어요");
+      } else if (err instanceof ApiError) {
+        setToast(err.message || "리뷰를 저장하지 못했어요.");
+      } else {
+        setToast("리뷰를 저장하지 못했어요.");
+      }
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const handleReviewDelete = async () => {
+    if (myReview?.reviewId == null) return;
+    setReviewSubmitting(true);
+    try {
+      await deleteReview(myReview.reviewId);
+      refreshReviews();
+    } catch {
+      setToast("리뷰를 삭제하지 못했어요.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
@@ -400,6 +449,11 @@ export default function SpotDetail() {
           reviewCount={reviewState?.reviewCount ?? spot.reviewCount}
           reviews={reviewState?.reviews ?? []}
           loading={reviewsLoading}
+          canWrite={numericSpotId != null}
+          myReview={myReview}
+          submitting={reviewSubmitting}
+          onSubmit={handleReviewSubmit}
+          onDelete={handleReviewDelete}
         />
       )}
       {tab === "nearby" && (
