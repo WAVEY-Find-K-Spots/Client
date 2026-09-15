@@ -3,13 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import StatusBar from "@/components/layout/StatusBar";
 import { ApiError } from "@/lib/auth/api";
 import { useAuth } from "@/store/auth-context";
-import { useProfile } from "@/store/profile-context";
 
 export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { completeSocialLogin } = useAuth();
-  const { updateProfile } = useProfile();
   const started = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -27,8 +25,7 @@ export default function OAuthCallbackPage() {
     }
 
     completeSocialLogin(code)
-      .then(({ user, isNewUser }) => {
-        updateProfile({ nickname: user.name, email: user.email });
+      .then(({ isNewUser }) => {
         navigate(isNewUser ? "/welcome" : "/", { replace: true });
       })
       .catch((error: unknown) => {
@@ -37,7 +34,7 @@ export default function OAuthCallbackPage() {
           : "로그인 정보를 처리하지 못했습니다.";
         setErrorMessage(message);
       });
-  }, [completeSocialLogin, navigate, searchParams, updateProfile]);
+  }, [completeSocialLogin, navigate, searchParams]);
 
   return (
     <div className="min-h-full flex flex-col bg-page">

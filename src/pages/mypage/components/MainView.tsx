@@ -1,6 +1,5 @@
 import { useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
-import { useProfile } from "@/store/profile-context";
 import { useNotifications } from "@/store/notifications-context";
 import { useStamps } from "@/store/stamps-context";
 import { useRoute } from "@/store/route-context";
@@ -45,11 +44,10 @@ const settingMenus: { label: string; icon: typeof Settings; view: MyPageView }[]
 ];
 
 export default function MainView({ onOpen, onToast }: MainViewProps) {
-  const { profile } = useProfile();
   const { unreadCount } = useNotifications();
   const { isEarned } = useStamps();
   const { routeIds } = useRoute();
-  const { logout, withdraw } = useAuth();
+  const { user, logout, withdraw } = useAuth();
   const [logoutPending, setLogoutPending] = useState(false);
   const [withdrawPending, setWithdrawPending] = useState(false);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
@@ -146,12 +144,20 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
               aria-label="프로필 이미지"
             >
               <span
-                className="w-16 h-16 rounded-full flex items-center justify-center"
+                className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden"
                 style={{ background: "linear-gradient(135deg,#A8623E,#6B3F28)" }}
               >
-                <span className="flex items-center justify-center w-7 h-7">
-                  <User size={28} color="#FFFFFF" strokeWidth={1.8} />
-                </span>
+                {user?.profileImageUrl ? (
+                  <img
+                    src={user.profileImageUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="flex items-center justify-center w-7 h-7">
+                    <User size={28} color="#FFFFFF" strokeWidth={1.8} />
+                  </span>
+                )}
               </span>
               <span className="absolute -bottom-0.5 -right-0.5 w-[22px] h-[22px] rounded-full bg-brand flex items-center justify-center border-2 border-ink">
                 <span className="flex items-center justify-center w-3 h-3">
@@ -161,10 +167,10 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
             </button>
             <div className="flex-1 min-w-0">
               <h2 className="text-[18px] font-semibold text-white truncate">
-                {profile.nickname}
+                {user?.nickname || user?.name || "여행자"}
               </h2>
               <p className="text-[12px] text-muted mt-0.5 truncate">
-                {profile.email}
+                {user?.email}
               </p>
               <button
                 type="button"
