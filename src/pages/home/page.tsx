@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import SpotCard from "./components/SpotCard";
 import SpotListItem from "./components/SpotListItem";
@@ -174,6 +174,25 @@ export default function SpotList() {
       .catch(() => setHasNext(false))
       .finally(() => setLoadingMore(false));
   };
+
+  // 무한 스크롤: 리스트 맨 아래 sentinel이 보이면 다음 페이지를 불러온다
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const setSentinelRef = useCallback((node: HTMLDivElement | null) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    if (!node) return;
+    const root = document.getElementById("app-scroll");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreRef.current();
+      },
+      { root, rootMargin: "200px" },
+    );
+    observer.observe(node);
+    observerRef.current = observer;
+  }, []);
 
   const lockScroll = (on: boolean) => {
     const el = document.getElementById("app-scroll");
@@ -403,15 +422,11 @@ export default function SpotList() {
                   onOpen={() => navigate?.(`/spot/${s.id}`)}
                 />
               ))}
-              {hasNext && (
-                <button
-                  type="button"
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="mt-1 h-11 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer disabled:opacity-60"
-                >
-                  {loadingMore ? "불러오는 중..." : "더보기"}
-                </button>
+              {hasNext && <div ref={setSentinelRef} className="h-1" />}
+              {loadingMore && (
+                <p className="text-center text-[12px] text-muted py-2">
+                  불러오는 중...
+                </p>
               )}
             </div>
           )}
@@ -552,15 +567,11 @@ export default function SpotList() {
                     ))}
                   </div>
                 </div>
-                {hasNext && (
-                  <button
-                    type="button"
-                    onClick={loadMore}
-                    disabled={loadingMore}
-                    className="mt-3 w-full h-11 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer disabled:opacity-60"
-                  >
-                    {loadingMore ? "불러오는 중..." : "더보기"}
-                  </button>
+                {hasNext && <div ref={setSentinelRef} className="h-1" />}
+                {loadingMore && (
+                  <p className="text-center text-[12px] text-muted py-2">
+                    불러오는 중...
+                  </p>
                 )}
               </>
             ) : (
@@ -574,15 +585,11 @@ export default function SpotList() {
                     onOpen={() => navigate?.(`/spot/${s.id}`)}
                   />
                 ))}
-                {hasNext && (
-                  <button
-                    type="button"
-                    onClick={loadMore}
-                    disabled={loadingMore}
-                    className="h-11 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer disabled:opacity-60"
-                  >
-                    {loadingMore ? "불러오는 중..." : "더보기"}
-                  </button>
+                {hasNext && <div ref={setSentinelRef} className="h-1" />}
+                {loadingMore && (
+                  <p className="text-center text-[12px] text-muted py-2">
+                    불러오는 중...
+                  </p>
                 )}
               </div>
             )}
