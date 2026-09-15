@@ -133,19 +133,30 @@ export default function RouteTab() {
   };
 
   const handleRemove = (id: string) => {
-    void removeFromRoute(Number(id));
-    if (stops.length <= 1) setMode("empty");
-    showToast("루트에서 스팟을 삭제했어요");
+    const wasLast = stops.length <= 1;
+    void removeFromRoute(Number(id)).then((ok) => {
+      if (!ok) {
+        showToast("스팟을 삭제하지 못했어요");
+        return;
+      }
+      if (wasLast) setMode("empty");
+      showToast("루트에서 스팟을 삭제했어요");
+    });
   };
 
   const handleAdd = (spotIds: number[]) => {
-    void addToRoute(spotIds).then(() => {
-      if (stops.length === 0) {
+    const wasEmpty = stops.length === 0;
+    void addToRoute(spotIds).then((ok) => {
+      if (!ok) {
+        showToast("스팟을 추가하지 못했어요");
+        return;
+      }
+      if (wasEmpty) {
         setMode("plan");
         setCurrent(0);
       }
+      showToast(`${spotIds.length}개 스팟을 추가했어요`);
     });
-    showToast(`${spotIds.length}개 스팟을 추가했어요`);
   };
 
   const startNav = () => {
@@ -154,17 +165,19 @@ export default function RouteTab() {
   };
 
   const swapRoute = () => {
-    void reorderRoute([...stops].reverse().map((s) => Number(s.id)));
+    void reorderRoute([...stops].reverse().map((s) => Number(s.id))).then((ok) => {
+      showToast(ok ? "출발과 도착을 바꿨어요" : "순서를 바꾸지 못했어요");
+    });
     setCurrent(0);
-    showToast("출발과 도착을 바꿨어요");
   };
 
   const doClear = () => {
-    void clearRoute();
+    void clearRoute().then((ok) => {
+      showToast(ok ? "루트를 비웠어요" : "루트를 비우지 못했어요");
+    });
     setMode("empty");
     setCurrent(0);
     closeMenu();
-    showToast("루트를 비웠어요");
   };
 
   const openRename = () => {
@@ -300,7 +313,11 @@ export default function RouteTab() {
             </>
           )}
           <div className="h-[55%] shrink-0">
-            <RouteMap variant="plan" stops={stops} />
+            <RouteMap
+              variant="plan"
+              stops={stops}
+              routeGeometry={directions?.geometry.coordinates}
+            />
           </div>
           <PlanSheet
             stops={stops}
@@ -308,7 +325,9 @@ export default function RouteTab() {
             onTransport={setTransport}
             onRemove={handleRemove}
             onReorder={(ids) => {
-              void reorderRoute(ids.map(Number));
+              void reorderRoute(ids.map(Number)).then((ok) => {
+                if (!ok) showToast("순서를 바꾸지 못했어요");
+              });
               setCurrent(0);
             }}
             onAddPick={() => setPickerOpen(true)}
@@ -326,6 +345,7 @@ export default function RouteTab() {
             variant="nav"
             stops={stops}
             currentIndex={current}
+            routeGeometry={directions?.geometry.coordinates}
             onLocate={() => showToast("현재 위치로 이동했어요")}
             onLocateError={() => showToast("위치를 확인할 수 없어요. 권한을 허용해 주세요")}
           />
