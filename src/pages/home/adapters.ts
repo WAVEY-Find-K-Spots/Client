@@ -1,11 +1,13 @@
 import type { SpotSearchItem } from "@/lib/spots-api";
 import type { SpotCategory } from "@/lib/routes-api";
+import { withImageFallback, hasRealImage } from "@/lib/image-fallback";
 
 export interface HomeSpotView {
   id: string;
   name: string;
   desc: string;
   image: string;
+  hasImage: boolean;
   rating: number;
   reviewCount: number;
   typeLabel: string;
@@ -26,7 +28,8 @@ export function toHomeSpotView(item: SpotSearchItem, index: number): HomeSpotVie
     id: String(item.spotId),
     name: item.name,
     desc: item.description ?? "",
-    image: item.imageUrl ?? "",
+    image: withImageFallback(item.imageUrl),
+    hasImage: hasRealImage(item.imageUrl),
     rating: item.avgRating,
     reviewCount: item.reviewCount,
     typeLabel: categoryToLabel[item.category],
