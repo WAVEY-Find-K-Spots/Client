@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import type { Spot } from "@/mocks/spots";
+import type { HomeSpotView } from "../adapters";
 import { Star, Heart, MapPin } from "lucide-react";
-import { getDistanceKm, formatKm } from "../distance";
+import { formatKm } from "../distance";
 
 interface SpotListItemProps {
-  spot: Spot;
+  spot: HomeSpotView;
   query?: string;
   saved: boolean;
   onToggleSave: () => void;
@@ -34,7 +34,7 @@ export default function SpotListItem({
   onOpen,
 }: SpotListItemProps) {
   const reviewText = `${spot.reviewCount.toLocaleString("ko-KR")}개`;
-  const distText = formatKm(getDistanceKm(spot));
+  const distText = spot.distanceKm != null ? formatKm(spot.distanceKm) : null;
 
   return (
     <div
@@ -65,12 +65,14 @@ export default function SpotListItem({
           <p className="text-[15px] font-semibold text-ink leading-tight truncate">
             {renderHighlight(spot.name, query)}
           </p>
-          <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-muted">
-            <span className="flex items-center justify-center w-2.5 h-2.5">
-              <MapPin size={10} color="#A8623E" strokeWidth={2.4} />
+          {distText && (
+            <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-muted">
+              <span className="flex items-center justify-center w-2.5 h-2.5">
+                <MapPin size={10} color="#A8623E" strokeWidth={2.4} />
+              </span>
+              <span className="whitespace-nowrap">{distText}</span>
             </span>
-            <span className="whitespace-nowrap">{distText}</span>
-          </span>
+          )}
         </div>
         <p className="text-[12px] text-muted leading-tight truncate">
           {spot.desc}

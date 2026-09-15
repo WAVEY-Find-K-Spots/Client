@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
+import type { Region } from "@/lib/regions-api";
 
 export interface SpotFilterState {
-  region: string;
-  type: string;
+  regionId: number | null;
   minRating: number;
-  distance: number;
 }
-
-const regionOptions = ["서울", "부산", "경주", "제주", "강릉", "전주"];
 
 const typeOptions: { key: string; label: string }[] = [
   { key: "all", label: "전체" },
@@ -24,15 +21,11 @@ const ratingOptions: { value: number; label: string }[] = [
   { value: 4.5, label: "4.5 이상" },
 ];
 
-const distanceOptions: { value: number; label: string }[] = [
-  { value: 0, label: "전체" },
-  { value: 1, label: "1km 이내" },
-  { value: 3, label: "3km 이내" },
-  { value: 5, label: "5km 이내" },
-];
-
 interface FilterSheetProps {
   filters: SpotFilterState;
+  regions: Region[];
+  type: string;
+  onTypeChange: (type: string) => void;
   onChange: (partial: Partial<SpotFilterState>) => void;
   onReset: () => void;
   onApply: () => void;
@@ -79,6 +72,9 @@ function Section({
 
 export default function FilterSheet({
   filters,
+  regions,
+  type,
+  onTypeChange,
   onChange,
   onReset,
   onApply,
@@ -108,13 +104,19 @@ export default function FilterSheet({
       {/* scrollable sections */}
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 flex flex-col gap-6 no-scrollbar">
         <Section title="지역">
-          {regionOptions.map((r) => (
+          <Pill
+            active={filters.regionId === null}
+            onClick={() => onChange({ regionId: null })}
+          >
+            전체
+          </Pill>
+          {regions.map((r) => (
             <Pill
-              key={r}
-              active={filters.region === r}
-              onClick={() => onChange({ region: r })}
+              key={r.regionId}
+              active={filters.regionId === r.regionId}
+              onClick={() => onChange({ regionId: r.regionId })}
             >
-              {r}
+              {r.nameKo}
             </Pill>
           ))}
         </Section>
@@ -123,8 +125,8 @@ export default function FilterSheet({
           {typeOptions.map((t) => (
             <Pill
               key={t.key}
-              active={filters.type === t.key}
-              onClick={() => onChange({ type: t.key })}
+              active={type === t.key}
+              onClick={() => onTypeChange(t.key)}
             >
               {t.label}
             </Pill>
@@ -139,18 +141,6 @@ export default function FilterSheet({
               onClick={() => onChange({ minRating: r.value })}
             >
               {r.label}
-            </Pill>
-          ))}
-        </Section>
-
-        <Section title="거리">
-          {distanceOptions.map((d) => (
-            <Pill
-              key={d.value}
-              active={filters.distance === d.value}
-              onClick={() => onChange({ distance: d.value })}
-            >
-              {d.label}
             </Pill>
           ))}
         </Section>
