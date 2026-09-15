@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, Award, Share2, Star } from "lucide-react";
 
 export type OverlayBadge = {
@@ -38,6 +38,9 @@ export default function BadgeAcquiredOverlay({
   onShare,
 }: BadgeAcquiredOverlayProps) {
   const dateLabel = useMemo(() => formatDate(badge.dateShort), [badge]);
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => setImgFailed(false), [badge.imageUrl]);
+  const showImage = Boolean(badge.imageUrl) && !imgFailed;
 
   return (
     <div className="absolute inset-0 z-[60] bg-ink flex flex-col overflow-hidden">
@@ -82,16 +85,17 @@ export default function BadgeAcquiredOverlay({
                 className="relative w-[160px] h-[160px] overflow-hidden"
                 style={{
                   clipPath: HEX,
-                  background: badge.imageUrl
+                  background: showImage
                     ? undefined
                     : "linear-gradient(160deg,#A8623E,#6B3F28)",
                 }}
               >
-                {badge.imageUrl ? (
+                {showImage ? (
                   <img
-                    src={badge.imageUrl}
+                    src={badge.imageUrl!}
                     alt={badge.name}
                     className="absolute inset-0 w-full h-full object-cover"
+                    onError={() => setImgFailed(true)}
                   />
                 ) : (
                   <span className="absolute inset-0 flex items-center justify-center">

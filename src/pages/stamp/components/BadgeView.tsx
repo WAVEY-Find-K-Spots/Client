@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Award, Lock, ChevronRight, Gift } from "lucide-react";
 import type { BadgeCollection, BadgeItem } from "@/lib/stamps-api";
 import { formatAcquiredShort } from "../adapters";
@@ -25,21 +26,26 @@ function BadgeHex({
   fallback: string;
   locked?: boolean;
 }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => setImgFailed(false), [imageUrl]);
+  const showImage = imageUrl && !imgFailed;
+
   return (
     <div
       className="w-16 h-16 shrink-0 overflow-hidden relative"
       style={{
         clipPath:
           "polygon(50% 0%,90% 25%,90% 75%,50% 100%,10% 75%,10% 25%)",
-        background: imageUrl ? undefined : fallback,
+        background: showImage ? undefined : fallback,
       }}
     >
-      {imageUrl && (
+      {showImage && (
         <img
           src={imageUrl}
           alt={name}
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
+          onError={() => setImgFailed(true)}
         />
       )}
       {locked && (
