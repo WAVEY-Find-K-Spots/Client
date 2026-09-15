@@ -1,11 +1,41 @@
-import type { ReviewItem } from "@/mocks/spots";
-import { Star, Globe } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { ReviewView } from "@/lib/spot-adapters";
+import { Star, Globe, Trash2 } from "lucide-react";
 
 interface ReviewsTabProps {
   rating: number;
   reviewCount: number;
-  reviews: ReviewItem[];
+  reviews: ReviewView[];
   loading?: boolean;
+  canWrite?: boolean;
+  myReview?: ReviewView | null;
+  submitting?: boolean;
+  onSubmit?: (input: { rating: number; body: string }) => void;
+  onDelete?: () => void;
+}
+
+function StarPicker({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className="flex items-center justify-center w-7 h-7 cursor-pointer"
+          aria-label={`${v}점`}
+        >
+          <Star size={22} color="#A8623E" fill={v <= value ? "#A8623E" : "none"} />
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function ReviewsTab({
@@ -13,7 +43,28 @@ export default function ReviewsTab({
   reviewCount,
   reviews,
   loading,
+  canWrite,
+  myReview,
+  submitting,
+  onSubmit,
+  onDelete,
 }: ReviewsTabProps) {
+  const [editing, setEditing] = useState(false);
+  const [draftRating, setDraftRating] = useState(myReview?.rating ?? 5);
+  const [draftBody, setDraftBody] = useState(myReview?.text ?? "");
+
+  useEffect(() => {
+    setDraftRating(myReview?.rating ?? 5);
+    setDraftBody(myReview?.text ?? "");
+    setEditing(false);
+  }, [myReview]);
+
+  const submit = () => {
+    if (!draftBody.trim() || !onSubmit) return;
+    onSubmit({ rating: draftRating, body: draftBody.trim() });
+    setEditing(false);
+  };
+
   return (
     <div className="px-5 pt-5">
       {/* summary */}
@@ -46,6 +97,63 @@ export default function ReviewsTab({
         </div>
       </div>
 
+      {/* write / edit form */}
+      {canWrite && (myReview == null || editing) && (
+        <div className="mt-4 bg-white rounded-2xl p-4 shadow-soft">
+          <p className="text-[13px] font-semibold text-ink mb-2">
+            {myReview ? "내 리뷰 수정" : "리뷰 작성"}
+          </p>
+          <StarPicker value={draftRating} onChange={setDraftRating} />
+          <textarea
+            value={draftBody}
+            onChange={(e) => setDraftBody(e.target.value)}
+            maxLength={2000}
+            rows={3}
+            placeholder="이 스팟은 어땠나요?"
+            className="mt-3 w-full rounded-xl border border-line px-3 py-2 text-[13px] text-ink resize-none outline-none focus:border-brand"
+          />
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={submit}
+              disabled={submitting || !draftBody.trim()}
+              className="flex-1 h-10 rounded-full bg-ink text-white text-[13px] font-semibold cursor-pointer disabled:opacity-50"
+            >
+              {submitting ? "저장 중..." : myReview ? "수정 완료" : "등록"}
+            </button>
+            {editing && (
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="h-10 px-4 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer"
+              >
+                취소
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {canWrite && myReview != null && !editing && (
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="px-3 h-8 rounded-full bg-cream text-ink text-[12px] font-medium cursor-pointer"
+          >
+            내 리뷰 수정
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={submitting}
+            className="flex items-center gap-1 px-3 h-8 rounded-full bg-cream text-brand text-[12px] font-medium cursor-pointer disabled:opacity-50"
+          >
+            <Trash2 size={12} /> 삭제
+          </button>
+        </div>
+      )}
+
       {/* list */}
       {loading ? (
         <p className="text-center text-[13px] text-muted py-10">
@@ -59,7 +167,7 @@ export default function ReviewsTab({
         <div className="mt-4 flex flex-col gap-3">
           {reviews.map((r, i) => (
             <div
-              key={`${r.author}-${i}`}
+              key={r.reviewId ?? `${r.author}-${i}`}
               className="bg-white rounded-2xl p-4 shadow-soft"
             >
               <div className="flex items-center gap-3">

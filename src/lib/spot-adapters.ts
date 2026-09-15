@@ -68,12 +68,19 @@ export function toNearbySpotView(n: SpotNearbyItem): NearbySpotView {
   };
 }
 
-export function toReviewItem(r: SpotReviewItem): ReviewItem {
+export interface ReviewView extends ReviewItem {
+  reviewId?: number;
+  userId?: number;
+}
+
+export function toReviewItem(r: SpotReviewItem): ReviewView {
   return {
     author: r.authorName,
     flag: r.countryName ?? "",
     date: r.createdAt.slice(0, 10).replace(/-/g, "."),
     rating: Math.round(r.rating),
     text: r.body,
+    reviewId: r.reviewId,
+    userId: r.userId,
   };
 }
