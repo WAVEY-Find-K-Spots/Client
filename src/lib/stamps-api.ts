@@ -24,9 +24,16 @@ export type BadgeItem = {
 
 export type BadgeCollection = {
   acquiredCount: number;
+  claimableCount: number;
   inProgressCount: number;
   acquired: BadgeItem[];
+  claimable: BadgeItem[];
   inProgress: BadgeItem[];
+};
+
+export type BadgeClaim = {
+  badge: BadgeItem;
+  newlyAcquired: boolean;
 };
 
 export type StampBook = {
@@ -91,5 +98,13 @@ export function claimStamp(
 export function getMyBadges(language: StampLanguage = "ko") {
   return apiRequest<BadgeCollection>(
     `/api/v1/me/badges?${languageQs(language)}`,
+  );
+}
+
+/** POST /api/v1/me/badges/{badgeId}/claim */
+export function claimBadge(badgeId: number, language: StampLanguage = "ko") {
+  return apiRequest<BadgeClaim>(
+    `/api/v1/me/badges/${badgeId}/claim?${languageQs(language)}`,
+    { method: "POST" },
   );
 }
