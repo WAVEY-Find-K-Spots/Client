@@ -27,3 +27,33 @@ export function getSpotReviews(spotId: number, page = 0, size = 20) {
     `/api/v1/spots/${spotId}/reviews?page=${page}&size=${size}`,
   );
 }
+
+export interface ReviewInput {
+  rating: number;
+  body: string;
+}
+
+/** POST /api/v1/spots/{spotId}/reviews — 인증 필요, 스팟당 리뷰 1개(중복 시 409) */
+export function createReview(spotId: number, input: ReviewInput) {
+  return apiRequest<SpotReviewItem>(`/api/v1/spots/${spotId}/reviews`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+/** PATCH /api/v1/reviews/{reviewId} — 인증 필요, 본인 리뷰만 */
+export function updateReview(reviewId: number, input: Partial<ReviewInput>) {
+  return apiRequest<SpotReviewItem>(`/api/v1/reviews/${reviewId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+/** DELETE /api/v1/reviews/{reviewId} — 인증 필요, 본인 리뷰만 */
+export function deleteReview(reviewId: number) {
+  return apiRequest<void>(`/api/v1/reviews/${reviewId}`, {
+    method: "DELETE",
+  });
+}
