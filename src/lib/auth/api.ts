@@ -147,6 +147,12 @@ export const authApi = {
       body: JSON.stringify(patch),
     }),
 
+  confirmPhoto: (photoUrl: string) =>
+    apiRequest<AuthUser>("/api/v1/auth/user/photo", {
+      method: "PATCH",
+      body: JSON.stringify({ photoUrl }),
+    }),
+
   async logout() {
     try {
       await apiRequest<void>("/api/v1/auth/logout", { method: "POST" });
