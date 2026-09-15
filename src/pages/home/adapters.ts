@@ -11,7 +11,6 @@ export interface HomeSpotView {
   rating: number;
   reviewCount: number;
   typeLabel: string;
-  size: "tall" | "medium";
   distanceKm: number | null;
   saved: boolean;
 }
@@ -23,7 +22,7 @@ const categoryToLabel: Record<SpotCategory, string> = {
   K_HERITAGE: "관광지",
 };
 
-export function toHomeSpotView(item: SpotSearchItem, index: number): HomeSpotView {
+export function toHomeSpotView(item: SpotSearchItem): HomeSpotView {
   return {
     id: String(item.spotId),
     name: item.name,
@@ -33,7 +32,6 @@ export function toHomeSpotView(item: SpotSearchItem, index: number): HomeSpotVie
     rating: item.avgRating,
     reviewCount: item.reviewCount,
     typeLabel: categoryToLabel[item.category],
-    size: index % 3 === 0 ? "tall" : "medium",
     distanceKm:
       item.distanceMeters != null ? item.distanceMeters / 1000 : null,
     saved: item.saved,

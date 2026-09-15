@@ -11,9 +11,7 @@ export default function SpotCard({ spot, onOpen }: SpotCardProps) {
     <button
       type="button"
       onClick={() => onOpen(spot.id)}
-      className={`relative block w-full text-left rounded-[18px] overflow-hidden cursor-pointer whitespace-nowrap ${
-        spot.size === "tall" ? "aspect-[3/4.55]" : "aspect-[3/3.7]"
-      } shadow-card`}
+      className="relative block w-full text-left rounded-[18px] overflow-hidden cursor-pointer whitespace-nowrap aspect-[3/4.55] shadow-card"
       aria-label={`${spot.name} 상세 보기`}
     >
       {/* real image backdrop */}
