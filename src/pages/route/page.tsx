@@ -5,6 +5,7 @@ import RouteMap from "./components/RouteMap";
 import PlanSheet, { type TransportMode } from "./components/PlanSheet";
 import NavOverlay from "./components/NavOverlay";
 import SpotPicker from "./components/SpotPicker";
+import PublicRoutesSheet from "./components/PublicRoutesSheet";
 import { useRoute } from "@/store/route-context";
 import { getDirections, type DirectionsResult, type TransportMode as ApiTransportMode } from "@/lib/routes-api";
 import {
@@ -17,6 +18,7 @@ import {
   Share2,
   Trash2,
   Pencil,
+  Compass,
 } from "lucide-react";
 
 type RouteMode = "empty" | "plan" | "nav";
@@ -57,6 +59,7 @@ export default function RouteTab() {
   const [modeInitialized, setModeInitialized] = useState(false);
   const [transport, setTransport] = useState<TransportMode>("transit");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [publicRoutesOpen, setPublicRoutesOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -256,14 +259,24 @@ export default function RouteTab() {
       {mode === "empty" && (
         <>
           {renderHeader(
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              aria-label="새 루트 추가"
-              className="flex items-center justify-center w-9 h-9 rounded-2xl bg-ink cursor-pointer whitespace-nowrap"
-            >
-              <Plus size={18} color="#F7EBE0" />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setPublicRoutesOpen(true)}
+                aria-label="공개 루트 둘러보기"
+                className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
+              >
+                <Compass size={18} color="#A8623E" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                aria-label="새 루트 추가"
+                className="flex items-center justify-center w-9 h-9 rounded-2xl bg-ink cursor-pointer whitespace-nowrap"
+              >
+                <Plus size={18} color="#F7EBE0" />
+              </button>
+            </>
           )}
           <div className="relative flex-1 min-h-0">
             <RouteMap variant="empty" stops={stops} />
@@ -287,6 +300,14 @@ export default function RouteTab() {
               className="mt-5 w-full h-[52px] rounded-full bg-ink text-white text-[14px] font-semibold cursor-pointer whitespace-nowrap"
             >
               스팟 탐색하러 가기
+            </button>
+            <button
+              type="button"
+              onClick={() => setPublicRoutesOpen(true)}
+              className="mt-2.5 w-full h-[52px] rounded-full bg-cream text-brand text-[14px] font-semibold cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+            >
+              <Compass size={17} />
+              다른 사람들의 공개 루트 둘러보기
             </button>
           </div>
         </>
@@ -408,6 +429,13 @@ export default function RouteTab() {
           routeId={routeId}
           onAdd={handleAdd}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {publicRoutesOpen && (
+        <PublicRoutesSheet
+          onClose={() => setPublicRoutesOpen(false)}
+          onOpenSpot={(spotId) => navigate?.(`/spot/${spotId}`)}
         />
       )}
 
