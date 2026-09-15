@@ -16,6 +16,7 @@ import {
   Repeat,
   Share2,
   Trash2,
+  Pencil,
 } from "lucide-react";
 
 type RouteMode = "empty" | "plan" | "nav";
@@ -43,12 +44,14 @@ const travelFallback: Record<TransportMode, string> = {
 export default function RouteTab() {
   const {
     routeId,
+    routeName,
     stops,
     loading: routeLoading,
     addToRoute,
     removeFromRoute,
     reorderRoute,
     clearRoute,
+    renameRoute,
   } = useRoute();
   const [mode, setMode] = useState<RouteMode>("empty");
   const [modeInitialized, setModeInitialized] = useState(false);
@@ -58,12 +61,15 @@ export default function RouteTab() {
   const [current, setCurrent] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   const [directions, setDirections] = useState<DirectionsResult | null>(null);
   const [directionsLoading, setDirectionsLoading] = useState(false);
 
   const closeMenu = () => {
     setMenuOpen(false);
     setConfirmClear(false);
+    setRenaming(false);
   };
 
   const navigate = (
@@ -161,7 +167,26 @@ export default function RouteTab() {
     showToast("루트를 비웠어요");
   };
 
+  const openRename = () => {
+    setNameDraft(routeName ?? "");
+    setRenaming(true);
+  };
+
+  const doRename = () => {
+    const name = nameDraft.trim();
+    if (!name) return;
+    void renameRoute(name);
+    closeMenu();
+    showToast("루트 이름을 변경했어요");
+  };
+
   const menuItems = [
+    {
+      icon: Pencil,
+      label: "이름 변경",
+      onClick: openRename,
+      disabled: routeId === null,
+    },
     {
       icon: Repeat,
       label: "출발·도착 바꾸기",
@@ -191,10 +216,10 @@ export default function RouteTab() {
 
   const renderHeader = (right: ReactNode) => (
     <div className="flex items-center justify-between px-5 pt-1 pb-2 shrink-0">
-      <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
-        내 루트
+      <h1 className="text-[22px] font-extrabold tracking-tight text-ink truncate">
+        {routeName ?? "내 루트"}
       </h1>
-      <div className="flex items-center gap-2">{right}</div>
+      <div className="flex items-center gap-2 shrink-0">{right}</div>
     </div>
   );
 
@@ -369,7 +394,37 @@ export default function RouteTab() {
             className="absolute right-4 top-[48px] w-[214px] rounded-[16px] bg-white shadow-soft overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {confirmClear ? (
+            {renaming ? (
+              <div className="p-4">
+                <p className="text-[13px] font-semibold text-ink mb-2">
+                  루트 이름 변경
+                </p>
+                <input
+                  autoFocus
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  maxLength={100}
+                  className="w-full h-9 rounded-lg border border-line px-3 text-[13px] text-ink outline-none focus:border-brand"
+                />
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRenaming(false)}
+                    className="flex-1 h-9 rounded-full bg-cream text-[12px] font-semibold text-ink cursor-pointer whitespace-nowrap"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={doRename}
+                    disabled={!nameDraft.trim()}
+                    className="flex-1 h-9 rounded-full bg-ink text-white text-[12px] font-semibold cursor-pointer whitespace-nowrap disabled:opacity-50"
+                  >
+                    저장
+                  </button>
+                </div>
+              </div>
+            ) : confirmClear ? (
               <div className="p-4">
                 <p className="text-[13px] font-semibold text-ink">
                   루트를 모두 비울까요?
