@@ -1,6 +1,9 @@
 import { useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
-import { useProfile } from "@/store/profile-context";
+import { useAuth } from "@/store/auth-context";
+import { ApiError } from "@/lib/auth/api";
+import type { CountryCode, UserLanguage } from "@/lib/auth/types";
+import { countryCodes, countryLabels } from "@/lib/country-codes";
 import SubHeader from "./SubHeader";
 import { User, Camera } from "lucide-react";
 
@@ -9,30 +12,46 @@ interface EditProfileViewProps {
   onToast: (msg: string) => void;
 }
 
-const LANGS = ["한국어", "English"];
+const languageLabels: Record<UserLanguage, string> = {
+  KO: "한국어",
+  EN: "English",
+};
 
 export default function EditProfileView({ onBack, onToast }: EditProfileViewProps) {
-  const { profile, updateProfile } = useProfile();
-  const [draft, setDraft] = useState(profile);
+  const { user, updateProfile } = useAuth();
+  const [nickname, setNickname] = useState(user?.nickname ?? "");
+  const [countryCode, setCountryCode] = useState<CountryCode | null>(
+    user?.countryCode ?? null,
+  );
+  const [language, setLanguage] = useState<UserLanguage>(user?.language ?? "KO");
+  const [saving, setSaving] = useState(false);
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
-  const set = (patch: Partial<typeof draft>) => setDraft((d) => ({ ...d, ...patch }));
+  const dirty =
+    nickname !== (user?.nickname ?? "") ||
+    countryCode !== (user?.countryCode ?? null) ||
+    language !== (user?.language ?? "KO");
+  const valid = nickname.trim().length > 0;
 
-  const dirty = JSON.stringify(draft) !== JSON.stringify(profile);
-  const valid = draft.nickname.trim().length > 0 && /\S+@\S+\.\S+/.test(draft.email);
-
-  const save = () => {
-    if (!valid) {
-      onToast("닉네임과 이메일을 확인해 주세요");
+  const save = async () => {
+    if (!valid || saving) {
+      if (!valid) onToast("닉네임을 입력해 주세요");
       return;
     }
-    updateProfile({
-      nickname: draft.nickname.trim(),
-      email: draft.email.trim(),
-      nationality: draft.nationality.trim(),
-      language: draft.language,
-    });
-    onToast("프로필을 저장했어요");
-    onBack();
+    setSaving(true);
+    try {
+      await updateProfile({
+        nickname: nickname.trim(),
+        countryCode: countryCode ?? undefined,
+        language,
+      });
+      onToast("프로필을 저장했어요");
+      onBack();
+    } catch (err) {
+      onToast(err instanceof ApiError ? err.message : "프로필을 저장하지 못했어요.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const fieldCls =
@@ -48,10 +67,10 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
           <button
             type="button"
             onClick={save}
-            disabled={!dirty || !valid}
+            disabled={!dirty || !valid || saving}
             className="text-[14px] font-semibold text-brand disabled:text-line cursor-pointer whitespace-nowrap"
           >
-            저장
+            {saving ? "저장 중..." : "저장"}
           </button>
         }
       />
@@ -59,10 +78,18 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
       {/* 프로필 이미지 */}
       <div className="px-5 mt-8 flex flex-col items-center">
         <span
-          className="w-24 h-24 rounded-full flex items-center justify-center"
+          className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden"
           style={{ background: "linear-gradient(135deg,#A8623E,#6B3F28)" }}
         >
-          <User size={40} color="#FFFFFF" strokeWidth={1.6} />
+          {user?.profileImageUrl ? (
+            <img
+              src={user.profileImageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User size={40} color="#FFFFFF" strokeWidth={1.6} />
+          )}
         </span>
         <button
           type="button"
@@ -81,45 +108,59 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
             <span className="text-[12px] font-medium text-muted">닉네임</span>
             <input
               className={`mt-1 ${fieldCls}`}
-              value={draft.nickname}
-              maxLength={20}
-              onChange={(e) => set({ nickname: e.target.value })}
+              value={nickname}
+              maxLength={50}
+              onChange={(e) => setNickname(e.target.value)}
               placeholder="닉네임"
             />
           </label>
-          <label className="flex flex-col px-4 py-3">
+          <div className="flex flex-col px-4 py-3">
             <span className="text-[12px] font-medium text-muted">이메일</span>
-            <input
-              type="email"
-              inputMode="email"
-              className={`mt-1 ${fieldCls}`}
-              value={draft.email}
-              onChange={(e) => set({ email: e.target.value })}
-              placeholder="you@example.com"
-            />
-          </label>
-          <label className="flex flex-col px-4 py-3">
+            <span className="mt-1 text-[15px] font-semibold text-muted">
+              {user?.email}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCountryPickerOpen((v) => !v)}
+            className="w-full flex flex-col items-start px-4 py-3 text-left cursor-pointer"
+          >
             <span className="text-[12px] font-medium text-muted">국적</span>
-            <input
-              className={`mt-1 ${fieldCls}`}
-              value={draft.nationality}
-              maxLength={20}
-              onChange={(e) => set({ nationality: e.target.value })}
-              placeholder="국적"
-            />
-          </label>
+            <span className="mt-1 text-[15px] font-semibold text-ink">
+              {countryCode ? countryLabels[countryCode] : "선택 안 함"}
+            </span>
+          </button>
+          {countryPickerOpen && (
+            <div className="px-4 py-3 flex flex-wrap gap-2">
+              {countryCodes.map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => {
+                    setCountryCode(code);
+                    setCountryPickerOpen(false);
+                  }}
+                  className={`px-3 h-8 rounded-full text-[12px] font-medium cursor-pointer whitespace-nowrap ${
+                    countryCode === code
+                      ? "bg-ink text-white"
+                      : "bg-cream text-muted"
+                  }`}
+                >
+                  {countryLabels[code]}
+                </button>
+              ))}
+            </div>
+          )}
           <button
             type="button"
             onClick={() =>
-              set({
-                language: LANGS[(LANGS.indexOf(draft.language) + 1) % LANGS.length],
-              })
+              setLanguage((l) => (l === "KO" ? "EN" : "KO"))
             }
             className="w-full flex flex-col items-start px-4 py-3 text-left cursor-pointer"
           >
             <span className="text-[12px] font-medium text-muted">선호 언어</span>
             <span className="mt-1 text-[15px] font-semibold text-ink">
-              {draft.language}
+              {languageLabels[language]}
             </span>
           </button>
         </div>
@@ -129,10 +170,10 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
         <button
           type="button"
           onClick={save}
-          disabled={!dirty || !valid}
+          disabled={!dirty || !valid || saving}
           className="w-full h-[52px] rounded-full bg-ink text-white text-[15px] font-semibold shadow-soft cursor-pointer disabled:opacity-40 whitespace-nowrap"
         >
-          저장하기
+          {saving ? "저장 중..." : "저장하기"}
         </button>
       </div>
 
