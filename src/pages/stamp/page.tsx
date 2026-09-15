@@ -8,6 +8,7 @@ import {
   getMyBadges,
   getMyStamps,
   getStampDetail,
+  claimBadge,
   type BadgeCollection,
   type StampItem,
 } from "@/lib/stamps-api";
@@ -19,6 +20,7 @@ import {
   remainingForNextBadge,
   nextBadgeProgressPercent,
   sortStampBook,
+  formatAcquiredShort,
   type OverlayStamp,
 } from "./adapters";
 import StampbookView from "./components/StampbookView";
@@ -72,6 +74,7 @@ export default function StampTab() {
 
   const [badges, setBadges] = useState<BadgeCollection | null>(null);
   const [badgeLoading, setBadgeLoading] = useState(false);
+  const [claimingBadgeId, setClaimingBadgeId] = useState<number | null>(null);
   const [badgeError, setBadgeError] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -126,6 +129,28 @@ export default function StampTab() {
       setBadgeLoading(false);
     }
   }, []);
+
+  const handleClaimBadge = async (badgeId: number) => {
+    setClaimingBadgeId(badgeId);
+    try {
+      const result = await claimBadge(badgeId, "ko");
+      await loadBadges();
+      if (result.newlyAcquired) {
+        setPreviewBadge({
+          name: result.badge.name,
+          description: result.badge.description,
+          imageUrl: result.badge.imageUrl,
+          dateShort: formatAcquiredShort(result.badge.acquiredAt) ?? undefined,
+        });
+      } else {
+        showToast("이미 수령한 뱃지예요");
+      }
+    } catch (err) {
+      showToast(errorMessage(err, "뱃지를 수령하지 못했어요."));
+    } finally {
+      setClaimingBadgeId(null);
+    }
+  };
 
   useEffect(() => {
     if (!STAMP_TEST_MODE && (initializing || !user)) {
@@ -320,6 +345,8 @@ export default function StampTab() {
             requireLogin={requireLogin}
             onLogin={goLogin}
             onRetry={() => void loadBadges()}
+            onClaim={(badgeId) => void handleClaimBadge(badgeId)}
+            claimingBadgeId={claimingBadgeId}
           />
         )}
       </div>
