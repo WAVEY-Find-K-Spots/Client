@@ -1,4 +1,5 @@
 import type { RouteObject } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import AppShell from "@/components/layout/AppShell";
 import NotFound from "@/pages/NotFound";
 import SpotList from "@/pages/home/page";
@@ -24,6 +25,7 @@ const routes: RouteObject[] = [
       { path: "spot/:id", element: <SpotDetail /> },
       { path: "route", element: <RouteTab /> },
       { path: "stamp", element: <StampTab /> },
+      { path: "stamp-api", element: <Navigate to="/stamp" replace /> },
       { path: "mypage", element: <MyPage /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "vision", element: <VisionPage /> },
