@@ -1,5 +1,9 @@
 import { createContext, useContext } from "react";
-import type { AuthUser, SocialProvider } from "@/lib/auth/types";
+import type {
+  AuthUser,
+  SocialProvider,
+  UserProfileUpdateRequest,
+} from "@/lib/auth/types";
 
 export interface SocialLoginResult {
   user: AuthUser;
@@ -11,6 +15,7 @@ export interface AuthContextValue {
   initializing: boolean;
   beginSocialLogin: (provider: SocialProvider) => Promise<void>;
   completeSocialLogin: (code: string) => Promise<SocialLoginResult>;
+  updateProfile: (patch: UserProfileUpdateRequest) => Promise<AuthUser>;
   logout: () => Promise<void>;
   withdraw: () => Promise<void>;
 }

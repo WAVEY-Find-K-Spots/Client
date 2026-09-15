@@ -49,6 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateProfile = useCallback(async (patch: Parameters<typeof authApi.updateProfile>[0]) => {
+    const updated = await authApi.updateProfile(patch);
+    setUser(updated);
+    return updated;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -70,9 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializing,
     beginSocialLogin,
     completeSocialLogin,
+    updateProfile,
     logout,
     withdraw,
-  }), [user, initializing, beginSocialLogin, completeSocialLogin, logout, withdraw]);
+  }), [user, initializing, beginSocialLogin, completeSocialLogin, updateProfile, logout, withdraw]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -4,6 +4,7 @@ import type {
   AuthUser,
   LoginUrls,
   TokenResponse,
+  UserProfileUpdateRequest,
 } from "./types";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
@@ -139,6 +140,12 @@ export const authApi = {
     }),
 
   getCurrentUser: () => apiRequest<AuthUser>("/api/v1/auth/user"),
+
+  updateProfile: (patch: UserProfileUpdateRequest) =>
+    apiRequest<AuthUser>("/api/v1/auth/user", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
 
   async logout() {
     try {
