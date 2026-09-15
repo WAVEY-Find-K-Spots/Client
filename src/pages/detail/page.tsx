@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/auth/api";
 import { claimStamp } from "@/lib/stamps-api";
 import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
 import { getSpot, getNearbySpots } from "@/lib/spots-api";
+import { getSpotContents, type SpotContentItem } from "@/lib/content-api";
 import {
   getSpotReviews,
   createReview,
@@ -88,6 +89,8 @@ export default function SpotDetail() {
   const [apiSpotNotFound, setApiSpotNotFound] = useState(false);
   const [nearbyItems, setNearbyItems] = useState<NearbySpotView[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [contentItems, setContentItems] = useState<SpotContentItem[]>([]);
+  const [contentsLoading, setContentsLoading] = useState(false);
   const [reviewState, setReviewState] = useState<{
     rating: number;
     reviewCount: number;
@@ -161,6 +164,26 @@ export default function SpotDetail() {
       })
       .finally(() => {
         if (!cancelled) setNearbyLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, mockSpot, numericSpotId]);
+
+  // 콘텐츠 탭 진입 시 연결된 작품 목록 조회 (mock 스팟은 큐레이션된 mock 콘텐츠 그대로 사용)
+  useEffect(() => {
+    if (tab !== "content" || mockSpot || numericSpotId == null) return;
+    let cancelled = false;
+    setContentsLoading(true);
+    getSpotContents(numericSpotId)
+      .then((items) => {
+        if (!cancelled) setContentItems(items);
+      })
+      .catch(() => {
+        if (!cancelled) setContentItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setContentsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -258,6 +281,7 @@ export default function SpotDetail() {
     setOverlayStamp(null);
     setApiStamped(false);
     setNearbyItems([]);
+    setContentItems([]);
     setReviewState(null);
   }, [id]);
 
@@ -442,7 +466,13 @@ export default function SpotDetail() {
       </div>
 
       {tab === "info" && <DetailInfo spot={spot} />}
-      {tab === "content" && <ContentTab spot={spot} />}
+      {tab === "content" && (
+        <ContentTab
+          spot={spot}
+          relatedContents={contentItems}
+          contentsLoading={contentsLoading}
+        />
+      )}
       {tab === "reviews" && (
         <ReviewsTab
           rating={reviewState?.rating ?? spot.rating}
