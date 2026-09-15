@@ -6,7 +6,13 @@ import SearchPanel from "./components/SearchPanel";
 import FilterSheet, { type SpotFilterState } from "./components/FilterSheet";
 import { spotCategories, type SpotType } from "@/mocks/spots";
 import { useNotifications } from "@/store/notifications-context";
-import { searchSpots, type SpotCategory, type SpotSort } from "@/lib/spots-api";
+import {
+  searchSpots,
+  saveSpot,
+  unsaveSpot,
+  type SpotCategory,
+  type SpotSort,
+} from "@/lib/spots-api";
 import { getRegions, type Region } from "@/lib/regions-api";
 import { toHomeSpotView, type HomeSpotView } from "./adapters";
 import { sortByHasImage } from "@/lib/image-fallback";
@@ -81,7 +87,6 @@ export default function SpotList() {
     height: 700,
   });
   const [dropTop, setDropTop] = useState(0);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
   const [recent, setRecent] = useState<string[]>([
     "경복궁",
     "눈물의 여왕",
@@ -243,13 +248,25 @@ export default function SpotList() {
     pushRecent(kw);
   };
 
-  const toggleSave = (id: string) => {
-    setSaved((p) => {
-      const next = new Set(p);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const toggleSave = async (id: string) => {
+    const spotId = Number(id);
+    const current = items.find((s) => s.id === id);
+    if (!current) return;
+    const next = !current.saved;
+    setItems((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, saved: next } : s)),
+    );
+    try {
+      const result = next ? await saveSpot(spotId) : await unsaveSpot(spotId);
+      setItems((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, saved: result.saved } : s)),
+      );
+    } catch {
+      setItems((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, saved: !next } : s)),
+      );
+      showToast(next ? "찜하지 못했어요" : "찜을 해제하지 못했어요");
+    }
   };
 
   const sortLabel = sortOptions.find((o) => o.key === sort)?.label ?? "인기순";
@@ -417,8 +434,8 @@ export default function SpotList() {
                   key={s.id}
                   spot={s}
                   query={debouncedQuery}
-                  saved={saved.has(s.id)}
-                  onToggleSave={() => toggleSave(s.id)}
+                  saved={s.saved}
+                  onToggleSave={() => void toggleSave(s.id)}
                   onOpen={() => navigate?.(`/spot/${s.id}`)}
                 />
               ))}
@@ -580,8 +597,8 @@ export default function SpotList() {
                   <SpotListItem
                     key={s.id}
                     spot={s}
-                    saved={saved.has(s.id)}
-                    onToggleSave={() => toggleSave(s.id)}
+                    saved={s.saved}
+                    onToggleSave={() => void toggleSave(s.id)}
                     onOpen={() => navigate?.(`/spot/${s.id}`)}
                   />
                 ))}
