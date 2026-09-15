@@ -16,6 +16,7 @@ export interface AuthContextValue {
   beginSocialLogin: (provider: SocialProvider) => Promise<void>;
   completeSocialLogin: (code: string) => Promise<SocialLoginResult>;
   updateProfile: (patch: UserProfileUpdateRequest) => Promise<AuthUser>;
+  confirmProfilePhoto: (photoUrl: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   withdraw: () => Promise<void>;
 }

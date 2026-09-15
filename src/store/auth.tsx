@@ -55,6 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updated;
   }, []);
 
+  const confirmProfilePhoto = useCallback(async (photoUrl: string) => {
+    const updated = await authApi.confirmPhoto(photoUrl);
+    setUser(updated);
+    return updated;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -77,9 +83,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     beginSocialLogin,
     completeSocialLogin,
     updateProfile,
+    confirmProfilePhoto,
     logout,
     withdraw,
-  }), [user, initializing, beginSocialLogin, completeSocialLogin, updateProfile, logout, withdraw]);
+  }), [
+    user,
+    initializing,
+    beginSocialLogin,
+    completeSocialLogin,
+    updateProfile,
+    confirmProfilePhoto,
+    logout,
+    withdraw,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
