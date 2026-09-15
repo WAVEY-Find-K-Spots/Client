@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
+import SafeImage from "@/components/SafeImage";
 import { useNotifications } from "@/store/notifications-context";
 import { useRoute } from "@/store/route-context";
 import { useAuth } from "@/store/auth-context";
@@ -178,17 +179,16 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
                 className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden"
                 style={{ background: "linear-gradient(135deg,#A8623E,#6B3F28)" }}
               >
-                {user?.profileImageUrl ? (
-                  <img
-                    src={user.profileImageUrl}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="flex items-center justify-center w-7 h-7">
-                    <User size={28} color="#FFFFFF" strokeWidth={1.8} />
-                  </span>
-                )}
+                <SafeImage
+                  src={user?.profileImageUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  fallback={
+                    <span className="flex items-center justify-center w-7 h-7">
+                      <User size={28} color="#FFFFFF" strokeWidth={1.8} />
+                    </span>
+                  }
+                />
               </span>
               <span className="absolute -bottom-0.5 -right-0.5 w-[22px] h-[22px] rounded-full bg-brand flex items-center justify-center border-2 border-ink">
                 <span className="flex items-center justify-center w-3 h-3">

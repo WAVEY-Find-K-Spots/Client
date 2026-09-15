@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
+import SafeImage from "@/components/SafeImage";
 import { useAuth } from "@/store/auth-context";
 import { ApiError } from "@/lib/auth/api";
 import type { CountryCode, UserLanguage } from "@/lib/auth/types";
@@ -109,15 +110,12 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
           className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden"
           style={{ background: "linear-gradient(135deg,#A8623E,#6B3F28)" }}
         >
-          {user?.profileImageUrl ? (
-            <img
-              src={user.profileImageUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <User size={40} color="#FFFFFF" strokeWidth={1.6} />
-          )}
+          <SafeImage
+            src={user?.profileImageUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            fallback={<User size={40} color="#FFFFFF" strokeWidth={1.6} />}
+          />
         </span>
         <input
           ref={fileInputRef}
