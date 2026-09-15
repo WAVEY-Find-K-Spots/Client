@@ -10,7 +10,7 @@ import { ApiError } from "@/lib/auth/api";
 import { claimStamp } from "@/lib/stamps-api";
 import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
 import { getSpot, getNearbySpots, saveSpot, unsaveSpot } from "@/lib/spots-api";
-import { getSpotContents, type SpotContentItem } from "@/lib/content-api";
+import { getSpotMedia, type SpotMediaResponse } from "@/lib/content-api";
 import {
   getSpotReviews,
   createReview,
@@ -90,8 +90,8 @@ export default function SpotDetail() {
   const [apiSpotNotFound, setApiSpotNotFound] = useState(false);
   const [nearbyItems, setNearbyItems] = useState<NearbySpotView[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
-  const [contentItems, setContentItems] = useState<SpotContentItem[]>([]);
-  const [contentsLoading, setContentsLoading] = useState(false);
+  const [spotMedia, setSpotMedia] = useState<SpotMediaResponse | null>(null);
+  const [mediaLoading, setMediaLoading] = useState(false);
   const [reviewState, setReviewState] = useState<{
     rating: number;
     reviewCount: number;
@@ -180,20 +180,20 @@ export default function SpotDetail() {
     };
   }, [tab, mockSpot, numericSpotId]);
 
-  // 콘텐츠 탭 진입 시 연결된 작품 목록 조회 (mock 스팟은 큐레이션된 mock 콘텐츠 그대로 사용)
+  // 콘텐츠 탭 진입 시 연결된 미디어(작품+영상+음악) 조회 (mock 스팟은 큐레이션된 mock 콘텐츠 그대로 사용)
   useEffect(() => {
     if (tab !== "content" || mockSpot || numericSpotId == null) return;
     let cancelled = false;
-    setContentsLoading(true);
-    getSpotContents(numericSpotId)
-      .then((items) => {
-        if (!cancelled) setContentItems(items);
+    setMediaLoading(true);
+    getSpotMedia(numericSpotId)
+      .then((result) => {
+        if (!cancelled) setSpotMedia(result);
       })
       .catch(() => {
-        if (!cancelled) setContentItems([]);
+        if (!cancelled) setSpotMedia(null);
       })
       .finally(() => {
-        if (!cancelled) setContentsLoading(false);
+        if (!cancelled) setMediaLoading(false);
       });
     return () => {
       cancelled = true;
@@ -314,7 +314,7 @@ export default function SpotDetail() {
     setOverlayStamp(null);
     setApiStamped(false);
     setNearbyItems([]);
-    setContentItems([]);
+    setSpotMedia(null);
     setReviewState(null);
   }, [id]);
 
@@ -504,8 +504,8 @@ export default function SpotDetail() {
       {tab === "content" && (
         <ContentTab
           spot={spot}
-          relatedContents={contentItems}
-          contentsLoading={contentsLoading}
+          media={spotMedia}
+          mediaLoading={mediaLoading}
         />
       )}
       {tab === "reviews" && (
