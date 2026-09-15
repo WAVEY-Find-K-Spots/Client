@@ -57,3 +57,44 @@ export function searchSpots(params: SpotSearchParams = {}) {
   const qs = search.toString();
   return apiRequest<SpotSearchResult>(`/api/v1/spots${qs ? `?${qs}` : ""}`);
 }
+
+export interface SpotDetail {
+  spotId: number;
+  name: string;
+  description: string | null;
+  category: SpotCategory;
+  imageUrl: string | null;
+  avgRating: number;
+  reviewCount: number;
+  saved: boolean;
+  openingHours: string | null;
+  breakTime: string | null;
+  closedDays: string | null;
+  address: string | null;
+  transportInfo: string | null;
+  tel: string | null;
+  latitude: number;
+  longitude: number;
+}
+
+export interface SpotNearbyItem {
+  spotId: number;
+  name: string;
+  description: string | null;
+  address: string | null;
+  imageUrl: string | null;
+  avgRating: number;
+  distanceMeters: number;
+}
+
+/** GET /api/v1/spots/{spotId} — 인증 필요 */
+export function getSpot(spotId: number) {
+  return apiRequest<SpotDetail>(`/api/v1/spots/${spotId}`);
+}
+
+/** GET /api/v1/spots/{spotId}/nearby — 인증 필요, radiusMeters 1~100000 */
+export function getNearbySpots(spotId: number, radiusMeters = 5000) {
+  return apiRequest<SpotNearbyItem[]>(
+    `/api/v1/spots/${spotId}/nearby?radiusMeters=${radiusMeters}`,
+  );
+}
