@@ -1,6 +1,7 @@
 import type { SpotCategory } from "@/lib/routes-api";
 import type { RouteSpotDetail } from "@/lib/routes-api";
 import type { SpotSearchItem } from "@/lib/spots-api";
+import { withImageFallback, hasRealImage } from "@/lib/image-fallback";
 
 export type StopType = "drama" | "kpop" | "movie" | "tour";
 
@@ -10,9 +11,6 @@ const CATEGORY_META: Record<SpotCategory, { type: StopType; label: string }> = {
   K_MOVIE: { type: "movie", label: "영화" },
   K_HERITAGE: { type: "tour", label: "전통·유산" },
 };
-
-const FALLBACK_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E";
 
 /** 루트 편집/탐색 화면(RouteMap·PlanSheet·NavOverlay)이 소비하는 스팟 형태. */
 export interface RouteStop {
@@ -35,7 +33,7 @@ export function toRouteStop(spot: RouteSpotDetail): RouteStop {
     name: spot.name ?? "삭제된 스팟",
     loc: spot.address ?? "",
     coord: { lat: spot.latitude ?? 0, lng: spot.longitude ?? 0 },
-    image: spot.thumbnailUrl ?? FALLBACK_IMAGE,
+    image: withImageFallback(spot.thumbnailUrl),
     type: meta?.type ?? "tour",
     typeLabel: meta?.label ?? "스팟",
     tags: [],
@@ -49,6 +47,7 @@ export interface SpotCandidate {
   name: string;
   loc: string;
   image: string;
+  hasImage: boolean;
   type: StopType;
   typeLabel: string;
 }
@@ -60,7 +59,8 @@ export function toSpotCandidate(spot: SpotSearchItem): SpotCandidate {
     spotId: spot.spotId,
     name: spot.name,
     loc: spot.description ?? "",
-    image: spot.imageUrl ?? FALLBACK_IMAGE,
+    image: withImageFallback(spot.imageUrl),
+    hasImage: hasRealImage(spot.imageUrl),
     type: meta?.type ?? "tour",
     typeLabel: meta?.label ?? "스팟",
   };
