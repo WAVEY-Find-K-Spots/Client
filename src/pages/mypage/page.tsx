@@ -5,6 +5,7 @@ import EditProfileView from "./components/EditProfileView";
 import SettingsView from "./components/SettingsView";
 import NotiSettingsView from "./components/NotiSettingsView";
 import MyReviewsView from "./components/MyReviewsView";
+import SavedSpotsView from "./components/SavedSpotsView";
 import StaticDocView from "./components/StaticDocView";
 import { PRIVACY_DOC, TERMS_DOC } from "./components/legalDocs";
 
@@ -15,6 +16,7 @@ export type MyPageView =
   | "settings"
   | "notiSettings"
   | "reviews"
+  | "savedSpots"
   | "policy"
   | "terms";
 
@@ -52,6 +54,12 @@ export default function MyPage() {
       {view === "notiSettings" && <NotiSettingsView onBack={() => openView("settings")} />}
       {view === "reviews" && (
         <MyReviewsView
+          onBack={back}
+          onOpenSpot={(id) => navigate?.(`/spot/${id}`)}
+        />
+      )}
+      {view === "savedSpots" && (
+        <SavedSpotsView
           onBack={back}
           onOpenSpot={(id) => navigate?.(`/spot/${id}`)}
         />
