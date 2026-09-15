@@ -28,6 +28,20 @@ export function getSpotReviews(spotId: number, page = 0, size = 20) {
   );
 }
 
+export interface MyReviewList {
+  reviews: SpotReviewItem[];
+  page: number;
+  size: number;
+  hasNext: boolean;
+}
+
+/** GET /api/v1/me/reviews — 인증 필요 */
+export function getMyReviews(page = 0, size = 20) {
+  return apiRequest<MyReviewList>(
+    `/api/v1/me/reviews?page=${page}&size=${size}`,
+  );
+}
+
 export interface ReviewInput {
   rating: number;
   body: string;
