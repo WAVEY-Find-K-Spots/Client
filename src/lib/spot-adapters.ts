@@ -1,6 +1,7 @@
 import type { Spot, SpotType, ReviewItem } from "@/mocks/spots";
 import type { SpotDetail, SpotNearbyItem, SpotCategory } from "@/lib/spots-api";
 import type { SpotReviewItem } from "@/lib/reviews-api";
+import { withImageFallback, hasRealImage } from "@/lib/image-fallback";
 
 const categoryToType: Record<SpotCategory, SpotType> = {
   K_DRAMA: "drama",
@@ -29,7 +30,7 @@ export function toDetailSpot(api: SpotDetail): Spot {
     type: categoryToType[api.category],
     typeLabel: categoryToLabel[api.category],
     size: "medium",
-    image: api.imageUrl ?? "",
+    image: withImageFallback(api.imageUrl),
     desc: api.description ?? "",
     tags: [],
     info: {
@@ -54,6 +55,7 @@ export interface NearbySpotView {
   loc: string;
   desc: string;
   image: string;
+  hasImage: boolean;
   rating: number;
 }
 
@@ -63,7 +65,8 @@ export function toNearbySpotView(n: SpotNearbyItem): NearbySpotView {
     name: n.name,
     loc: n.address ?? "",
     desc: n.description ?? "",
-    image: n.imageUrl ?? "",
+    image: withImageFallback(n.imageUrl),
+    hasImage: hasRealImage(n.imageUrl),
     rating: n.avgRating,
   };
 }
