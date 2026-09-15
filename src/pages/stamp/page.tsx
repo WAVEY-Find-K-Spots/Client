@@ -13,6 +13,7 @@ import {
   type StampItem,
 } from "@/lib/stamps-api";
 import { shareContent, type ShareResult } from "@/lib/share";
+import { getRegions, type Region } from "@/lib/regions-api";
 import { useAuth } from "@/store/auth-context";
 import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
 import {
@@ -63,6 +64,22 @@ export default function StampTab() {
   const [toast, setToast] = useState<string | null>(null);
   const [regionKey, setRegionKey] = useState("all");
   const [regionId, setRegionId] = useState<number | null>(null);
+  const [regions, setRegions] = useState<Region[]>([]);
+
+  useEffect(() => {
+    getRegions()
+      .then(setRegions)
+      .catch(() => setRegions([]));
+  }, []);
+
+  const regionChips = [
+    { key: "all", label: "전체", regionId: null as number | null },
+    ...regions.map((r) => ({
+      key: String(r.regionId),
+      label: r.nameKo,
+      regionId: r.regionId,
+    })),
+  ];
 
   const [stamps, setStamps] = useState<StampItem[]>([]);
   const [collectedCount, setCollectedCount] = useState(0);
@@ -326,6 +343,7 @@ export default function StampTab() {
               badges ? remainingForNextBadge(badges.inProgress) : null
             }
             regionKey={regionKey}
+            regionChips={regionChips}
             loading={initializing || bookLoading}
             loadingMore={loadingMore}
             error={bookError}

@@ -1,9 +1,14 @@
 import { Award, Check, Lock, CheckCircle } from "lucide-react";
 import type { StampItem } from "@/lib/stamps-api";
-import { STAMP_REGIONS } from "@/lib/stamp-regions";
 import { formatAcquiredShort } from "../adapters";
 import LoginGateCard from "./LoginGateCard";
 import StampAvatar from "./StampAvatar";
+
+export interface RegionChip {
+  key: string;
+  label: string;
+  regionId: number | null;
+}
 
 interface StampbookViewProps {
   stamps: StampItem[];
@@ -12,6 +17,7 @@ interface StampbookViewProps {
   progressPercent: number;
   nextBadgeRemaining: number | null;
   regionKey: string;
+  regionChips: RegionChip[];
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
@@ -31,6 +37,7 @@ export default function StampbookView({
   progressPercent,
   nextBadgeRemaining,
   regionKey,
+  regionChips,
   loading,
   loadingMore,
   error,
@@ -121,7 +128,7 @@ export default function StampbookView({
 
       <div className="mt-5 -mx-5 overflow-x-auto no-scrollbar px-5">
         <div className="flex items-center gap-2 w-max">
-          {STAMP_REGIONS.map((r) => {
+          {regionChips.map((r) => {
             const isActive = regionKey === r.key;
             return (
               <button
