@@ -27,18 +27,21 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
   const [candidates, setCandidates] = useState<SpotCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setNotice(null);
+    setDemoMode(false);
     searchSpots(routeId ? { excludeRouteId: routeId } : {})
       .then((result) => {
         if (cancelled) return;
         if (result.spots.length === 0) {
           setCandidates(MOCK_CANDIDATES);
-          setNotice("아직 실제 스팟 데이터가 없어 데모 스팟을 보여드려요.");
+          setDemoMode(true);
+          setNotice("아직 실제 스팟 데이터가 없어 데모 스팟을 보여드려요. 데모 스팟은 루트에 추가할 수 없어요.");
           return;
         }
         setCandidates(result.spots.map(toSpotCandidate));
@@ -46,7 +49,8 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
       .catch(() => {
         if (cancelled) return;
         setCandidates(MOCK_CANDIDATES);
-        setNotice("스팟을 불러오지 못해 데모 스팟을 보여드려요.");
+        setDemoMode(true);
+        setNotice("스팟을 불러오지 못해 데모 스팟을 보여드려요. 데모 스팟은 루트에 추가할 수 없어요.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -152,12 +156,14 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
           <button
             type="button"
             onClick={confirm}
-            disabled={selected.length === 0}
+            disabled={demoMode || selected.length === 0}
             className="w-full h-[50px] rounded-full bg-ink text-white text-[14px] font-semibold cursor-pointer whitespace-nowrap disabled:opacity-40"
           >
-            {selected.length > 0
-              ? `${selected.length}개 스팟 추가하기`
-              : "스팟을 선택해주세요"}
+            {demoMode
+              ? "데모 스팟은 추가할 수 없어요"
+              : selected.length > 0
+                ? `${selected.length}개 스팟 추가하기`
+                : "스팟을 선택해주세요"}
           </button>
         </div>
       </div>

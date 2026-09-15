@@ -86,7 +86,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
 
   const addToRoute = useCallback(
     async (spotIds: number[]) => {
-      if (spotIds.length === 0) return;
+      if (spotIds.length === 0) return false;
       setError(null);
       try {
         if (routeId === null) {
@@ -98,7 +98,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           persistRouteId(detail.routeId);
           setRouteName(detail.name);
           setStops(detail.spots.map(toRouteStop));
-          return;
+          return true;
         }
 
         let nextOrder = stops.length + 1;
@@ -107,8 +107,10 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           nextOrder += 1;
         }
         await refresh(routeId);
+        return true;
       } catch {
         setError("스팟을 추가하지 못했어요.");
+        return false;
       }
     },
     [routeId, stops.length, refresh],
@@ -116,13 +118,15 @@ export function RouteProvider({ children }: { children: ReactNode }) {
 
   const removeFromRoute = useCallback(
     async (routeSpotId: number) => {
-      if (routeId === null) return;
+      if (routeId === null) return false;
       setError(null);
       try {
         await removeRouteSpot(routeId, routeSpotId);
         await refresh(routeId);
+        return true;
       } catch {
         setError("스팟을 삭제하지 못했어요.");
+        return false;
       }
     },
     [routeId, refresh],
@@ -130,7 +134,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
 
   const reorderRoute = useCallback(
     async (orderedRouteSpotIds: number[]) => {
-      if (routeId === null) return;
+      if (routeId === null) return false;
       const prevStops = stops;
       // optimistic reorder
       setStops((prev) => {
@@ -144,24 +148,28 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           routeId,
           orderedRouteSpotIds.map((id, i) => ({ routeSpotId: id, sequenceOrder: i + 1 })),
         );
+        return true;
       } catch {
         setStops(prevStops);
         setError("순서를 변경하지 못했어요.");
+        return false;
       }
     },
     [routeId, stops],
   );
 
   const clearRoute = useCallback(async () => {
-    if (routeId === null) return;
+    if (routeId === null) return false;
     setError(null);
     try {
       await deleteRoute(routeId);
       persistRouteId(null);
       setRouteName(null);
       setStops([]);
+      return true;
     } catch {
       setError("루트를 비우지 못했어요.");
+      return false;
     }
   }, [routeId]);
 

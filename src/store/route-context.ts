@@ -23,10 +23,11 @@ export interface RouteContextValue {
   routeIds: string[];
   inRoute: (spotId: string) => boolean;
   toggleRoute: (spotId: string) => void;
-  addToRoute: (spotIds: number[]) => Promise<void>;
-  removeFromRoute: (routeSpotId: number) => Promise<void>;
-  reorderRoute: (orderedRouteSpotIds: number[]) => Promise<void>;
-  clearRoute: () => Promise<void>;
+  /** 성공하면 true, 실패하면 false를 반환(에러 메시지는 error에 반영됨) */
+  addToRoute: (spotIds: number[]) => Promise<boolean>;
+  removeFromRoute: (routeSpotId: number) => Promise<boolean>;
+  reorderRoute: (orderedRouteSpotIds: number[]) => Promise<boolean>;
+  clearRoute: () => Promise<boolean>;
   /** 내 루트 목록에서 다른 루트를 활성 루트로 전환 */
   switchRoute: (routeId: number) => Promise<void>;
   /** 활성 루트 이름 변경 */
