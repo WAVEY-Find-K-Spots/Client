@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import { useAuth } from "@/store/auth-context";
 import { ApiError } from "@/lib/auth/api";
 import type { CountryCode, UserLanguage } from "@/lib/auth/types";
 import { countryCodes, countryLabels } from "@/lib/country-codes";
+import { createPresignedUrl, uploadFileToStorage } from "@/lib/upload-api";
 import SubHeader from "./SubHeader";
 import { User, Camera } from "lucide-react";
+
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 interface EditProfileViewProps {
   onBack: () => void;
@@ -18,7 +21,7 @@ const languageLabels: Record<UserLanguage, string> = {
 };
 
 export default function EditProfileView({ onBack, onToast }: EditProfileViewProps) {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, confirmProfilePhoto } = useAuth();
   const [nickname, setNickname] = useState(user?.nickname ?? "");
   const [countryCode, setCountryCode] = useState<CountryCode | null>(
     user?.countryCode ?? null,
@@ -26,6 +29,31 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
   const [language, setLanguage] = useState<UserLanguage>(user?.language ?? "KO");
   const [saving, setSaving] = useState(false);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoPick = () => fileInputRef.current?.click();
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+      onToast("jpg/png/webp 이미지만 업로드할 수 있어요");
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const { uploadUrl, fileUrl } = await createPresignedUrl("PROFILE", file.type);
+      await uploadFileToStorage(uploadUrl, file);
+      await confirmProfilePhoto(fileUrl);
+      onToast("프로필 사진을 변경했어요");
+    } catch (err) {
+      onToast(err instanceof ApiError ? err.message : "사진을 업로드하지 못했어요.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   const dirty =
     nickname !== (user?.nickname ?? "") ||
@@ -91,13 +119,23 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
             <User size={40} color="#FFFFFF" strokeWidth={1.6} />
           )}
         </span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => void handlePhotoChange(e)}
+        />
         <button
           type="button"
-          onClick={() => onToast("사진 변경은 준비 중이에요")}
-          className="mt-3 h-9 px-4 rounded-full bg-cream flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+          onClick={handlePhotoPick}
+          disabled={photoUploading}
+          className="mt-3 h-9 px-4 rounded-full bg-cream flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-60"
         >
           <Camera size={14} color="#A8623E" strokeWidth={2} />
-          <span className="text-[12px] font-medium text-brand">사진 변경</span>
+          <span className="text-[12px] font-medium text-brand">
+            {photoUploading ? "업로드 중..." : "사진 변경"}
+          </span>
         </button>
       </div>
 
