@@ -12,6 +12,8 @@ interface RouteMapProps {
   currentIndex?: number;
   onLocate?: () => void;
   onLocateError?: () => void;
+  /** 길찾기 API가 내려준 실제 도로 경로(GeoJSON LineString 좌표, [lng, lat] 순서) */
+  routeGeometry?: [number, number][] | null;
 }
 
 // Seoul city center — fallback view when no stops are selected
@@ -60,6 +62,7 @@ export default function RouteMap({
   currentIndex,
   onLocate,
   onLocateError,
+  routeGeometry,
 }: RouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -105,13 +108,25 @@ export default function RouteMap({
     layer.clearLayers();
 
     const latlngs = stops.map((s) => [s.coord.lat, s.coord.lng] as [number, number]);
+    const geometryLatLngs = routeGeometry?.map(
+      ([lng, lat]) => [lat, lng] as [number, number],
+    );
 
-    if (latlngs.length >= 2) {
+    if (geometryLatLngs && geometryLatLngs.length >= 2) {
+      // 실제 도로를 따르는 길찾기 경로(Tmap)가 있으면 그걸 그린다
+      L.polyline(geometryLatLngs, {
+        color: BRAND,
+        weight: variant === "nav" ? 4 : 3,
+        opacity: 0.9,
+        lineJoin: "round",
+      }).addTo(layer);
+    } else if (latlngs.length >= 2) {
+      // 길찾기 응답이 없으면(계산 중/실패) 스팟을 직선으로 잇는 임시 경로선
       L.polyline(latlngs, {
         color: BRAND,
         weight: variant === "nav" ? 4 : 3,
         opacity: 0.9,
-        dashArray: variant === "nav" ? undefined : "6 8",
+        dashArray: "6 8",
         lineJoin: "round",
       }).addTo(layer);
     }
@@ -151,7 +166,7 @@ export default function RouteMap({
     } else {
       map.setView(SEOUL_CENTER, 12);
     }
-  }, [stopsKey, variant, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stopsKey, variant, currentIndex, routeGeometry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const drawUser = (c: LatLng) => {
     const layer = userLayerRef.current;
