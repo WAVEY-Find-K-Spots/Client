@@ -1,11 +1,75 @@
 import type { Spot } from "@/mocks/spots";
-import { Play, ChevronRight, Music, MapPin } from "lucide-react";
+import type { SpotContentItem } from "@/lib/content-api";
+import { Play, ChevronRight, Music, MapPin, Clapperboard } from "lucide-react";
 
-export default function ContentTab({ spot }: { spot: Spot }) {
-  const hasContent =
+interface ContentTabProps {
+  spot: Spot;
+  relatedContents?: SpotContentItem[];
+  contentsLoading?: boolean;
+}
+
+const categoryLabel: Record<SpotContentItem["category"], string> = {
+  DRAMA: "관련 드라마",
+  MOVIE: "관련 영화",
+  ARTIST: "관련 아티스트",
+};
+
+const categoryOrder: SpotContentItem["category"][] = ["DRAMA", "MOVIE", "ARTIST"];
+
+function RelatedContentsList({ items }: { items: SpotContentItem[] }) {
+  return (
+    <div className="px-5 pt-5 flex flex-col gap-5">
+      {categoryOrder.map((cat) => {
+        const group = items.filter((i) => i.category === cat);
+        if (group.length === 0) return null;
+        return (
+          <div key={cat}>
+            <h4 className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
+              <Clapperboard size={16} color="#A8623E" />
+              {categoryLabel[cat]}
+            </h4>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {group.map((c) => (
+                <span
+                  key={c.contentId}
+                  className="px-3.5 h-9 flex items-center rounded-full bg-cream text-[13px] font-medium text-ink"
+                >
+                  {c.title}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      <p className="text-[11px] text-muted">
+        영상·음악 카드는 준비 중이에요. 조금만 기다려주세요.
+      </p>
+    </div>
+  );
+}
+
+export default function ContentTab({
+  spot,
+  relatedContents,
+  contentsLoading,
+}: ContentTabProps) {
+  const hasMockContent =
     spot.dramas.length > 0 || spot.music.length > 0 || spot.videos.length > 0;
 
-  if (!hasContent) {
+  if (contentsLoading) {
+    return (
+      <div className="px-5 pt-5">
+        <p className="text-center text-[13px] text-muted py-16">
+          불러오는 중...
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasMockContent) {
+    if (relatedContents && relatedContents.length > 0) {
+      return <RelatedContentsList items={relatedContents} />;
+    }
     return (
       <div className="px-5 pt-5">
         <p className="text-center text-[13px] text-muted py-16">
