@@ -9,7 +9,7 @@ import { useAuth } from "@/store/auth-context";
 import { ApiError } from "@/lib/auth/api";
 import { claimStamp } from "@/lib/stamps-api";
 import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
-import { getSpot, getNearbySpots } from "@/lib/spots-api";
+import { getSpot, getNearbySpots, saveSpot, unsaveSpot } from "@/lib/spots-api";
 import { getSpotContents, type SpotContentItem } from "@/lib/content-api";
 import {
   getSpotReviews,
@@ -99,6 +99,8 @@ export default function SpotDetail() {
   } | null>(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [savePending, setSavePending] = useState(false);
 
   const { inRoute, toggleRoute } = useRoute();
   const { isEarned, collectStamp } = useStamps();
@@ -114,6 +116,7 @@ export default function SpotDetail() {
   useEffect(() => {
     setApiSpot(null);
     setApiSpotNotFound(false);
+    setSaved(false);
     if (mockSpot || numericSpotId == null) return;
     let cancelled = false;
     setApiSpotLoading(true);
@@ -121,6 +124,7 @@ export default function SpotDetail() {
       .then((detail) => {
         if (cancelled) return;
         setApiSpot(toDetailSpot(detail));
+        setSaved(detail.saved);
       })
       .catch(() => {
         if (!cancelled) setApiSpotNotFound(true);
@@ -271,6 +275,29 @@ export default function SpotDetail() {
       setToast("리뷰를 삭제하지 못했어요.");
     } finally {
       setReviewSubmitting(false);
+    }
+  };
+
+  const handleToggleSaved = async () => {
+    if (numericSpotId == null || savePending) return;
+    if (!user) {
+      setToast("로그인이 필요한 서비스입니다.");
+      navigate?.("/login");
+      return;
+    }
+    const next = !saved;
+    setSaved(next);
+    setSavePending(true);
+    try {
+      const result = next
+        ? await saveSpot(numericSpotId)
+        : await unsaveSpot(numericSpotId);
+      setSaved(result.saved);
+    } catch {
+      setSaved(!next);
+      setToast(next ? "찜하지 못했어요." : "찜을 해제하지 못했어요.");
+    } finally {
+      setSavePending(false);
     }
   };
 
@@ -445,6 +472,8 @@ export default function SpotDetail() {
       <DetailHero
         spot={spot}
         collapsed={collapsed}
+        saved={saved}
+        onToggleSaved={() => void handleToggleSaved()}
         onBack={() => navigate?.("/")}
       />
 

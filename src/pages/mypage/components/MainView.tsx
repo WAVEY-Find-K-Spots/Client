@@ -5,6 +5,7 @@ import { useNotifications } from "@/store/notifications-context";
 import { useRoute } from "@/store/route-context";
 import { useAuth } from "@/store/auth-context";
 import { getMyStamps, getMyBadges } from "@/lib/stamps-api";
+import { searchSpots } from "@/lib/spots-api";
 import type { MyPageView } from "../page";
 import {
   Settings,
@@ -30,7 +31,7 @@ interface MainViewProps {
 }
 
 const activityMenus: { label: string; icon: typeof Heart; goto: string }[] = [
-  { label: "저장한 스팟", icon: Heart, goto: "spot" },
+  { label: "저장한 스팟", icon: Heart, goto: "savedSpots" },
   { label: "내 루트 목록", icon: Map, goto: "routes" },
   { label: "스탬프북", icon: Bookmark, goto: "stamp" },
   { label: "작성한 리뷰", icon: Star, goto: "reviews" },
@@ -52,6 +53,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const [visitedCount, setVisitedCount] = useState<number | null>(null);
   const [badgeCount, setBadgeCount] = useState<number | null>(null);
+  const [savedCount, setSavedCount] = useState<number | null>(null);
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
@@ -61,6 +63,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
     if (!user) {
       setVisitedCount(null);
       setBadgeCount(null);
+      setSavedCount(null);
       return;
     }
     let cancelled = false;
@@ -78,6 +81,13 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
       .catch(() => {
         if (!cancelled) setBadgeCount(0);
       });
+    searchSpots({ savedOnly: true, page: 0 })
+      .then((result) => {
+        if (!cancelled) setSavedCount(result.totalElements);
+      })
+      .catch(() => {
+        if (!cancelled) setSavedCount(0);
+      });
     return () => {
       cancelled = true;
     };
@@ -90,7 +100,11 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
       label: "방문 스팟",
     },
     { icon: Route, value: String(routeIds.length), label: "루트 스팟" },
-    { icon: Bookmark, value: "-", label: "저장 스팟" },
+    {
+      icon: Bookmark,
+      value: savedCount === null ? "-" : String(savedCount),
+      label: "저장 스팟",
+    },
     {
       icon: Award,
       value: badgeCount === null ? "-" : String(badgeCount),
@@ -99,8 +113,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
   ];
 
   const handleActivity = (goto: string) => {
-    if (goto === "spot") navigate?.("/");
-    else if (goto === "stamp") navigate?.("/stamp");
+    if (goto === "stamp") navigate?.("/stamp");
     else onOpen(goto as MyPageView);
   };
 

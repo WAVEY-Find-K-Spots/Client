@@ -26,6 +26,8 @@ export interface SpotSearchParams {
   sort?: SpotSort;
   page?: number;
   excludeRouteId?: number;
+  /** 내가 찜한 스팟만 조회 */
+  savedOnly?: boolean;
 }
 
 export interface SpotSearchItem {
@@ -97,4 +99,24 @@ export function getNearbySpots(spotId: number, radiusMeters = 5000) {
   return apiRequest<SpotNearbyItem[]>(
     `/api/v1/spots/${spotId}/nearby?radiusMeters=${radiusMeters}`,
   );
+}
+
+export interface SpotSaveResult {
+  spotId: number;
+  saved: boolean;
+  savedCount: number;
+}
+
+/** POST /api/v1/spots/{spotId}/save — 인증 필요, 멱등 */
+export function saveSpot(spotId: number) {
+  return apiRequest<SpotSaveResult>(`/api/v1/spots/${spotId}/save`, {
+    method: "POST",
+  });
+}
+
+/** DELETE /api/v1/spots/{spotId}/save — 인증 필요, 멱등 */
+export function unsaveSpot(spotId: number) {
+  return apiRequest<SpotSaveResult>(`/api/v1/spots/${spotId}/save`, {
+    method: "DELETE",
+  });
 }
