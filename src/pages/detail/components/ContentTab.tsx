@@ -2,6 +2,19 @@ import type { Spot } from "@/mocks/spots";
 import { Play, ChevronRight, Music, MapPin } from "lucide-react";
 
 export default function ContentTab({ spot }: { spot: Spot }) {
+  const hasContent =
+    spot.dramas.length > 0 || spot.music.length > 0 || spot.videos.length > 0;
+
+  if (!hasContent) {
+    return (
+      <div className="px-5 pt-5">
+        <p className="text-center text-[13px] text-muted py-16">
+          이 스팟과 연결된 드라마·음악·영상 콘텐츠가 아직 없어요
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-5 pt-5">
       {/* Related dramas */}

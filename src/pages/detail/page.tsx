@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { spots } from "@/mocks/spots";
+import { spots, type ReviewItem } from "@/mocks/spots";
 import { stamps } from "@/mocks/stamps";
 import { useRoute } from "@/store/route-context";
 import { useStamps, spotStampId } from "@/store/stamps-context";
@@ -9,6 +9,14 @@ import { useAuth } from "@/store/auth-context";
 import { ApiError } from "@/lib/auth/api";
 import { claimStamp } from "@/lib/stamps-api";
 import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
+import { getSpot, getNearbySpots } from "@/lib/spots-api";
+import { getSpotReviews } from "@/lib/reviews-api";
+import {
+  toDetailSpot,
+  toNearbySpotView,
+  toReviewItem,
+  type NearbySpotView,
+} from "@/lib/spot-adapters";
 import {
   distanceMeters,
   formatDistance,
@@ -67,14 +75,126 @@ export default function SpotDetail() {
   const [scanning, setScanning] = useState(false);
   const [overlayStamp, setOverlayStamp] = useState<OverlayStamp | null>(null);
   const [apiStamped, setApiStamped] = useState(false);
+  const [apiSpot, setApiSpot] = useState<ReturnType<typeof toDetailSpot> | null>(
+    null,
+  );
+  const [apiSpotLoading, setApiSpotLoading] = useState(false);
+  const [apiSpotNotFound, setApiSpotNotFound] = useState(false);
+  const [nearbyItems, setNearbyItems] = useState<NearbySpotView[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [reviewState, setReviewState] = useState<{
+    rating: number;
+    reviewCount: number;
+    reviews: ReviewItem[];
+  } | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const { inRoute, toggleRoute } = useRoute();
   const { isEarned, collectStamp } = useStamps();
   const { user } = useAuth();
-  const spot = useMemo(() => spots.find((s) => s.id === id), [id]);
+  const mockSpot = useMemo(() => spots.find((s) => s.id === id), [id]);
 
   const numericSpotId =
     id && /^\d+$/.test(id) ? Number(id) : null;
+
+  const spot = mockSpot ?? apiSpot ?? undefined;
+
+  // 실제 백엔드 스팟(숫자 id, mock 카탈로그에 없음) 상세 조회
+  useEffect(() => {
+    setApiSpot(null);
+    setApiSpotNotFound(false);
+    if (mockSpot || numericSpotId == null) return;
+    let cancelled = false;
+    setApiSpotLoading(true);
+    getSpot(numericSpotId)
+      .then((detail) => {
+        if (cancelled) return;
+        setApiSpot(toDetailSpot(detail));
+      })
+      .catch(() => {
+        if (!cancelled) setApiSpotNotFound(true);
+      })
+      .finally(() => {
+        if (!cancelled) setApiSpotLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // 주변 스팟 탭 진입 시 실제 데이터 조회 (mock 스팟은 mock 카탈로그로 폴백)
+  useEffect(() => {
+    if (tab !== "nearby") return;
+    if (mockSpot) {
+      setNearbyItems(
+        spots
+          .filter((s) => s.id !== mockSpot.id)
+          .slice(0, 4)
+          .map((s) => ({
+            id: s.id,
+            name: s.name,
+            loc: s.loc,
+            desc: s.desc,
+            image: s.image,
+            rating: s.rating,
+          })),
+      );
+      return;
+    }
+    if (numericSpotId == null) return;
+    let cancelled = false;
+    setNearbyLoading(true);
+    getNearbySpots(numericSpotId)
+      .then((items) => {
+        if (!cancelled) setNearbyItems(items.map(toNearbySpotView));
+      })
+      .catch(() => {
+        if (!cancelled) setNearbyItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setNearbyLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, mockSpot, numericSpotId]);
+
+  // 리뷰 탭 진입 시 실제 데이터 조회 (mock 스팟은 mock 리뷰로 폴백)
+  useEffect(() => {
+    if (tab !== "reviews") return;
+    if (mockSpot) {
+      setReviewState({
+        rating: mockSpot.rating,
+        reviewCount: mockSpot.reviewCount,
+        reviews: mockSpot.reviews,
+      });
+      return;
+    }
+    if (numericSpotId == null) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    getSpotReviews(numericSpotId)
+      .then((result) => {
+        if (cancelled) return;
+        setReviewState({
+          rating: result.averageRating,
+          reviewCount: result.reviewCount,
+          reviews: result.reviews.map(toReviewItem),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setReviewState({ rating: 0, reviewCount: 0, reviews: [] });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setReviewsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, mockSpot, numericSpotId]);
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
@@ -88,6 +208,8 @@ export default function SpotDetail() {
     setScanning(false);
     setOverlayStamp(null);
     setApiStamped(false);
+    setNearbyItems([]);
+    setReviewState(null);
   }, [id]);
 
   useEffect(() => {
@@ -163,7 +285,15 @@ export default function SpotDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spot?.id, numericSpotId, apiStamped]);
 
-  if (!spot && numericSpotId == null) {
+  if (!spot && numericSpotId != null && apiSpotLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center bg-page">
+        <p className="text-[13px] text-muted">불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (!spot && (numericSpotId == null || apiSpotNotFound)) {
     return (
       <div className="min-h-full flex flex-col items-center justify-center bg-page px-8 text-center">
         <p className="text-[15px] font-semibold text-ink">스팟을 찾을 수 없어요</p>
@@ -174,80 +304,6 @@ export default function SpotDetail() {
         >
           목록으로 돌아가기
         </button>
-      </div>
-    );
-  }
-
-  // numeric API spot without mock entry — minimal placeholder for claim testing
-  if (!spot && numericSpotId != null) {
-    const handleApiOnlyCheckIn = () => {
-      if (apiStamped) {
-        setToast("이미 획득한 스탬프예요");
-        return;
-      }
-      if (!STAMP_TEST_MODE && !user) {
-        setToast("로그인이 필요한 서비스입니다.");
-        navigate?.("/login");
-        return;
-      }
-      setScanning(true);
-      getCurrentCoords()
-        .then((c) => claimViaApi(c))
-        .catch(() =>
-          setToast("위치를 확인할 수 없어요. 위치 권한을 허용해 주세요"),
-        )
-        .finally(() => setScanning(false));
-    };
-
-    return (
-      <div className="min-h-full bg-page px-5 pt-10">
-        <p className="text-[15px] font-semibold text-ink">
-          스팟 #{numericSpotId}
-        </p>
-        <p className="mt-2 text-[13px] text-muted">
-          mock 상세 데이터가 없는 API 스팟입니다. 스탬프 획득만 가능해요.
-        </p>
-        <button
-          type="button"
-          onClick={handleApiOnlyCheckIn}
-          disabled={scanning}
-          className="mt-6 w-full h-[52px] rounded-full bg-brand text-white text-[14px] font-semibold cursor-pointer disabled:opacity-70"
-        >
-          {apiStamped
-            ? "스탬프 획득!"
-            : scanning
-              ? "위치 확인 중…"
-              : "스탬프 획득"}
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate?.("/")}
-          className="mt-3 w-full h-11 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer"
-        >
-          목록으로
-        </button>
-        {toast && (
-          <div className="mt-4 text-center text-[12px] text-muted">{toast}</div>
-        )}
-        {overlayStamp &&
-          createPortal(
-            <AcquiredOverlay
-              stamp={overlayStamp}
-              onClose={() => setOverlayStamp(null)}
-              onShare={async () => {
-                const res = await shareContent({
-                  title: `${overlayStamp.name} 스탬프 획득!`,
-                  text: `WAVEY에서 ${overlayStamp.name} 방문 스탬프를 모았어요.`,
-                });
-                setToast(shareToastMsg[res]);
-              }}
-              onShowBook={() => {
-                setOverlayStamp(null);
-                navigate?.("/stamp");
-              }}
-            />,
-            document.getElementById("phone-frame") ?? document.body,
-          )}
       </div>
     );
   }
@@ -338,9 +394,20 @@ export default function SpotDetail() {
 
       {tab === "info" && <DetailInfo spot={spot} />}
       {tab === "content" && <ContentTab spot={spot} />}
-      {tab === "reviews" && <ReviewsTab spot={spot} />}
+      {tab === "reviews" && (
+        <ReviewsTab
+          rating={reviewState?.rating ?? spot.rating}
+          reviewCount={reviewState?.reviewCount ?? spot.reviewCount}
+          reviews={reviewState?.reviews ?? []}
+          loading={reviewsLoading}
+        />
+      )}
       {tab === "nearby" && (
-        <NearbyTab spot={spot} onOpen={(nid) => navigate?.(`/spot/${nid}`)} />
+        <NearbyTab
+          items={nearbyItems}
+          loading={nearbyLoading}
+          onOpen={(nid) => navigate?.(`/spot/${nid}`)}
+        />
       )}
 
       <div className="h-40" />
