@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { RouteStop } from "@/lib/route-adapters";
+import type { TransitLeg } from "@/lib/routes-api";
 import { ChevronLeft, Repeat, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { TransitLegBadges } from "./PlanSheet";
 
 const MINI_COLLAPSED = 92;
 const MINI_EXPANDED = 260;
@@ -13,6 +15,7 @@ interface NavOverlayProps {
   onPrev: () => void;
   onNext: () => void;
   travelToNext: (index: number) => string;
+  getTransitLegs?: (index: number) => TransitLeg[];
 }
 
 export default function NavOverlay({
@@ -23,6 +26,7 @@ export default function NavOverlay({
   onPrev,
   onNext,
   travelToNext,
+  getTransitLegs,
 }: NavOverlayProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -138,6 +142,11 @@ export default function NavOverlay({
                   ? "모든 스팟을 둘러봤어요. 도착했어요!"
                   : `다음: ${nextSpot!.name}까지 ${travelToNext(current)}`}
               </p>
+              {!isLast && (
+                <div className="mt-1.5">
+                  <TransitLegBadges legs={getTransitLegs?.(current) ?? []} />
+                </div>
+              )}
 
               {/* progress bar */}
               <div className="mt-3 h-1.5 rounded-full bg-line overflow-hidden">

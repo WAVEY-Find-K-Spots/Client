@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { RouteStop } from "@/lib/route-adapters";
+import type { TransitLeg } from "@/lib/routes-api";
 import { spotGradientMap } from "@/mocks/spots";
 import {
   MapPin,
@@ -14,6 +15,8 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUp,
+  Bus,
+  TrainFront,
 } from "lucide-react";
 
 export type TransportMode = "walk" | "transit" | "car";
@@ -27,6 +30,30 @@ const modeMeta: Record<
   car: { label: "자동차", icon: Car, color: "#2C1810" },
 };
 
+/** 대중교통 세부 구간(버스/지하철 노선) 뱃지 — 도보 구간은 표시하지 않음 */
+export function TransitLegBadges({ legs }: { legs: TransitLeg[] }) {
+  const ridden = legs.filter((l) => l.mode !== "WALK" && l.routeName);
+  if (ridden.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-1">
+      {ridden.map((leg, i) => (
+        <span
+          key={`${leg.routeName}-${i}`}
+          className="flex items-center gap-1 px-2 h-5 rounded-full text-[10px] font-semibold text-white leading-none"
+          style={{ backgroundColor: leg.routeColor ? `#${leg.routeColor}` : "#A89890" }}
+        >
+          {leg.mode === "SUBWAY" ? (
+            <TrainFront size={10} />
+          ) : (
+            <Bus size={10} />
+          )}
+          {leg.routeName}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 interface PlanSheetProps {
   stops: RouteStop[];
   transport: TransportMode;
@@ -36,6 +63,7 @@ interface PlanSheetProps {
   onAddPick: () => void;
   onStart: () => void;
   travelToNext: (index: number) => string;
+  getTransitLegs?: (index: number) => TransitLeg[];
   summaryDuration?: string;
   summaryDistance?: string;
 }
@@ -49,6 +77,7 @@ export default function PlanSheet({
   onAddPick,
   onStart,
   travelToNext,
+  getTransitLegs,
   summaryDuration,
   summaryDistance,
 }: PlanSheetProps) {
@@ -300,7 +329,7 @@ export default function PlanSheet({
                 </div>
 
                 {notLast && (
-                  <div className="flex items-center justify-center py-2.5">
+                  <div className="flex flex-col items-center justify-center gap-1.5 py-2.5">
                     <div className="relative w-full flex items-center justify-center">
                       <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-line" />
                       <span className="relative flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-line/70">
@@ -316,6 +345,9 @@ export default function PlanSheet({
                         </span>
                       </span>
                     </div>
+                    {transport === "transit" && (
+                      <TransitLegBadges legs={getTransitLegs?.(i) ?? []} />
+                    )}
                   </div>
                 )}
               </div>
