@@ -8,6 +8,7 @@ import {
   getRouteDetail,
   removeRouteSpot,
   reorderRouteSpots,
+  updateRoute,
 } from "@/lib/routes-api";
 import { toRouteStop, type RouteStop } from "@/lib/route-adapters";
 import {
@@ -19,6 +20,7 @@ import {
 
 export function RouteProvider({ children }: { children: ReactNode }) {
   const [routeId, setRouteId] = useState<number | null>(null);
+  const [routeName, setRouteName] = useState<string | null>(null);
   const [stops, setStops] = useState<RouteStop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           const detail = await getRouteDetail(savedId);
           if (cancelled) return;
           setRouteId(savedId);
+          setRouteName(detail.name);
           setStops(detail.spots.map(toRouteStop));
           return;
         }
@@ -56,11 +59,13 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           const detail = await getRouteDetail(existing.routeId);
           if (cancelled) return;
           persistRouteId(existing.routeId);
+          setRouteName(detail.name);
           setStops(detail.spots.map(toRouteStop));
         }
       } catch {
         if (!cancelled) {
           persistRouteId(null);
+          setRouteName(null);
           setStops([]);
         }
       } finally {
@@ -91,6 +96,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
             spots: spotIds.map((spotId, i) => ({ spotId, sequenceOrder: i + 1 })),
           });
           persistRouteId(detail.routeId);
+          setRouteName(detail.name);
           setStops(detail.spots.map(toRouteStop));
           return;
         }
@@ -152,11 +158,47 @@ export function RouteProvider({ children }: { children: ReactNode }) {
     try {
       await deleteRoute(routeId);
       persistRouteId(null);
+      setRouteName(null);
       setStops([]);
     } catch {
       setError("루트를 비우지 못했어요.");
     }
   }, [routeId]);
+
+  const switchRoute = useCallback(async (id: number) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const detail = await getRouteDetail(id);
+      persistRouteId(id);
+      setRouteName(detail.name);
+      setStops(detail.spots.map(toRouteStop));
+    } catch {
+      setError("루트를 불러오지 못했어요.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const renameRoute = useCallback(
+    async (name: string) => {
+      if (routeId === null) return;
+      setError(null);
+      try {
+        const detail = await updateRoute(routeId, { name });
+        setRouteName(detail.name);
+      } catch {
+        setError("이름을 변경하지 못했어요.");
+      }
+    },
+    [routeId],
+  );
+
+  const clearRouteReference = useCallback(() => {
+    persistRouteId(null);
+    setRouteName(null);
+    setStops([]);
+  }, []);
 
   const inRoute = useCallback(
     (spotId: string) => stops.some((s) => String(s.spotId) === spotId),
@@ -180,6 +222,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
   const value = useMemo<RouteContextValue>(
     () => ({
       routeId,
+      routeName,
       stops,
       loading,
       error,
@@ -190,8 +233,26 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       removeFromRoute,
       reorderRoute,
       clearRoute,
+      switchRoute,
+      renameRoute,
+      clearRouteReference,
     }),
-    [routeId, stops, loading, error, inRoute, toggleRoute, addToRoute, removeFromRoute, reorderRoute, clearRoute],
+    [
+      routeId,
+      routeName,
+      stops,
+      loading,
+      error,
+      inRoute,
+      toggleRoute,
+      addToRoute,
+      removeFromRoute,
+      reorderRoute,
+      clearRoute,
+      switchRoute,
+      renameRoute,
+      clearRouteReference,
+    ],
   );
 
   return <RouteContext.Provider value={value}>{children}</RouteContext.Provider>;

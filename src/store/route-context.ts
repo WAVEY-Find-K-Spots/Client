@@ -15,6 +15,7 @@ export function loadCurrentRouteId(): number | null {
 
 export interface RouteContextValue {
   routeId: number | null;
+  routeName: string | null;
   stops: RouteStop[];
   loading: boolean;
   error: string | null;
@@ -26,6 +27,12 @@ export interface RouteContextValue {
   removeFromRoute: (routeSpotId: number) => Promise<void>;
   reorderRoute: (orderedRouteSpotIds: number[]) => Promise<void>;
   clearRoute: () => Promise<void>;
+  /** 내 루트 목록에서 다른 루트를 활성 루트로 전환 */
+  switchRoute: (routeId: number) => Promise<void>;
+  /** 활성 루트 이름 변경 */
+  renameRoute: (name: string) => Promise<void>;
+  /** 활성 루트가 다른 곳에서(예: 목록 화면) 삭제됐을 때 로컬 상태만 비움 */
+  clearRouteReference: () => void;
 }
 
 export const RouteContext = createContext<RouteContextValue | null>(null);
