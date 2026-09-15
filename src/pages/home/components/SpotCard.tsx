@@ -1,8 +1,8 @@
-import type { Spot } from "@/mocks/spots";
+import type { HomeSpotView } from "../adapters";
 import { Star } from "lucide-react";
 
 interface SpotCardProps {
-  spot: Spot;
+  spot: HomeSpotView;
   onOpen: (id: string) => void;
 }
 
