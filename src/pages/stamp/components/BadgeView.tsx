@@ -1,4 +1,4 @@
-import { Award, Lock, ChevronRight } from "lucide-react";
+import { Award, Lock, ChevronRight, Gift } from "lucide-react";
 import type { BadgeCollection, BadgeItem } from "@/lib/stamps-api";
 import { formatAcquiredShort } from "../adapters";
 import LoginGateCard from "./LoginGateCard";
@@ -10,6 +10,8 @@ interface BadgeViewProps {
   requireLogin?: boolean;
   onLogin?: () => void;
   onRetry: () => void;
+  onClaim?: (badgeId: number) => void;
+  claimingBadgeId?: number | null;
 }
 
 function BadgeHex({
@@ -80,6 +82,44 @@ function EarnedCard({ item }: { item: BadgeItem }) {
   );
 }
 
+function ClaimableCard({
+  item,
+  onClaim,
+  claiming,
+}: {
+  item: BadgeItem;
+  onClaim?: (badgeId: number) => void;
+  claiming?: boolean;
+}) {
+  return (
+    <div className="w-full bg-white rounded-[16px] p-4 shadow-soft flex items-center gap-4 overflow-hidden border border-brand/30">
+      <BadgeHex
+        name={item.name}
+        imageUrl={item.imageUrl}
+        fallback="linear-gradient(160deg,#A8623E,#6B3F28)"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-[15px] font-semibold text-ink">{item.name}</p>
+        {item.description && (
+          <p className="mt-1 text-[12px] text-muted">{item.description}</p>
+        )}
+        <p className="mt-1 text-[11px] text-brand font-medium">
+          조건 달성! 지금 수령할 수 있어요
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onClaim?.(item.badgeId)}
+        disabled={claiming}
+        className="flex items-center gap-1 px-3 h-9 rounded-full bg-brand text-white text-[12px] font-semibold cursor-pointer whitespace-nowrap disabled:opacity-60 shrink-0"
+      >
+        <Gift size={13} />
+        {claiming ? "수령 중..." : "수령하기"}
+      </button>
+    </div>
+  );
+}
+
 function PendingCard({ item }: { item: BadgeItem }) {
   const percent = item.requiredStamps
     ? Math.min(
@@ -123,8 +163,11 @@ export default function BadgeView({
   requireLogin = false,
   onLogin,
   onRetry,
+  onClaim,
+  claimingBadgeId,
 }: BadgeViewProps) {
   const acquired = data?.acquired ?? [];
+  const claimable = data?.claimable ?? [];
   const inProgress = data?.inProgress ?? [];
   const hasEarned = (data?.acquiredCount ?? acquired.length) > 0;
 
@@ -196,6 +239,28 @@ export default function BadgeView({
           )}
           {loading && !data && !error && (
             <p className="mt-8 text-center text-[13px] text-muted">불러오는 중…</p>
+          )}
+          {claimable.length > 0 && (
+            <>
+              <div className="mt-6 flex items-center justify-between">
+                <h3 className="text-[15px] font-semibold text-ink">
+                  수령 가능한 뱃지
+                </h3>
+                <span className="text-[13px] font-medium text-brand">
+                  {data?.claimableCount ?? claimable.length}개
+                </span>
+              </div>
+              <div className="mt-3 flex flex-col gap-3">
+                {claimable.map((b) => (
+                  <ClaimableCard
+                    key={b.badgeId}
+                    item={b}
+                    onClaim={onClaim}
+                    claiming={claimingBadgeId === b.badgeId}
+                  />
+                ))}
+              </div>
+            </>
           )}
           <div className="mt-6 flex items-center justify-between">
             <h3 className="text-[15px] font-semibold text-ink">획득한 뱃지</h3>
