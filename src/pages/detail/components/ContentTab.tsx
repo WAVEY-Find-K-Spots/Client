@@ -1,26 +1,75 @@
 import type { Spot } from "@/mocks/spots";
-import type { SpotContentItem } from "@/lib/content-api";
+import type {
+  SpotMediaResponse,
+  SpotMediaContent,
+  ContentVideo,
+} from "@/lib/content-api";
 import { Play, ChevronRight, Music, MapPin, Clapperboard } from "lucide-react";
 
 interface ContentTabProps {
   spot: Spot;
-  relatedContents?: SpotContentItem[];
-  contentsLoading?: boolean;
+  media?: SpotMediaResponse | null;
+  mediaLoading?: boolean;
 }
 
-const categoryLabel: Record<SpotContentItem["category"], string> = {
+const categoryLabel: Record<SpotMediaContent["category"], string> = {
   DRAMA: "관련 드라마",
   MOVIE: "관련 영화",
   ARTIST: "관련 아티스트",
 };
 
-const categoryOrder: SpotContentItem["category"][] = ["DRAMA", "MOVIE", "ARTIST"];
+const categoryOrder: SpotMediaContent["category"][] = ["DRAMA", "MOVIE", "ARTIST"];
 
-function RelatedContentsList({ items }: { items: SpotContentItem[] }) {
+function formatDuration(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+interface MusicItem {
+  key: string;
+  title: string;
+  artistName: string | null;
+  imageUrl: string | null;
+  spotifyUrl: string;
+}
+
+function collectMusicItems(contents: SpotMediaContent[]): MusicItem[] {
+  const items: MusicItem[] = [];
+  for (const c of contents) {
+    for (const album of c.albums) {
+      for (const track of album.tracks) {
+        items.push({
+          key: `track-${track.id}`,
+          title: track.title,
+          artistName: track.artistName,
+          imageUrl: track.imageUrl ?? album.imageUrl,
+          spotifyUrl: track.spotifyUrl,
+        });
+      }
+    }
+    for (const track of c.tracks) {
+      items.push({
+        key: `track-${track.id}`,
+        title: track.title,
+        artistName: track.artistName,
+        imageUrl: track.imageUrl,
+        spotifyUrl: track.spotifyUrl,
+      });
+    }
+  }
+  return items;
+}
+
+function RealMediaContent({ media }: { media: SpotMediaResponse }) {
+  const videos: ContentVideo[] = media.contents.flatMap((c) => c.videos);
+  const music: MusicItem[] = collectMusicItems(media.contents);
+  const hasAnyMedia = videos.length > 0 || music.length > 0;
+
   return (
     <div className="px-5 pt-5 flex flex-col gap-5">
       {categoryOrder.map((cat) => {
-        const group = items.filter((i) => i.category === cat);
+        const group = media.contents.filter((c) => c.category === cat);
         if (group.length === 0) return null;
         return (
           <div key={cat}>
@@ -41,22 +90,99 @@ function RelatedContentsList({ items }: { items: SpotContentItem[] }) {
           </div>
         );
       })}
-      <p className="text-[11px] text-muted">
-        영상·음악 카드는 준비 중이에요. 조금만 기다려주세요.
-      </p>
+
+      {music.length > 0 && (
+        <div>
+          <h4 className="text-[15px] font-semibold text-ink">연관 음악</h4>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {music.map((m) => (
+              <a
+                key={m.key}
+                href={m.spotifyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-white rounded-2xl p-2 flex items-center gap-2.5 shadow-soft cursor-pointer"
+              >
+                <div className="relative shrink-0 w-[60px] h-[60px] rounded-xl overflow-hidden bg-cream">
+                  {m.imageUrl && (
+                    <img
+                      src={m.imageUrl}
+                      alt={m.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-ink/30">
+                      <Play size={12} color="#FFFFFF" fill="#FFFFFF" />
+                    </span>
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold text-ink truncate">
+                    {m.title}
+                  </p>
+                  {m.artistName && (
+                    <p className="text-[10px] text-muted truncate mt-0.5">
+                      {m.artistName}
+                    </p>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {videos.length > 0 && (
+        <div>
+          <h4 className="text-[15px] font-semibold text-ink">연관 영상</h4>
+          <div className="mt-3 grid grid-cols-3 gap-2.5">
+            {videos.map((v) => (
+              <a
+                key={v.id}
+                href={`https://www.youtube.com/watch?v=${v.videoId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="relative h-[88px] rounded-xl overflow-hidden cursor-pointer bg-cream"
+              >
+                <img
+                  src={v.thumbnailUrl}
+                  alt={v.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-ink/35 backdrop-blur-sm">
+                    <Play size={12} color="#FFFFFF" fill="#FFFFFF" />
+                  </span>
+                </span>
+                <span className="absolute right-1.5 top-1.5 px-1.5 py-0.5 rounded bg-ink/70 text-[9px] text-white">
+                  {formatDuration(v.durationSec)}
+                </span>
+                <span className="absolute left-2 bottom-1.5 right-2 text-[9px] text-white/95 truncate whitespace-nowrap">
+                  {v.title}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!hasAnyMedia && (
+        <p className="text-center text-[11px] text-muted py-4">
+          이 스팟과 연결된 영상·음악 카드는 아직 없어요.
+        </p>
+      )}
     </div>
   );
 }
 
-export default function ContentTab({
-  spot,
-  relatedContents,
-  contentsLoading,
-}: ContentTabProps) {
+export default function ContentTab({ spot, media, mediaLoading }: ContentTabProps) {
   const hasMockContent =
     spot.dramas.length > 0 || spot.music.length > 0 || spot.videos.length > 0;
 
-  if (contentsLoading) {
+  if (mediaLoading) {
     return (
       <div className="px-5 pt-5">
         <p className="text-center text-[13px] text-muted py-16">
@@ -67,8 +193,8 @@ export default function ContentTab({
   }
 
   if (!hasMockContent) {
-    if (relatedContents && relatedContents.length > 0) {
-      return <RelatedContentsList items={relatedContents} />;
+    if (media && media.contents.length > 0) {
+      return <RealMediaContent media={media} />;
     }
     return (
       <div className="px-5 pt-5">
