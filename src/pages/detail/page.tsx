@@ -24,6 +24,7 @@ import {
   type NearbySpotView,
   type ReviewView,
 } from "@/lib/spot-adapters";
+import { sortByHasImage } from "@/lib/image-fallback";
 import {
   distanceMeters,
   formatDistance,
@@ -147,6 +148,7 @@ export default function SpotDetail() {
             loc: s.loc,
             desc: s.desc,
             image: s.image,
+            hasImage: true,
             rating: s.rating,
           })),
       );
@@ -157,7 +159,11 @@ export default function SpotDetail() {
     setNearbyLoading(true);
     getNearbySpots(numericSpotId)
       .then((items) => {
-        if (!cancelled) setNearbyItems(items.map(toNearbySpotView));
+        if (!cancelled) {
+          setNearbyItems(
+            sortByHasImage(items.map(toNearbySpotView), (n) => n.hasImage),
+          );
+        }
       })
       .catch(() => {
         if (!cancelled) setNearbyItems([]);

@@ -9,6 +9,7 @@ import { useNotifications } from "@/store/notifications-context";
 import { searchSpots, type SpotCategory, type SpotSort } from "@/lib/spots-api";
 import { getRegions, type Region } from "@/lib/regions-api";
 import { toHomeSpotView, type HomeSpotView } from "./adapters";
+import { sortByHasImage } from "@/lib/image-fallback";
 import {
   Search,
   SlidersHorizontal,
@@ -128,7 +129,9 @@ export default function SpotList() {
     searchSpots(params)
       .then((result) => {
         if (cancelled) return;
-        setItems(result.spots.map(toHomeSpotView));
+        setItems(
+          sortByHasImage(result.spots.map(toHomeSpotView), (s) => s.hasImage),
+        );
         setHasNext(result.hasNext);
         setTotalElements(result.totalElements);
       })
@@ -161,7 +164,10 @@ export default function SpotList() {
         };
     searchSpots(params)
       .then((result) => {
-        setItems((prev) => [...prev, ...result.spots.map(toHomeSpotView)]);
+        setItems((prev) => [
+          ...prev,
+          ...sortByHasImage(result.spots.map(toHomeSpotView), (s) => s.hasImage),
+        ]);
         setHasNext(result.hasNext);
         setPage(nextPage);
       })

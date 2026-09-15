@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { spots as mockSpots, spotGradientMap } from "@/mocks/spots";
 import { searchSpots } from "@/lib/spots-api";
 import { toSpotCandidate, type SpotCandidate, type StopType } from "@/lib/route-adapters";
+import { sortByHasImage } from "@/lib/image-fallback";
 import { Check, Plus } from "lucide-react";
 
 interface SpotPickerProps {
@@ -19,6 +20,7 @@ const MOCK_CANDIDATES: SpotCandidate[] = mockSpots.map((s, i) => ({
   name: s.name,
   loc: s.loc,
   image: s.image,
+  hasImage: true,
   type: s.type as StopType,
   typeLabel: s.typeLabel,
 }));
@@ -44,7 +46,9 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
           setNotice("아직 실제 스팟 데이터가 없어 데모 스팟을 보여드려요. 데모 스팟은 루트에 추가할 수 없어요.");
           return;
         }
-        setCandidates(result.spots.map(toSpotCandidate));
+        setCandidates(
+          sortByHasImage(result.spots.map(toSpotCandidate), (c) => c.hasImage),
+        );
       })
       .catch(() => {
         if (cancelled) return;
