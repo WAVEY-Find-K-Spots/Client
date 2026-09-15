@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { Spot } from "@/mocks/spots";
 import StatusBar from "@/components/layout/StatusBar";
 import { ChevronLeft, Heart, Share2 } from "lucide-react";
@@ -6,12 +5,18 @@ import { ChevronLeft, Heart, Share2 } from "lucide-react";
 interface DetailHeroProps {
   spot: Spot;
   collapsed: boolean;
+  saved: boolean;
+  onToggleSaved: () => void;
   onBack: () => void;
 }
 
-export default function DetailHero({ spot, collapsed, onBack }: DetailHeroProps) {
-  const [liked, setLiked] = useState(false);
-
+export default function DetailHero({
+  spot,
+  collapsed,
+  saved,
+  onToggleSaved,
+  onBack,
+}: DetailHeroProps) {
   const height = collapsed ? "h-[200px]" : "h-[320px]";
 
   return (
@@ -42,15 +47,15 @@ export default function DetailHero({ spot, collapsed, onBack }: DetailHeroProps)
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setLiked((v) => !v)}
+            onClick={onToggleSaved}
             className="flex items-center justify-center w-9 h-9 rounded-full bg-ink/35 backdrop-blur-sm cursor-pointer"
-            aria-label="좋아요"
+            aria-label="찜하기"
           >
             <Heart
               size={18}
               strokeWidth={2}
               color="#FFFFFF"
-              fill={liked ? "#FFFFFF" : "transparent"}
+              fill={saved ? "#FFFFFF" : "transparent"}
             />
           </button>
           <button
