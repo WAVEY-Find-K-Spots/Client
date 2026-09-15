@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import { useNotifications } from "@/store/notifications-context";
-import { useStamps } from "@/store/stamps-context";
 import { useRoute } from "@/store/route-context";
 import { useAuth } from "@/store/auth-context";
-import { stamps, earnedBadges } from "@/mocks/stamps";
+import { getMyStamps, getMyBadges } from "@/lib/stamps-api";
 import type { MyPageView } from "../page";
 import {
   Settings,
@@ -45,25 +44,57 @@ const settingMenus: { label: string; icon: typeof Settings; view: MyPageView }[]
 
 export default function MainView({ onOpen, onToast }: MainViewProps) {
   const { unreadCount } = useNotifications();
-  const { isEarned } = useStamps();
   const { routeIds } = useRoute();
   const { user, logout, withdraw } = useAuth();
   const [logoutPending, setLogoutPending] = useState(false);
   const [withdrawPending, setWithdrawPending] = useState(false);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [visitedCount, setVisitedCount] = useState<number | null>(null);
+  const [badgeCount, setBadgeCount] = useState<number | null>(null);
 
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
 
-  const earnedCount = stamps.filter((s) => isEarned(s.id)).length;
-  const badgeCount = earnedBadges.length;
+  useEffect(() => {
+    if (!user) {
+      setVisitedCount(null);
+      setBadgeCount(null);
+      return;
+    }
+    let cancelled = false;
+    getMyStamps({ page: 0, size: 1 })
+      .then((book) => {
+        if (!cancelled) setVisitedCount(book.collectedCount);
+      })
+      .catch(() => {
+        if (!cancelled) setVisitedCount(0);
+      });
+    getMyBadges("ko")
+      .then((badges) => {
+        if (!cancelled) setBadgeCount(badges.acquiredCount);
+      })
+      .catch(() => {
+        if (!cancelled) setBadgeCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const statItems = [
-    { icon: MapPin, value: String(earnedCount), label: "방문 스팟" },
+    {
+      icon: MapPin,
+      value: visitedCount === null ? "-" : String(visitedCount),
+      label: "방문 스팟",
+    },
     { icon: Route, value: String(routeIds.length), label: "루트 스팟" },
-    { icon: Bookmark, value: "28", label: "저장 스팟" },
-    { icon: Award, value: String(badgeCount), label: "획득 뱃지" },
+    { icon: Bookmark, value: "-", label: "저장 스팟" },
+    {
+      icon: Award,
+      value: badgeCount === null ? "-" : String(badgeCount),
+      label: "획득 뱃지",
+    },
   ];
 
   const handleActivity = (goto: string) => {
