@@ -48,6 +48,18 @@ export interface SpringPage<T> {
   last: boolean;
 }
 
+export type TransitLegMode = "WALK" | "BUS" | "SUBWAY";
+
+export interface TransitLeg {
+  mode: TransitLegMode;
+  routeName: string | null;
+  routeColor: string | null;
+  startName: string | null;
+  endName: string | null;
+  distanceMeters: number;
+  durationSeconds: number;
+}
+
 export interface DirectionsSegment {
   fromRouteSpotId: number;
   toRouteSpotId: number;
@@ -58,6 +70,8 @@ export interface DirectionsSegment {
   durationSeconds: number;
   durationText: string;
   geometry: { type: "LineString"; coordinates: [number, number][] };
+  /** TRANSIT일 때만 값이 있음(도보/버스/지하철 세부 구간). WALK/CAR는 빈 배열 */
+  transitLegs: TransitLeg[];
 }
 
 export interface DirectionsResult {
