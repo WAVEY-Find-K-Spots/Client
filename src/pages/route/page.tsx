@@ -119,6 +119,8 @@ export default function RouteTab() {
     return segment?.durationText ?? travelFallback[transport];
   };
 
+  const getTransitLegs = (index: number) => directions?.segments[index]?.transitLegs ?? [];
+
   const cycleMode = () => {
     const idx = modeOrder.indexOf(mode);
     const next = modeOrder[(idx + 1) % modeOrder.length];
@@ -333,6 +335,7 @@ export default function RouteTab() {
             onAddPick={() => setPickerOpen(true)}
             onStart={startNav}
             travelToNext={travelToNext}
+            getTransitLegs={getTransitLegs}
             summaryDuration={directionsLoading ? "계산 중..." : directions?.total.durationText}
             summaryDistance={directionsLoading ? undefined : directions?.total.distanceText}
           />
@@ -369,6 +372,7 @@ export default function RouteTab() {
               }
             }}
             travelToNext={travelToNext}
+            getTransitLegs={getTransitLegs}
           />
         </div>
       )}
