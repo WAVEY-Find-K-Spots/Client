@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import SpotCard from "./components/SpotCard";
 import SpotListItem from "./components/SpotListItem";
 import SearchPanel from "./components/SearchPanel";
 import FilterSheet, { type SpotFilterState } from "./components/FilterSheet";
-import { spots, spotCategories, type SpotType } from "@/mocks/spots";
+import { spotCategories, type SpotType } from "@/mocks/spots";
 import { useNotifications } from "@/store/notifications-context";
-import { getDistanceKm } from "./distance";
+import { searchSpots, type SpotCategory, type SpotSort } from "@/lib/spots-api";
+import { getRegions, type Region } from "@/lib/regions-api";
+import { toHomeSpotView, type HomeSpotView } from "./adapters";
 import {
   Search,
   SlidersHorizontal,
@@ -21,7 +23,7 @@ import {
 } from "lucide-react";
 
 type CatKey = "all" | SpotType;
-type SortKey = "popular" | "rating" | "recent" | "distance";
+type SortKey = "popular" | "rating" | "recent";
 type ViewMode = "grid" | "list";
 type Overlay = "none" | "sort" | "filter";
 
@@ -29,8 +31,20 @@ const sortOptions: { key: SortKey; label: string }[] = [
   { key: "popular", label: "인기순" },
   { key: "rating", label: "평점순" },
   { key: "recent", label: "최신순" },
-  { key: "distance", label: "거리순" },
 ];
+
+const catToCategory: Record<Exclude<CatKey, "all">, SpotCategory> = {
+  drama: "K_DRAMA",
+  kpop: "K_POP",
+  movie: "K_MOVIE",
+  tour: "K_HERITAGE",
+};
+
+const sortToApi: Record<SortKey, SpotSort> = {
+  popular: "POPULAR",
+  rating: "RATING",
+  recent: "LATEST",
+};
 
 const recommendedKw = [
   "눈물의 여왕",
@@ -43,10 +57,8 @@ const recommendedKw = [
 ];
 
 const defaultFilters: SpotFilterState = {
-  region: "서울",
-  type: "all",
+  regionId: null,
   minRating: 0,
-  distance: 0,
 };
 
 export default function SpotList() {
@@ -57,6 +69,7 @@ export default function SpotList() {
 
   const [cat, setCat] = useState<CatKey>("all");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [focusSearch, setFocusSearch] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sort, setSort] = useState<SortKey>("popular");
@@ -76,8 +89,85 @@ export default function SpotList() {
   const [toast, setToast] = useState<string | null>(null);
   const sortPillRef = useRef<HTMLButtonElement>(null);
 
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [items, setItems] = useState<HomeSpotView[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const isSearching = focusSearch && !query.trim();
-  const isResults = query.trim().length > 0;
+  const isResults = debouncedQuery.trim().length > 0;
+
+  useEffect(() => {
+    getRegions()
+      .then(setRegions)
+      .catch(() => setRegions([]));
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 350);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // 검색어/카테고리/필터/정렬이 바뀌면 첫 페이지부터 다시 불러온다
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setPage(0);
+    const params = isResults
+      ? { keyword: debouncedQuery.trim(), page: 0 }
+      : {
+          category: cat === "all" ? undefined : catToCategory[cat],
+          regionId: filters.regionId ?? undefined,
+          minRating: filters.minRating || undefined,
+          sort: sortToApi[sort],
+          page: 0,
+        };
+    searchSpots(params)
+      .then((result) => {
+        if (cancelled) return;
+        setItems(result.spots.map(toHomeSpotView));
+        setHasNext(result.hasNext);
+        setTotalElements(result.totalElements);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setItems([]);
+        setHasNext(false);
+        setTotalElements(0);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isResults, debouncedQuery, cat, filters.regionId, filters.minRating, sort]);
+
+  const loadMore = () => {
+    if (loadingMore || !hasNext) return;
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    const params = isResults
+      ? { keyword: debouncedQuery.trim(), page: nextPage }
+      : {
+          category: cat === "all" ? undefined : catToCategory[cat],
+          regionId: filters.regionId ?? undefined,
+          minRating: filters.minRating || undefined,
+          sort: sortToApi[sort],
+          page: nextPage,
+        };
+    searchSpots(params)
+      .then((result) => {
+        setItems((prev) => [...prev, ...result.spots.map(toHomeSpotView)]);
+        setHasNext(result.hasNext);
+        setPage(nextPage);
+      })
+      .catch(() => setHasNext(false))
+      .finally(() => setLoadingMore(false));
+  };
 
   const lockScroll = (on: boolean) => {
     const el = document.getElementById("app-scroll");
@@ -140,50 +230,17 @@ export default function SpotList() {
   const sortLabel = sortOptions.find((o) => o.key === sort)?.label ?? "인기순";
 
   const hasActiveFilter =
-    filters.type !== "all" ||
-    filters.minRating > 0 ||
-    filters.distance > 0 ||
-    filters.region !== defaultFilters.region;
+    cat !== "all" || filters.minRating > 0 || filters.regionId !== null;
 
-  const browseList = useMemo(() => {
-    let list = cat === "all" ? [...spots] : spots.filter((s) => s.type === cat);
-    if (filters.region && filters.region !== "전체") {
-      list = list.filter((s) => s.loc.includes(filters.region));
-    }
-    if (filters.type !== "all") {
-      list = list.filter((s) => s.type === filters.type);
-    }
-    if (filters.minRating > 0) {
-      list = list.filter((s) => s.rating >= filters.minRating);
-    }
-    if (filters.distance > 0) {
-      list = list.filter((s) => getDistanceKm(s) <= filters.distance);
-    }
-    if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
-    else if (sort === "distance")
-      list.sort((a, b) => getDistanceKm(a) - getDistanceKm(b));
-    else if (sort === "recent") list.reverse();
-    return list;
-  }, [cat, filters, sort]);
+  const half = Math.ceil(items.length / 2);
+  const leftCol = items.slice(0, half);
+  const rightCol = items.slice(half);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return spots.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.desc.toLowerCase().includes(q) ||
-        s.loc.toLowerCase().includes(q) ||
-        s.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }, [query]);
-
-  const half = Math.ceil(browseList.length / 2);
-  const leftCol = browseList.slice(0, half);
-  const rightCol = browseList.slice(half);
-
-  const browseHeaderTitle =
-    cat === "all" ? "인기 스팟" : spotCategories.find((c) => c.key === cat)?.label;
+  const browseHeaderTitle = useMemo(
+    () =>
+      cat === "all" ? "인기 스팟" : spotCategories.find((c) => c.key === cat)?.label,
+    [cat],
+  );
 
   return (
     <div className="relative min-h-full bg-page">
@@ -299,12 +356,12 @@ export default function SpotList() {
         <div className="px-5 mt-5 pb-28">
           <div className="flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-ink">
-              {query.trim()} 검색 결과
+              {debouncedQuery.trim()} 검색 결과
             </h2>
-            <span className="text-[12px] text-muted">{results.length}개</span>
+            <span className="text-[12px] text-muted">{totalElements}개</span>
           </div>
 
-          {results.length === 0 ? (
+          {!loading && items.length === 0 ? (
             <div className="py-16 flex flex-col items-center justify-center gap-4">
               <span className="flex items-center justify-center w-16 h-16 rounded-full bg-cream">
                 <SearchX size={30} color="#DDD4CE" strokeWidth={1.8} />
@@ -330,16 +387,26 @@ export default function SpotList() {
             </div>
           ) : (
             <div className="mt-3 flex flex-col gap-3">
-              {results.map((s) => (
+              {items.map((s) => (
                 <SpotListItem
                   key={s.id}
                   spot={s}
-                  query={query}
+                  query={debouncedQuery}
                   saved={saved.has(s.id)}
                   onToggleSave={() => toggleSave(s.id)}
                   onOpen={() => navigate?.(`/spot/${s.id}`)}
                 />
               ))}
+              {hasNext && (
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="mt-1 h-11 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer disabled:opacity-60"
+                >
+                  {loadingMore ? "불러오는 중..." : "더보기"}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -427,13 +494,13 @@ export default function SpotList() {
               {browseHeaderTitle}
             </h2>
             <span className="text-[12px] text-muted">
-              총 {browseList.length}곳
+              총 {totalElements}곳
             </span>
           </div>
 
           {/* Cards */}
           <div className="mt-3 px-5 pb-28">
-            {browseList.length === 0 ? (
+            {!loading && items.length === 0 ? (
               <div className="py-16 flex flex-col items-center justify-center gap-4">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-cream">
                   <SearchX size={30} color="#DDD4CE" strokeWidth={1.8} />
@@ -458,29 +525,41 @@ export default function SpotList() {
                 </button>
               </div>
             ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-2 gap-3 items-start">
-                <div className="flex flex-col gap-3">
-                  {leftCol.map((s) => (
-                    <SpotCard
-                      key={s.id}
-                      spot={s}
-                      onOpen={(id) => navigate?.(`/spot/${id}`)}
-                    />
-                  ))}
+              <>
+                <div className="grid grid-cols-2 gap-3 items-start">
+                  <div className="flex flex-col gap-3">
+                    {leftCol.map((s) => (
+                      <SpotCard
+                        key={s.id}
+                        spot={s}
+                        onOpen={(id) => navigate?.(`/spot/${id}`)}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {rightCol.map((s) => (
+                      <SpotCard
+                        key={s.id}
+                        spot={s}
+                        onOpen={(id) => navigate?.(`/spot/${id}`)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-col gap-3">
-                  {rightCol.map((s) => (
-                    <SpotCard
-                      key={s.id}
-                      spot={s}
-                      onOpen={(id) => navigate?.(`/spot/${id}`)}
-                    />
-                  ))}
-                </div>
-              </div>
+                {hasNext && (
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="mt-3 w-full h-11 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer disabled:opacity-60"
+                  >
+                    {loadingMore ? "불러오는 중..." : "더보기"}
+                  </button>
+                )}
+              </>
             ) : (
               <div className="flex flex-col gap-3">
-                {browseList.map((s) => (
+                {items.map((s) => (
                   <SpotListItem
                     key={s.id}
                     spot={s}
@@ -489,6 +568,16 @@ export default function SpotList() {
                     onOpen={() => navigate?.(`/spot/${s.id}`)}
                   />
                 ))}
+                {hasNext && (
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="h-11 rounded-full bg-cream text-ink text-[13px] font-semibold cursor-pointer disabled:opacity-60"
+                  >
+                    {loadingMore ? "불러오는 중..." : "더보기"}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -559,8 +648,14 @@ export default function SpotList() {
           <div className="absolute inset-x-0 bottom-0">
             <FilterSheet
               filters={filters}
+              regions={regions}
+              type={cat}
+              onTypeChange={(t) => setCat(t as CatKey)}
               onChange={(p) => setFilters((f) => ({ ...f, ...p }))}
-              onReset={() => setFilters(defaultFilters)}
+              onReset={() => {
+                setFilters(defaultFilters);
+                setCat("all");
+              }}
               onApply={() => {
                 closeOverlay();
                 showToast("필터가 적용되었어요");
