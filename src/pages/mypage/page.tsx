@@ -49,7 +49,12 @@ export default function MyPage() {
       {view === "settings" && (
         <SettingsView onBack={back} onOpen={openView} onToast={showToast} />
       )}
-      {view === "notiSettings" && <NotiSettingsView onBack={() => openView("settings")} />}
+      {view === "notiSettings" && (
+        <NotiSettingsView
+          onBack={() => openView("settings")}
+          onToast={showToast}
+        />
+      )}
       {view === "reviews" && (
         <MyReviewsView
           onBack={back}

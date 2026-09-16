@@ -1,4 +1,5 @@
 import StatusBar from "@/components/layout/StatusBar";
+import { useNotifications } from "@/store/notifications-context";
 import { useSettings } from "@/store/settings-context";
 import SubHeader from "./SubHeader";
 import Toggle from "./Toggle";
@@ -20,10 +21,24 @@ const LANGS = ["한국어", "English"];
 
 export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewProps) {
   const { settings, setSetting } = useSettings();
+  const {
+    notificationSettings,
+    settingsLoading,
+    settingsUpdating,
+    updateNotificationSettings,
+  } = useNotifications();
 
   const cycleLang = () => {
     const idx = LANGS.indexOf(settings.language);
     setSetting("language", LANGS[(idx + 1) % LANGS.length]);
+  };
+
+  const updatePushSetting = async (enabled: boolean) => {
+    try {
+      await updateNotificationSettings({ pushEnabled: enabled });
+    } catch {
+      onToast("알림 설정을 변경하지 못했어요.");
+    }
   };
 
   return (
@@ -42,8 +57,11 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
             <span className="flex-1 text-[14px] font-semibold text-ink">앱 푸시 알림</span>
             <Toggle
               label="앱 푸시 알림"
-              on={settings.pushEnabled}
-              onChange={(v) => setSetting("pushEnabled", v)}
+              on={notificationSettings?.pushEnabled ?? false}
+              disabled={
+                settingsLoading || settingsUpdating || !notificationSettings
+              }
+              onChange={(enabled) => void updatePushSetting(enabled)}
             />
           </div>
           <button

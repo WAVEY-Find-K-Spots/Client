@@ -3,24 +3,15 @@ import { createContext, useContext } from "react";
 export const SETTINGS_STORAGE_KEY = "wavey.settings";
 
 export interface Settings {
-  pushEnabled: boolean;
   locationEnabled: boolean;
   marketingEnabled: boolean;
   language: string;
-  /* per-category notification toggles */
-  notifStamp: boolean;
-  notifRoute: boolean;
-  notifSystem: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  pushEnabled: true,
   locationEnabled: true,
   marketingEnabled: false,
   language: "한국어",
-  notifStamp: true,
-  notifRoute: true,
-  notifSystem: true,
 };
 
 export function loadSettings(): Settings {
