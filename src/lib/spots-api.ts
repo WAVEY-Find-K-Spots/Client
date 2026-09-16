@@ -1,6 +1,8 @@
 import { apiRequest } from "@/lib/auth/api";
 import type { SpotCategory } from "@/lib/routes-api";
 
+export type { SpotCategory } from "@/lib/routes-api";
+
 export type SpotPlaceType =
   | "RESTAURANT"
   | "PLAYGROUND"

@@ -113,9 +113,12 @@ export interface UpdateRoutePayload {
   visibility?: RouteVisibility;
 }
 
-function withQuery(path: string, params: Record<string, string | number | undefined>) {
+function withQuery(path: string, params: object) {
   const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, value] of Object.entries(params) as [
+    string,
+    string | number | undefined,
+  ][]) {
     if (value !== undefined) search.set(key, String(value));
   }
   const qs = search.toString();
