@@ -1,11 +1,17 @@
 import StatusBar from "@/components/layout/StatusBar";
 import SubHeader from "./SubHeader";
 import { useEffect, useState } from "react";
+import Markdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import {
-  getLegalDocument,
-  type LegalDocument,
+  getPolicy,
+  getPolicyCategory,
+  getPolicyLanguage,
+  type PolicyData,
   type LegalDocumentType,
 } from "@/lib/legal-documents-api";
+import { useSettings } from "@/store/settings-context";
 
 interface StaticDocViewProps {
   documentType: LegalDocumentType;
@@ -16,7 +22,9 @@ export default function StaticDocView({
   documentType,
   onBack,
 }: StaticDocViewProps) {
-  const [document, setDocument] = useState<LegalDocument | null>(null);
+  const { settings } = useSettings();
+  const language = getPolicyLanguage(settings.language);
+  const [document, setDocument] = useState<PolicyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -27,7 +35,7 @@ export default function StaticDocView({
     setLoading(true);
     setError(false);
 
-    getLegalDocument(documentType)
+    getPolicy(getPolicyCategory(documentType), language)
       .then((response) => {
         if (!cancelled) setDocument(response);
       })
@@ -41,10 +49,10 @@ export default function StaticDocView({
     return () => {
       cancelled = true;
     };
-  }, [documentType, retryCount]);
+  }, [documentType, language, retryCount]);
 
-  const formatUpdatedAt = (updatedAt: string) => {
-    const normalized = updatedAt.trim();
+  const formatDate = (date: string) => {
+    const normalized = date.trim();
     if (/^\d{4}-\d{2}-\d{2}/.test(normalized)) {
       return normalized.slice(0, 10).replaceAll("-", ".");
     }
@@ -89,19 +97,12 @@ export default function StaticDocView({
       {!loading && !error && document && (
         <div className="px-6 mt-5">
           <p className="text-[11px] text-muted">
-            최종 업데이트 {formatUpdatedAt(document.updatedAt)}
+            시행일 {formatDate(document.effectiveDate)} · v{document.version}
           </p>
-          <div className="mt-4 flex flex-col gap-5">
-            {document.sections.map((section) => (
-              <section key={section.heading}>
-                <h3 className="text-[14px] font-semibold text-ink">
-                  {section.heading}
-                </h3>
-                <p className="mt-1.5 text-[12.5px] leading-relaxed text-sub whitespace-pre-line">
-                  {section.body}
-                </p>
-              </section>
-            ))}
+          <div className="mt-4 text-[12.5px] leading-relaxed text-sub [&_h1]:mb-4 [&_h1]:text-[18px] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:text-ink [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-[14px] [&_h2]:font-semibold [&_h2]:leading-tight [&_h2]:text-ink [&_h3]:mb-1.5 [&_h3]:mt-5 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-ink [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_a]:text-brand [&_a]:underline [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-line [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-cream [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[11px]">
+            <Markdown rehypePlugins={[rehypeRaw, rehypeSanitize]}>
+              {document.content}
+            </Markdown>
           </div>
         </div>
       )}

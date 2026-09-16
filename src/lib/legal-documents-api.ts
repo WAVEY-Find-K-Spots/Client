@@ -1,70 +1,47 @@
 import { apiRequest } from "@/lib/auth/api";
 
 export type LegalDocumentType = "TERMS" | "PRIVACY";
+export type PolicyCategory = "terms" | "privacy";
+export type PolicyLanguage = "ko" | "en";
 
-export interface LegalDocumentSection {
-  heading: string;
-  body: string;
-}
-
-export interface LegalDocument {
-  type: LegalDocumentType;
+export interface PolicyData {
+  category: PolicyCategory;
+  language: PolicyLanguage;
   title: string;
-  updatedAt: string;
-  sections: LegalDocumentSection[];
+  content: string;
+  version: number;
+  effectiveDate: string;
 }
 
-const LEGAL_DOCUMENT_PATHS: Record<LegalDocumentType, string> = {
-  TERMS: "/api/v1/policies/terms",
-  PRIVACY: "/api/v1/policies/privacy",
+export interface PolicyApiResponse {
+  statusCode: number;
+  message: string;
+  data: PolicyData;
+}
+
+const CATEGORY_BY_DOCUMENT_TYPE: Record<LegalDocumentType, PolicyCategory> = {
+  TERMS: "terms",
+  PRIVACY: "privacy",
 };
 
-type LegalDocumentPayload = LegalDocument | string;
+/** 로그인 없이 통합 정책 API에서 이용약관 또는 개인정보 처리방침을 조회합니다. */
+export async function getPolicy(
+  category: PolicyCategory,
+  language: PolicyLanguage = "ko",
+): Promise<PolicyData> {
+  const params = new URLSearchParams({ category, language });
 
-function parseMarkdownDocument(
-  markdown: string,
-  type: LegalDocumentType,
-): LegalDocument {
-  const lines = markdown.split(/\r?\n/);
-  const title = lines.find((line) => line.startsWith("# "))?.slice(2).trim();
-  const updatedAt = lines
-    .find((line) => /^(공고일|시행일):/.test(line.trim()))
-    ?.replace(/^(공고일|시행일):\s*/, "")
-    .trim();
-  const sections: LegalDocumentSection[] = [];
-
-  for (const line of lines) {
-    const heading = line.match(/^#{2,3}\s+(.+)$/);
-    if (heading) {
-      sections.push({ heading: heading[1].trim(), body: "" });
-      continue;
-    }
-
-    if (sections.length > 0) {
-      const section = sections[sections.length - 1];
-      section.body = section.body
-        ? `${section.body}\n${line}`
-        : line;
-    }
-  }
-
-  return {
-    type,
-    title: title || (type === "TERMS" ? "이용약관" : "개인정보 처리방침"),
-    updatedAt: updatedAt || "",
-    sections: sections
-      .map((section) => ({ ...section, body: section.body.trim() }))
-      .filter((section) => section.heading !== "부칙" || section.body),
-  };
-}
-
-/** 공개 법적 문서 조회 */
-export async function getLegalDocument(type: LegalDocumentType) {
-  const payload = await apiRequest<LegalDocumentPayload>(LEGAL_DOCUMENT_PATHS[type], {
+  return apiRequest<PolicyData>(`/api/v1/policies?${params.toString()}`, {
     authenticated: false,
   });
+}
 
-  return typeof payload === "string"
-    ? parseMarkdownDocument(payload, type)
-    : payload;
+/** 화면에서 사용하는 문서 타입을 통합 정책 API의 카테고리로 변환합니다. */
+export function getPolicyCategory(type: LegalDocumentType): PolicyCategory {
+  return CATEGORY_BY_DOCUMENT_TYPE[type];
+}
+
+/** 설정 화면의 표시 언어를 정책 API 언어 코드로 변환합니다. */
+export function getPolicyLanguage(language: string | undefined): PolicyLanguage {
+  return language === "English" ? "en" : "ko";
 }
