@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import StatusBar from "@/components/layout/StatusBar";
 import SafeImage from "@/components/SafeImage";
 import { useNotifications } from "@/store/notifications-context";
@@ -30,21 +31,22 @@ interface MainViewProps {
   onToast: (msg: string) => void;
 }
 
-const activityMenus: { label: string; icon: typeof Heart; goto: string }[] = [
-  { label: "저장한 스팟", icon: Heart, goto: "savedSpots" },
-  { label: "내 루트 목록", icon: Map, goto: "routes" },
-  { label: "스탬프북", icon: Bookmark, goto: "stamp" },
-  { label: "작성한 리뷰", icon: Star, goto: "reviews" },
+const activityMenus: { labelKey: string; icon: typeof Heart; goto: string }[] = [
+  { labelKey: "mypage.main.savedSpots", icon: Heart, goto: "savedSpots" },
+  { labelKey: "mypage.main.myRoutes", icon: Map, goto: "routes" },
+  { labelKey: "mypage.main.stampBook", icon: Bookmark, goto: "stamp" },
+  { labelKey: "mypage.main.myReviews", icon: Star, goto: "reviews" },
 ];
 
-const settingMenus: { label: string; icon: typeof Settings; view: MyPageView }[] = [
-  { label: "설정", icon: Settings, view: "settings" },
-  { label: "알림 설정", icon: Bell, view: "notiSettings" },
-  { label: "개인정보 처리방침", icon: Shield, view: "policy" },
-  { label: "이용약관", icon: FileText, view: "terms" },
+const settingMenus: { labelKey: string; icon: typeof Settings; view: MyPageView }[] = [
+  { labelKey: "mypage.main.settings", icon: Settings, view: "settings" },
+  { labelKey: "mypage.main.notificationSettings", icon: Bell, view: "notiSettings" },
+  { labelKey: "mypage.main.privacyPolicy", icon: Shield, view: "policy" },
+  { labelKey: "mypage.main.terms", icon: FileText, view: "terms" },
 ];
 
 export default function MainView({ onOpen, onToast }: MainViewProps) {
+  const { t } = useTranslation();
   const { unreadCount } = useNotifications();
   const { routeIds } = useRoute();
   const { user, logout, withdraw } = useAuth();
@@ -97,18 +99,22 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
     {
       icon: MapPin,
       value: visitedCount === null ? "-" : String(visitedCount),
-      label: "방문 스팟",
+      label: t("mypage.main.visitedSpots"),
     },
-    { icon: Route, value: String(routeIds.length), label: "루트 스팟" },
+    {
+      icon: Route,
+      value: String(routeIds.length),
+      label: t("mypage.main.routeSpots"),
+    },
     {
       icon: Bookmark,
       value: savedCount === null ? "-" : String(savedCount),
-      label: "저장 스팟",
+      label: t("mypage.main.savedSpotCount"),
     },
     {
       icon: Award,
       value: badgeCount === null ? "-" : String(badgeCount),
-      label: "획득 뱃지",
+      label: t("mypage.main.badges"),
     },
   ];
 
@@ -123,7 +129,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
     try {
       await logout();
     } catch {
-      onToast("서버 로그아웃 요청에 실패해 로컬 로그인 정보만 삭제했습니다.");
+      onToast(t("mypage.main.logoutFailed"));
     } finally {
       navigate?.("/login");
       setLogoutPending(false);
@@ -137,7 +143,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
       await withdraw();
       navigate?.("/login");
     } catch {
-      onToast("회원 탈퇴에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      onToast(t("mypage.main.withdrawFailed"));
     } finally {
       setWithdrawPending(false);
       setConfirmWithdraw(false);
@@ -151,13 +157,13 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
       {/* 헤더 */}
       <div className="px-5 pt-1 flex items-center justify-between">
         <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
-          마이페이지
+          {t("mypage.main.title")}
         </h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate?.("/notifications")}
-            aria-label="알림"
+            aria-label={t("mypage.main.notifications")}
             className="relative flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
           >
             <Bell size={18} color="#A8623E" strokeWidth={1.9} />
@@ -170,7 +176,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
           <button
             type="button"
             onClick={() => onOpen("settings")}
-            aria-label="설정"
+            aria-label={t("mypage.main.settings")}
             className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
           >
             <Settings size={18} color="#A8623E" strokeWidth={1.9} />
@@ -186,7 +192,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
               type="button"
               onClick={() => onOpen("edit")}
               className="relative shrink-0 cursor-pointer"
-              aria-label="프로필 이미지"
+              aria-label={t("mypage.main.profileImage")}
             >
               <span
                 className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden"
@@ -211,7 +217,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
             </button>
             <div className="flex-1 min-w-0">
               <h2 className="text-[18px] font-semibold text-white truncate">
-                {user?.nickname || user?.name || "여행자"}
+                {user?.nickname || user?.name || t("mypage.main.traveler")}
               </h2>
               <p className="text-[12px] text-muted mt-0.5 truncate">
                 {user?.email}
@@ -221,7 +227,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
                 onClick={() => onOpen("edit")}
                 className="mt-1.5 text-[12px] font-medium text-brand cursor-pointer whitespace-nowrap"
               >
-                프로필 편집
+                {t("mypage.main.editProfile")}
               </button>
             </div>
           </div>
@@ -255,13 +261,15 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
 
       {/* 내 활동 */}
       <div className="px-5 mt-6">
-        <h3 className="text-[15px] font-semibold text-ink">내 활동</h3>
+        <h3 className="text-[15px] font-semibold text-ink">
+          {t("mypage.main.myActivity")}
+        </h3>
         <div className="mt-3 bg-white rounded-[16px] shadow-soft overflow-hidden divide-y divide-[#F5F1EE]">
           {activityMenus.map((m) => {
             const Icon = m.icon;
             return (
               <button
-                key={m.label}
+                key={m.labelKey}
                 type="button"
                 onClick={() => handleActivity(m.goto)}
                 className="w-full flex items-center gap-3 px-4 h-[52px] cursor-pointer text-left"
@@ -270,7 +278,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
                   <Icon size={18} color="#A8623E" strokeWidth={1.9} />
                 </span>
                 <span className="flex-1 text-[14px] font-semibold text-ink">
-                  {m.label}
+                  {t(m.labelKey)}
                 </span>
                 <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
               </button>
@@ -281,13 +289,15 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
 
       {/* 설정 */}
       <div className="px-5 mt-6">
-        <h3 className="text-[15px] font-semibold text-ink">설정</h3>
+        <h3 className="text-[15px] font-semibold text-ink">
+          {t("mypage.main.settings")}
+        </h3>
         <div className="mt-3 bg-white rounded-[16px] shadow-soft overflow-hidden divide-y divide-[#F5F1EE]">
           {settingMenus.map((m) => {
             const Icon = m.icon;
             return (
               <button
-                key={m.label}
+                key={m.labelKey}
                 type="button"
                 onClick={() => onOpen(m.view)}
                 className="w-full flex items-center gap-3 px-4 h-[52px] cursor-pointer text-left"
@@ -296,7 +306,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
                   <Icon size={18} color="#A8623E" strokeWidth={1.9} />
                 </span>
                 <span className="flex-1 text-[14px] font-semibold text-ink">
-                  {m.label}
+                  {t(m.labelKey)}
                 </span>
                 <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
               </button>
@@ -317,7 +327,9 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
             <LogOut size={16} color="#A89890" strokeWidth={1.9} />
           </span>
           <span className="text-[14px] font-medium text-muted">
-            {logoutPending ? "로그아웃 중..." : "로그아웃"}
+            {logoutPending
+              ? t("mypage.main.loggingOut")
+              : t("mypage.main.logout")}
           </span>
         </button>
         <button
@@ -325,7 +337,9 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
           onClick={() => setConfirmWithdraw(true)}
           className="w-full mt-3 h-9 flex items-center justify-center cursor-pointer whitespace-nowrap"
         >
-          <span className="text-[12px] font-medium text-[#B4453A]">회원 탈퇴</span>
+          <span className="text-[12px] font-medium text-[#B4453A]">
+            {t("mypage.main.withdraw")}
+          </span>
         </button>
       </div>
 
@@ -339,10 +353,10 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[15px] font-semibold text-ink">
-              정말 탈퇴하시겠어요?
+              {t("mypage.main.withdrawConfirmTitle")}
             </p>
             <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
-              계정과 저장된 모든 정보가 삭제되며 복구할 수 없어요.
+              {t("mypage.main.withdrawConfirmDescription")}
             </p>
             <div className="mt-4 flex gap-2">
               <button
@@ -351,7 +365,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
                 disabled={withdrawPending}
                 className="flex-1 h-10 rounded-full bg-cream text-[13px] font-semibold text-ink cursor-pointer whitespace-nowrap disabled:opacity-50"
               >
-                취소
+                {t("mypage.main.cancel")}
               </button>
               <button
                 type="button"
@@ -359,7 +373,9 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
                 disabled={withdrawPending}
                 className="flex-1 h-10 rounded-full bg-[#B4453A] text-white text-[13px] font-semibold cursor-pointer whitespace-nowrap disabled:opacity-50"
               >
-                {withdrawPending ? "탈퇴 중..." : "탈퇴하기"}
+                {withdrawPending
+                  ? t("mypage.main.withdrawing")
+                  : t("mypage.main.withdrawAction")}
               </button>
             </div>
           </div>

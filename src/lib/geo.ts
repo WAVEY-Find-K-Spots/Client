@@ -3,6 +3,28 @@ export interface LatLng {
   lng: number;
 }
 
+export class LocationServicesDisabledError extends Error {
+  constructor() {
+    super("location-services-disabled");
+    this.name = "LocationServicesDisabledError";
+  }
+}
+
+let locationServicesEnabled = false;
+const activeWatchIds = new Set<number>();
+
+export function setLocationServicesEnabled(enabled: boolean) {
+  locationServicesEnabled = enabled;
+  if (!enabled && "geolocation" in navigator) {
+    activeWatchIds.forEach((id) => navigator.geolocation.clearWatch(id));
+    activeWatchIds.clear();
+  }
+}
+
+export function isLocationServicesEnabled() {
+  return locationServicesEnabled;
+}
+
 /** Great-circle distance in metres (haversine). */
 export function distanceMeters(a: LatLng, b: LatLng): number {
   const R = 6_371_000;
@@ -43,7 +65,7 @@ const GEO_OPTS = {
   maximumAge: 10_000,
 };
 
-export function getCurrentCoords(): Promise<LatLng> {
+function readCurrentCoords(): Promise<LatLng> {
   const mock = getMockGeo();
   if (mock) return Promise.resolve(mock);
   return new Promise((resolve, reject) => {
@@ -59,11 +81,27 @@ export function getCurrentCoords(): Promise<LatLng> {
   });
 }
 
+export function getCurrentCoords(): Promise<LatLng> {
+  if (!locationServicesEnabled) {
+    return Promise.reject(new LocationServicesDisabledError());
+  }
+  return readCurrentCoords();
+}
+
+/** 위치 서비스 활성화 과정에서 기기 권한을 먼저 확인할 때 사용합니다. */
+export function requestLocationAccess(): Promise<LatLng> {
+  return readCurrentCoords();
+}
+
 /** Subscribe to position updates. Returns an unsubscribe fn. */
 export function watchCoords(
   onUpdate: (c: LatLng) => void,
   onError?: (e: unknown) => void,
 ): () => void {
+  if (!locationServicesEnabled) {
+    onError?.(new LocationServicesDisabledError());
+    return () => {};
+  }
   const mock = getMockGeo();
   if (mock) {
     onUpdate(mock);
@@ -78,5 +116,9 @@ export function watchCoords(
     (err) => onError?.(err),
     { ...GEO_OPTS, timeout: 10_000, maximumAge: 15_000 },
   );
-  return () => navigator.geolocation.clearWatch(id);
+  activeWatchIds.add(id);
+  return () => {
+    navigator.geolocation.clearWatch(id);
+    activeWatchIds.delete(id);
+  };
 }
