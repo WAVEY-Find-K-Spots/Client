@@ -4,14 +4,22 @@ import { Star, MapPin } from "lucide-react";
 interface NearbyTabProps {
   items: NearbySpotView[];
   loading?: boolean;
+  isFallback?: boolean;
   onOpen: (id: string) => void;
 }
 
-export default function NearbyTab({ items, loading, onOpen }: NearbyTabProps) {
+export default function NearbyTab({
+  items,
+  loading,
+  isFallback,
+  onOpen,
+}: NearbyTabProps) {
   return (
     <div className="px-5 pt-5">
       <p className="text-[13px] leading-relaxed text-sub mb-3">
-        이 장소에서 가까운 다른 K-스팟을 함께 방문해 보세요.
+        {isFallback
+          ? "주변에 등록된 스팟이 없어서, 지금 인기 있는 스팟을 대신 보여드려요."
+          : "이 장소에서 가까운 다른 K-스팟을 함께 방문해 보세요."}
       </p>
       {loading ? (
         <p className="text-center text-[13px] text-muted py-10">
@@ -54,12 +62,14 @@ export default function NearbyTab({ items, loading, onOpen }: NearbyTabProps) {
                     {n.name}
                   </p>
                 </div>
-                <p className="flex items-center gap-1 text-[11px] text-muted mt-0.5">
-                  <span className="flex items-center justify-center w-3 h-3">
-                    <MapPin size={11} />
-                  </span>
-                  {n.loc}
-                </p>
+                {n.loc && (
+                  <p className="flex items-center gap-1 text-[11px] text-muted mt-0.5">
+                    <span className="flex items-center justify-center w-3 h-3">
+                      <MapPin size={11} />
+                    </span>
+                    {n.loc}
+                  </p>
+                )}
                 <p className="text-[11px] text-sub mt-1 truncate">{n.desc}</p>
               </div>
             </button>
