@@ -17,12 +17,6 @@ interface ContentTabProps {
   mediaLoading?: boolean;
 }
 
-const categoryLabel: Record<SpotMediaContent["category"], string> = {
-  DRAMA: "관련 드라마",
-  MOVIE: "관련 영화",
-  ARTIST: "관련 아티스트",
-};
-
 interface MusicItem {
   key: string;
   title: string;
@@ -115,39 +109,6 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
 
   return (
     <div className="px-5 pt-5">
-      {/* Related dramas / movies */}
-      {(["DRAMA", "MOVIE"] as const).map((cat) => {
-        const group = media.contents.filter((c) => c.category === cat);
-        if (group.length === 0) return null;
-        return (
-          <div key={cat} className="mt-5 first:mt-0">
-            <h4 className="text-[15px] font-semibold text-ink">{categoryLabel[cat]}</h4>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              {group.map((c) => {
-                const poster = c.videos[0];
-                return (
-                  <MediaCard
-                    key={c.contentId}
-                    thumbnailUrl={poster?.thumbnailUrl ?? null}
-                    title={c.title}
-                    onPlay={
-                      poster
-                        ? () =>
-                            setActiveMedia({
-                              kind: "video",
-                              videoId: poster.videoId,
-                              title: c.title,
-                            })
-                        : null
-                    }
-                  />
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-
       {/* related videos */}
       {videos.length > 0 && (
         <div className="mt-5 first:mt-0">
