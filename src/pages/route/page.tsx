@@ -12,24 +12,17 @@ import {
   Plus,
   MoreHorizontal,
   Map,
-  Eye,
   Check,
   Repeat,
   Share2,
   Trash2,
   Pencil,
   Compass,
+  Globe,
+  Lock,
 } from "lucide-react";
 
 type RouteMode = "empty" | "plan" | "nav";
-
-const modeLabel: Record<RouteMode, string> = {
-  empty: "빈 상태",
-  plan: "루트 편집",
-  nav: "경로 탐색",
-};
-
-const modeOrder: RouteMode[] = ["empty", "plan", "nav"];
 
 const transportToApi: Record<TransportMode, ApiTransportMode> = {
   walk: "WALK",
@@ -47,6 +40,7 @@ export default function RouteTab() {
   const {
     routeId,
     routeName,
+    routeVisibility,
     stops,
     loading: routeLoading,
     addToRoute,
@@ -54,12 +48,14 @@ export default function RouteTab() {
     reorderRoute,
     clearRoute,
     renameRoute,
+    toggleRouteVisibility,
   } = useRoute();
   const [mode, setMode] = useState<RouteMode>("empty");
   const [modeInitialized, setModeInitialized] = useState(false);
   const [transport, setTransport] = useState<TransportMode>("transit");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [publicRoutesOpen, setPublicRoutesOpen] = useState(false);
+  const [publicRoutesLayer, setPublicRoutesLayer] = useState({ top: 0, height: 0 });
   const [toast, setToast] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -73,6 +69,23 @@ export default function RouteTab() {
     setMenuOpen(false);
     setConfirmClear(false);
     setRenaming(false);
+  };
+
+  // 공개 루트 시트가 뒤 배경 스크롤에 밀려나지 않도록, 현재 보이는 영역을
+  // 픽셀 단위로 측정해서 고정하고 스크롤을 잠근다
+  const openPublicRoutes = () => {
+    const el = document.getElementById("app-scroll");
+    if (el) {
+      setPublicRoutesLayer({ top: el.scrollTop, height: el.clientHeight });
+      el.style.overflow = "hidden";
+    }
+    setPublicRoutesOpen(true);
+  };
+
+  const closePublicRoutes = () => {
+    const el = document.getElementById("app-scroll");
+    if (el) el.style.overflow = "";
+    setPublicRoutesOpen(false);
   };
 
   const navigate = (
@@ -123,19 +136,6 @@ export default function RouteTab() {
   };
 
   const getTransitLegs = (index: number) => directions?.segments[index]?.transitLegs ?? [];
-
-  const cycleMode = () => {
-    const idx = modeOrder.indexOf(mode);
-    const next = modeOrder[(idx + 1) % modeOrder.length];
-    if ((next === "plan" || next === "nav") && stops.length === 0) {
-      setMode("plan");
-      setPickerOpen(true);
-      return;
-    }
-    setMode(next);
-    setCurrent(0);
-    showToast(modeLabel[next]);
-  };
 
   const handleRemove = (id: string) => {
     const wasLast = stops.length <= 1;
@@ -198,12 +198,41 @@ export default function RouteTab() {
     showToast("루트 이름을 변경했어요");
   };
 
+  const handleToggleVisibility = () => {
+    const willBePublic = routeVisibility !== "PUBLIC";
+    void toggleRouteVisibility().then((ok) => {
+      showToast(
+        ok
+          ? willBePublic
+            ? "루트를 공개로 전환했어요"
+            : "루트를 비공개로 전환했어요"
+          : "공개 설정을 변경하지 못했어요",
+      );
+    });
+    closeMenu();
+  };
+
   const menuItems = [
     {
       icon: Pencil,
       label: "이름 변경",
       onClick: openRename,
       disabled: routeId === null,
+    },
+    {
+      icon: routeVisibility === "PUBLIC" ? Lock : Globe,
+      label: routeVisibility === "PUBLIC" ? "비공개로 전환" : "공개로 전환",
+      onClick: handleToggleVisibility,
+      disabled: routeId === null,
+    },
+    {
+      icon: Compass,
+      label: "공개 루트 둘러보기",
+      onClick: () => {
+        closeMenu();
+        openPublicRoutes();
+      },
+      disabled: false,
     },
     {
       icon: Repeat,
@@ -262,7 +291,7 @@ export default function RouteTab() {
             <>
               <button
                 type="button"
-                onClick={() => setPublicRoutesOpen(true)}
+                onClick={openPublicRoutes}
                 aria-label="공개 루트 둘러보기"
                 className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
               >
@@ -303,7 +332,7 @@ export default function RouteTab() {
             </button>
             <button
               type="button"
-              onClick={() => setPublicRoutesOpen(true)}
+              onClick={openPublicRoutes}
               className="mt-2.5 w-full h-[52px] rounded-full bg-cream text-brand text-[14px] font-semibold cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
             >
               <Compass size={17} />
@@ -398,24 +427,6 @@ export default function RouteTab() {
         </div>
       )}
 
-      {/* preview / state switcher */}
-      <button
-        type="button"
-        onClick={cycleMode}
-        aria-label="화면 미리보기 전환"
-        className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1 cursor-pointer whitespace-nowrap"
-      >
-        <span
-          className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95"
-          style={{ boxShadow: "0 8px 18px rgba(44,24,16,0.18)" }}
-        >
-          <Eye size={16} color="#A8623E" strokeWidth={2} />
-        </span>
-        <span className="px-1.5 py-0.5 rounded-full bg-ink/80 text-[9px] font-medium text-white/90 leading-none">
-          {modeLabel[mode]}
-        </span>
-      </button>
-
       {/* toast */}
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 top-[70px] z-30 px-4 py-2 rounded-full bg-ink/90 text-[12px] font-medium text-white pointer-events-none">
@@ -434,8 +445,9 @@ export default function RouteTab() {
 
       {publicRoutesOpen && (
         <PublicRoutesSheet
-          onClose={() => setPublicRoutesOpen(false)}
+          onClose={closePublicRoutes}
           onOpenSpot={(spotId) => navigate?.(`/spot/${spotId}`)}
+          layer={publicRoutesLayer}
         />
       )}
 

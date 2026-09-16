@@ -7,11 +7,13 @@ import {
 } from "@/lib/routes-api";
 import { toRouteStop } from "@/lib/route-adapters";
 import RouteMap from "./RouteMap";
-import { ChevronLeft, MapPin, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Compass, MapPin, X } from "lucide-react";
 
 interface PublicRoutesSheetProps {
   onClose: () => void;
   onOpenSpot: (spotId: string) => void;
+  /** 뒤 배경(app-scroll)의 현재 보이는 영역 — 시트를 화면에 정확히 고정하기 위해 사용 */
+  layer: { top: number; height: number };
 }
 
 function formatDate(iso: string): string {
@@ -22,7 +24,7 @@ function formatDate(iso: string): string {
   ).padStart(2, "0")}`;
 }
 
-export default function PublicRoutesSheet({ onClose, onOpenSpot }: PublicRoutesSheetProps) {
+export default function PublicRoutesSheet({ onClose, onOpenSpot, layer }: PublicRoutesSheetProps) {
   const [routes, setRoutes] = useState<RouteSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -79,9 +81,15 @@ export default function PublicRoutesSheet({ onClose, onOpenSpot }: PublicRoutesS
   };
 
   return (
-    <div className="absolute inset-0 z-[60] flex flex-col justify-end">
+    <div
+      className="absolute inset-x-0 z-[60] flex flex-col justify-end"
+      style={{ top: layer.top, height: layer.height }}
+    >
       <div className="absolute inset-0 bg-ink/45" onClick={onClose} />
-      <div className="relative bg-white rounded-t-[26px] flex flex-col max-h-[88%] min-h-0">
+      <div
+        className="relative bg-white rounded-t-[26px] flex flex-col min-h-0"
+        style={{ maxHeight: "88%" }}
+      >
         {/* handle + title */}
         <div className="flex flex-col items-center pt-3 pb-3 shrink-0">
           <span className="w-10 h-1 rounded-full bg-line" />
@@ -121,26 +129,39 @@ export default function PublicRoutesSheet({ onClose, onOpenSpot }: PublicRoutesS
               </p>
             ) : (
               <div className="flex flex-col gap-3">
-                {routes.map((r) => (
+                {routes.map((r, i) => (
                   <button
                     key={r.routeId}
                     type="button"
                     onClick={() => openDetail(r.routeId)}
-                    className="w-full bg-cream rounded-[16px] p-4 text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 bg-cream rounded-[16px] p-4 text-left cursor-pointer"
                   >
-                    <p className="text-[14px] font-semibold text-ink">{r.name}</p>
-                    {r.description && (
-                      <p className="mt-1 text-[12px] text-muted line-clamp-1">
-                        {r.description}
-                      </p>
-                    )}
-                    <div className="mt-2 flex items-center gap-3 text-[11px] text-muted">
-                      <span className="flex items-center gap-1">
-                        <MapPin size={11} color="#A89890" />
-                        {r.spotCount}개 스팟
-                      </span>
-                      <span>{formatDate(r.updatedAt)}</span>
+                    <span className="shrink-0 flex items-center justify-center w-11 h-11 rounded-full bg-white text-brand">
+                      <Compass size={20} strokeWidth={1.8} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-ink text-white text-[9px] font-bold">
+                          {i + 1}
+                        </span>
+                        <p className="text-[14px] font-semibold text-ink truncate">
+                          {r.name || "이름 없는 루트"}
+                        </p>
+                      </div>
+                      {r.description && (
+                        <p className="mt-1 text-[12px] text-muted line-clamp-1">
+                          {r.description}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center gap-3 text-[11px] text-muted">
+                        <span className="flex items-center gap-1">
+                          <MapPin size={11} color="#A89890" />
+                          {r.spotCount}개 스팟
+                        </span>
+                        <span>{formatDate(r.updatedAt)}</span>
+                      </div>
                     </div>
+                    <ChevronRight size={16} color="#DDD4CE" className="shrink-0" />
                   </button>
                 ))}
                 {hasNext && (
@@ -171,7 +192,9 @@ export default function PublicRoutesSheet({ onClose, onOpenSpot }: PublicRoutesS
                   />
                 </div>
                 <div className="px-5 py-4">
-                  <h4 className="text-[16px] font-bold text-ink">{detail.name}</h4>
+                  <h4 className="text-[16px] font-bold text-ink">
+                    {detail.name || "이름 없는 루트"}
+                  </h4>
                   {detail.description && (
                     <p className="mt-1 text-[13px] text-sub leading-relaxed">
                       {detail.description}
