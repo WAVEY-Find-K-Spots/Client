@@ -200,9 +200,20 @@ export default function SpotDetail() {
       for (const radius of RADII_M) {
         if (cancelled) return;
         try {
-          const items = (await getNearbySpots(numericSpotId, radius)).filter(
-            (s) => s.spotId !== numericSpotId,
-          );
+          const rawItems = await getNearbySpots(numericSpotId, radius);
+          const seenIds = new Set<number>();
+          const seenNames = new Set<string>();
+          const currentName = spot?.name?.trim();
+          if (currentName) seenNames.add(currentName);
+          const items = rawItems.filter((s) => {
+            if (s.spotId === numericSpotId) return false;
+            if (seenIds.has(s.spotId)) return false;
+            const name = s.name?.trim();
+            if (name && seenNames.has(name)) return false;
+            seenIds.add(s.spotId);
+            if (name) seenNames.add(name);
+            return true;
+          });
           if (items.length > 0) {
             if (!cancelled) {
               setNearbyItems(
@@ -227,6 +238,7 @@ export default function SpotDetail() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, mockSpot, numericSpotId]);
 
   // 콘텐츠 탭 진입 시 연결된 미디어(작품+영상+음악) 조회 (mock 스팟은 큐레이션된 mock 콘텐츠 그대로 사용)
