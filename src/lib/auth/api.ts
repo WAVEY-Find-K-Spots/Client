@@ -121,7 +121,7 @@ export async function apiRequest<T>(
       tokenStorage.getRefreshToken()
     ) {
       const tokens = await refreshTokens();
-      headers.set("Authorization", `${tokens.tokenType} ${tokens.accessToken}`);
+      headers.set("Authorization", `Bearer ${tokens.accessToken}`);
       return send<T>(path, { ...options, headers });
     }
     throw error;
