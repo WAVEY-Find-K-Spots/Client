@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { RouteStop } from "@/lib/route-adapters";
+import type { RouteVisibility } from "@/lib/routes-api";
 
 export const CURRENT_ROUTE_ID_KEY = "wavey.route.current-id";
 
@@ -16,6 +17,7 @@ export function loadCurrentRouteId(): number | null {
 export interface RouteContextValue {
   routeId: number | null;
   routeName: string | null;
+  routeVisibility: RouteVisibility | null;
   stops: RouteStop[];
   loading: boolean;
   error: string | null;
@@ -32,6 +34,8 @@ export interface RouteContextValue {
   switchRoute: (routeId: number) => Promise<void>;
   /** 활성 루트 이름 변경 */
   renameRoute: (name: string) => Promise<void>;
+  /** 활성 루트 공개/비공개 전환. 성공하면 true, 실패하면 false */
+  toggleRouteVisibility: () => Promise<boolean>;
   /** 활성 루트가 다른 곳에서(예: 목록 화면) 삭제됐을 때 로컬 상태만 비움 */
   clearRouteReference: () => void;
 }
