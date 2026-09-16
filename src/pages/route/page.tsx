@@ -55,6 +55,7 @@ export default function RouteTab() {
   const [transport, setTransport] = useState<TransportMode>("transit");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [publicRoutesOpen, setPublicRoutesOpen] = useState(false);
+  const [publicRoutesLayer, setPublicRoutesLayer] = useState({ top: 0, height: 0 });
   const [toast, setToast] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -68,6 +69,23 @@ export default function RouteTab() {
     setMenuOpen(false);
     setConfirmClear(false);
     setRenaming(false);
+  };
+
+  // 공개 루트 시트가 뒤 배경 스크롤에 밀려나지 않도록, 현재 보이는 영역을
+  // 픽셀 단위로 측정해서 고정하고 스크롤을 잠근다
+  const openPublicRoutes = () => {
+    const el = document.getElementById("app-scroll");
+    if (el) {
+      setPublicRoutesLayer({ top: el.scrollTop, height: el.clientHeight });
+      el.style.overflow = "hidden";
+    }
+    setPublicRoutesOpen(true);
+  };
+
+  const closePublicRoutes = () => {
+    const el = document.getElementById("app-scroll");
+    if (el) el.style.overflow = "";
+    setPublicRoutesOpen(false);
   };
 
   const navigate = (
@@ -208,6 +226,15 @@ export default function RouteTab() {
       disabled: routeId === null,
     },
     {
+      icon: Compass,
+      label: "공개 루트 둘러보기",
+      onClick: () => {
+        closeMenu();
+        openPublicRoutes();
+      },
+      disabled: false,
+    },
+    {
       icon: Repeat,
       label: "출발·도착 바꾸기",
       onClick: () => {
@@ -264,7 +291,7 @@ export default function RouteTab() {
             <>
               <button
                 type="button"
-                onClick={() => setPublicRoutesOpen(true)}
+                onClick={openPublicRoutes}
                 aria-label="공개 루트 둘러보기"
                 className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
               >
@@ -305,7 +332,7 @@ export default function RouteTab() {
             </button>
             <button
               type="button"
-              onClick={() => setPublicRoutesOpen(true)}
+              onClick={openPublicRoutes}
               className="mt-2.5 w-full h-[52px] rounded-full bg-cream text-brand text-[14px] font-semibold cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
             >
               <Compass size={17} />
@@ -418,8 +445,9 @@ export default function RouteTab() {
 
       {publicRoutesOpen && (
         <PublicRoutesSheet
-          onClose={() => setPublicRoutesOpen(false)}
+          onClose={closePublicRoutes}
           onOpenSpot={(spotId) => navigate?.(`/spot/${spotId}`)}
+          layer={publicRoutesLayer}
         />
       )}
 
