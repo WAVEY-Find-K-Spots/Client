@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { AUTH_EXPIRED_EVENT, authApi } from "@/lib/auth/api";
 import { tokenStorage } from "@/lib/auth/tokenStorage";
 import type { AuthUser, SocialProvider } from "@/lib/auth/types";
@@ -32,6 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const urls = await authApi.getLoginUrls();
     const loginUrl = urls[provider];
     if (!loginUrl) throw new Error(`${provider} 로그인 URL을 찾을 수 없습니다.`);
+
+    if (Capacitor.isNativePlatform()) {
+      const nativeLoginUrl = new URL(loginUrl);
+      nativeLoginUrl.searchParams.set("platform", "app");
+      await Browser.open({ url: nativeLoginUrl.toString() });
+      return;
+    }
+
     window.location.assign(loginUrl);
   }, []);
 
