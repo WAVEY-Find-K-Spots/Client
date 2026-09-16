@@ -27,7 +27,7 @@ export function toHomeSpotView(item: SpotSearchItem): HomeSpotView {
     id: String(item.spotId),
     name: item.name,
     desc: item.description ?? "",
-    image: withImageFallback(item.imageUrl),
+    image: withImageFallback(item.imageUrl, item.category),
     hasImage: hasRealImage(item.imageUrl),
     rating: item.avgRating,
     reviewCount: item.reviewCount,
