@@ -454,26 +454,30 @@ export default function SpotList() {
       {!isSearching && !isResults && (
         <>
           {/* Category chips */}
-          <div className="mt-4 px-5 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-2 w-max">
-              {spotCategories.map((c) => {
-                const isActive = cat === c.key;
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => setCat(c.key)}
-                    className={`px-3.5 h-9 rounded-full text-[12px] font-medium cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? "bg-ink text-white"
-                        : "bg-white text-muted border border-line"
-                    }`}
-                  >
-                    {c.label}
-                  </button>
-                );
-              })}
+          <div className="relative">
+            <div className="mt-4 px-5 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-2 w-max">
+                {spotCategories.map((c) => {
+                  const isActive = cat === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => setCat(c.key)}
+                      className={`px-3.5 h-9 rounded-full text-[12px] font-medium cursor-pointer whitespace-nowrap ${
+                        isActive
+                          ? "bg-ink text-white"
+                          : "bg-white text-muted border border-line"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+            {/* 스크롤 가능한 영역임을 알리는 우측 페이드 */}
+            <div className="absolute right-0 top-4 bottom-0 w-8 bg-gradient-to-l from-page to-transparent pointer-events-none" />
           </div>
 
           {/* Sort + view bar */}
