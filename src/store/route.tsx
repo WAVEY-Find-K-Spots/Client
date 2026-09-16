@@ -9,6 +9,7 @@ import {
   removeRouteSpot,
   reorderRouteSpots,
   updateRoute,
+  type RouteVisibility,
 } from "@/lib/routes-api";
 import { toRouteStop, type RouteStop } from "@/lib/route-adapters";
 import {
@@ -21,6 +22,7 @@ import {
 export function RouteProvider({ children }: { children: ReactNode }) {
   const [routeId, setRouteId] = useState<number | null>(null);
   const [routeName, setRouteName] = useState<string | null>(null);
+  const [routeVisibility, setRouteVisibility] = useState<RouteVisibility | null>(null);
   const [stops, setStops] = useState<RouteStop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +50,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           if (cancelled) return;
           setRouteId(savedId);
           setRouteName(detail.name);
+          setRouteVisibility(detail.visibility);
           setStops(detail.spots.map(toRouteStop));
           return;
         }
@@ -60,12 +63,14 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           if (cancelled) return;
           persistRouteId(existing.routeId);
           setRouteName(detail.name);
+          setRouteVisibility(detail.visibility);
           setStops(detail.spots.map(toRouteStop));
         }
       } catch {
         if (!cancelled) {
           persistRouteId(null);
           setRouteName(null);
+          setRouteVisibility(null);
           setStops([]);
         }
       } finally {
@@ -97,6 +102,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           });
           persistRouteId(detail.routeId);
           setRouteName(detail.name);
+          setRouteVisibility(detail.visibility);
           setStops(detail.spots.map(toRouteStop));
           return true;
         }
@@ -165,6 +171,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       await deleteRoute(routeId);
       persistRouteId(null);
       setRouteName(null);
+      setRouteVisibility(null);
       setStops([]);
       return true;
     } catch {
@@ -180,6 +187,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       const detail = await getRouteDetail(id);
       persistRouteId(id);
       setRouteName(detail.name);
+      setRouteVisibility(detail.visibility);
       setStops(detail.spots.map(toRouteStop));
     } catch {
       setError("루트를 불러오지 못했어요.");
@@ -202,9 +210,27 @@ export function RouteProvider({ children }: { children: ReactNode }) {
     [routeId],
   );
 
+  const toggleRouteVisibility = useCallback(async () => {
+    if (routeId === null || routeVisibility === null) return false;
+    setError(null);
+    const next: RouteVisibility = routeVisibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
+    const prev = routeVisibility;
+    setRouteVisibility(next);
+    try {
+      const detail = await updateRoute(routeId, { visibility: next });
+      setRouteVisibility(detail.visibility);
+      return true;
+    } catch {
+      setRouteVisibility(prev);
+      setError("공개 설정을 변경하지 못했어요.");
+      return false;
+    }
+  }, [routeId, routeVisibility]);
+
   const clearRouteReference = useCallback(() => {
     persistRouteId(null);
     setRouteName(null);
+    setRouteVisibility(null);
     setStops([]);
   }, []);
 
@@ -231,6 +257,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
     () => ({
       routeId,
       routeName,
+      routeVisibility,
       stops,
       loading,
       error,
@@ -243,11 +270,13 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       clearRoute,
       switchRoute,
       renameRoute,
+      toggleRouteVisibility,
       clearRouteReference,
     }),
     [
       routeId,
       routeName,
+      routeVisibility,
       stops,
       loading,
       error,
@@ -259,6 +288,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       clearRoute,
       switchRoute,
       renameRoute,
+      toggleRouteVisibility,
       clearRouteReference,
     ],
   );
