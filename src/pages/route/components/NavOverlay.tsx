@@ -4,8 +4,8 @@ import type { TransitLeg } from "@/lib/routes-api";
 import { ChevronLeft, Repeat, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { TransitLegBadges } from "./PlanSheet";
 
-const MINI_COLLAPSED = 92;
-const MINI_EXPANDED = 260;
+export const MINI_COLLAPSED = 92;
+export const MINI_EXPANDED = 260;
 
 interface NavOverlayProps {
   stops: RouteStop[];
@@ -16,6 +16,8 @@ interface NavOverlayProps {
   onNext: () => void;
   travelToNext: (index: number) => string;
   getTransitLegs?: (index: number) => TransitLeg[];
+  /** 하단 미니 시트가 펼쳐지고/접힐 때마다 알려줌 — 지도 위 버튼 위치 조정용 */
+  onExpandChange?: (expanded: boolean) => void;
 }
 
 export default function NavOverlay({
@@ -27,12 +29,17 @@ export default function NavOverlay({
   onNext,
   travelToNext,
   getTransitLegs,
+  onExpandChange,
 }: NavOverlayProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const handleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startY: 0, moved: false });
 
   const toggle = useCallback(() => setIsExpanded((p) => !p), []);
+
+  useEffect(() => {
+    onExpandChange?.(isExpanded);
+  }, [isExpanded, onExpandChange]);
 
   useEffect(() => {
     const el = handleRef.current;

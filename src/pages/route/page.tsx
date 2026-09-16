@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import RouteMap from "./components/RouteMap";
 import PlanSheet, { type TransportMode } from "./components/PlanSheet";
-import NavOverlay from "./components/NavOverlay";
+import NavOverlay, { MINI_COLLAPSED, MINI_EXPANDED } from "./components/NavOverlay";
 import SpotPicker from "./components/SpotPicker";
 import PublicRoutesSheet from "./components/PublicRoutesSheet";
 import { useRoute } from "@/store/route-context";
@@ -56,6 +56,7 @@ export default function RouteTab() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [publicRoutesOpen, setPublicRoutesOpen] = useState(false);
   const [publicRoutesLayer, setPublicRoutesLayer] = useState({ top: 0, height: 0 });
+  const [navSheetExpanded, setNavSheetExpanded] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -401,10 +402,12 @@ export default function RouteTab() {
             routeGeometry={directions?.geometry.coordinates}
             onLocate={() => showToast("현재 위치로 이동했어요")}
             onLocateError={() => showToast("위치를 확인할 수 없어요. 권한을 허용해 주세요")}
+            bottomInset={navSheetExpanded ? MINI_EXPANDED : MINI_COLLAPSED}
           />
           <NavOverlay
             stops={stops}
             current={current}
+            onExpandChange={setNavSheetExpanded}
             onBack={() => setMode("plan")}
             onSwap={swapRoute}
             onPrev={() => {
