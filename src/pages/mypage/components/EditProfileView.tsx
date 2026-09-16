@@ -1,9 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import SafeImage from "@/components/SafeImage";
 import { useAuth } from "@/store/auth-context";
 import { ApiError } from "@/lib/auth/api";
-import type { CountryCode, UserLanguage } from "@/lib/auth/types";
+import type { CountryCode, UserLanguage, UserProfileUpdateRequest } from "@/lib/auth/types";
 import { countryCodes, countryLabels } from "@/lib/country-codes";
 import { createPresignedUrl, uploadFileToStorage } from "@/lib/upload-api";
 import SubHeader from "./SubHeader";
@@ -30,12 +30,19 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
   const [language, setLanguage] = useState<UserLanguage>(user?.language ?? "KO");
   const [saving, setSaving] = useState(false);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
-  const [photoUploading, setPhotoUploading] = useState(false);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [pendingPhotoPreviewUrl, setPendingPhotoPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoPick = () => fileInputRef.current?.click();
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    return () => {
+      if (pendingPhotoPreviewUrl) URL.revokeObjectURL(pendingPhotoPreviewUrl);
+    };
+  }, [pendingPhotoPreviewUrl]);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -43,24 +50,19 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
       onToast("jpg/png/webp 이미지만 업로드할 수 있어요");
       return;
     }
-    setPhotoUploading(true);
-    try {
-      const { uploadUrl, fileUrl } = await createPresignedUrl("PROFILE", file.type);
-      await uploadFileToStorage(uploadUrl, file);
-      await confirmProfilePhoto(fileUrl);
-      onToast("프로필 사진을 변경했어요");
-    } catch (err) {
-      onToast(err instanceof ApiError ? err.message : "사진을 업로드하지 못했어요.");
-    } finally {
-      setPhotoUploading(false);
-    }
+    if (pendingPhotoPreviewUrl) URL.revokeObjectURL(pendingPhotoPreviewUrl);
+    setPendingPhotoFile(file);
+    setPendingPhotoPreviewUrl(URL.createObjectURL(file));
+    onToast("저장하기를 누르면 프로필 사진이 반영돼요");
   };
 
-  const dirty =
-    nickname !== (user?.nickname ?? "") ||
-    countryCode !== (user?.countryCode ?? null) ||
-    language !== (user?.language ?? "KO");
-  const valid = nickname.trim().length > 0;
+  const nicknameDirty = nickname !== (user?.nickname ?? "");
+  const countryCodeDirty = countryCode !== (user?.countryCode ?? null);
+  const languageDirty = language !== (user?.language ?? "KO");
+  const profileDirty = nicknameDirty || countryCodeDirty || languageDirty;
+  const photoDirty = pendingPhotoFile !== null;
+  const dirty = profileDirty || photoDirty;
+  const valid = !nicknameDirty || nickname.trim().length > 0;
 
   const save = async () => {
     if (!valid || saving) {
@@ -69,11 +71,28 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
     }
     setSaving(true);
     try {
-      await updateProfile({
-        nickname: nickname.trim(),
-        countryCode: countryCode ?? undefined,
-        language,
-      });
+      let nextProfilePhotoUrl: string | null = null;
+      if (pendingPhotoFile) {
+        const { uploadUrl, fileUrl } = await createPresignedUrl(
+          "PROFILE",
+          pendingPhotoFile.type,
+        );
+        await uploadFileToStorage(uploadUrl, pendingPhotoFile);
+        nextProfilePhotoUrl = fileUrl;
+      }
+
+      if (profileDirty) {
+        const patch: UserProfileUpdateRequest = {};
+        if (nicknameDirty) patch.nickname = nickname.trim();
+        if (countryCodeDirty) patch.countryCode = countryCode ?? undefined;
+        if (languageDirty) patch.language = language;
+        await updateProfile(patch);
+      }
+
+      if (nextProfilePhotoUrl) {
+        await confirmProfilePhoto(nextProfilePhotoUrl);
+      }
+
       onToast("프로필을 저장했어요");
       onBack();
     } catch (err) {
@@ -111,7 +130,7 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
           style={{ background: "linear-gradient(135deg,#A8623E,#6B3F28)" }}
         >
           <SafeImage
-            src={user?.profileImageUrl}
+            src={pendingPhotoPreviewUrl ?? user?.profileImageUrl}
             alt=""
             className="w-full h-full object-cover"
             fallback={<User size={40} color="#FFFFFF" strokeWidth={1.6} />}
@@ -122,17 +141,17 @@ export default function EditProfileView({ onBack, onToast }: EditProfileViewProp
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className="hidden"
-          onChange={(e) => void handlePhotoChange(e)}
+          onChange={handlePhotoChange}
         />
         <button
           type="button"
           onClick={handlePhotoPick}
-          disabled={photoUploading}
+          disabled={saving}
           className="mt-3 h-9 px-4 rounded-full bg-cream flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-60"
         >
           <Camera size={14} color="#A8623E" strokeWidth={2} />
           <span className="text-[12px] font-medium text-brand">
-            {photoUploading ? "업로드 중..." : "사진 변경"}
+            사진 변경
           </span>
         </button>
       </div>
