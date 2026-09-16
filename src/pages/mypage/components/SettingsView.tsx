@@ -8,7 +8,7 @@ import { useAuth } from "@/store/auth-context";
 import { useNotifications } from "@/store/notifications-context";
 import SubHeader from "./SubHeader";
 import Toggle from "./Toggle";
-import { Bell, MapPin, Megaphone, Globe, Shield, FileText, Info, ChevronRight } from "lucide-react";
+import { Bell, MapPin, Megaphone, Shield, FileText, Info, ChevronRight } from "lucide-react";
 
 type MyPageView =
   | "settings"
@@ -28,7 +28,7 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
   const { t } = useTranslation();
   const { user, updateProfile } = useAuth();
   const [profileSettingUpdating, setProfileSettingUpdating] = useState<
-    ProfileSettingKey | "language" | null
+    ProfileSettingKey | null
   >(null);
   const {
     notificationSettings,
@@ -36,24 +36,6 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
     settingsUpdating,
     updateNotificationSettings,
   } = useNotifications();
-
-  const cycleLang = async () => {
-    if (!user || profileSettingUpdating) return;
-    setProfileSettingUpdating("language");
-    try {
-      await updateProfile({ language: user.language === "KO" ? "EN" : "KO" });
-    } catch (error) {
-      onToast(
-        error instanceof ApiError
-          ? t("mypage.settings.languageChangeFailedWithReason", {
-              reason: error.message,
-            })
-          : t("mypage.settings.languageChangeFailed"),
-      );
-    } finally {
-      setProfileSettingUpdating(null);
-    }
-  };
 
   const updateProfileSetting = async (
     key: ProfileSettingKey,
@@ -187,23 +169,6 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
           {t("mypage.settings.general")}
         </h3>
         <div className="mt-2 bg-white rounded-[16px] shadow-soft overflow-hidden divide-y divide-[#F5F1EE]">
-          <button
-            type="button"
-            onClick={() => void cycleLang()}
-            disabled={!user || profileSettingUpdating !== null}
-            className="w-full flex items-center gap-3 px-4 h-[52px] cursor-pointer text-left disabled:opacity-50"
-          >
-            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-cream shrink-0">
-              <Globe size={18} color="#A8623E" strokeWidth={1.9} />
-            </span>
-            <span className="flex-1 text-[14px] font-semibold text-ink">
-              {t("mypage.settings.language")}
-            </span>
-            <span className="text-[12px] text-muted">
-              {user?.language === "EN" ? "English" : "한국어"}
-            </span>
-            <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
-          </button>
           <button
             type="button"
             onClick={() => onOpen("policy")}
