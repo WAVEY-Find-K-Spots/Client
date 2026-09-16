@@ -20,6 +20,11 @@ export default function SpotCard({ spot, onOpen }: SpotCardProps) {
         alt={spot.name}
         className="absolute inset-0 w-full h-full object-cover"
         loading="lazy"
+        onError={(e) => {
+          if (e.currentTarget.src !== spot.fallbackImage) {
+            e.currentTarget.src = spot.fallbackImage;
+          }
+        }}
       />
       {/* bottom dark-brown gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/30 to-transparent" />

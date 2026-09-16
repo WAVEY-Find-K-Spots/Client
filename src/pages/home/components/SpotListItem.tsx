@@ -53,6 +53,11 @@ export default function SpotListItem({
           src={spot.image}
           alt={spot.name}
           className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            if (e.currentTarget.src !== spot.fallbackImage) {
+              e.currentTarget.src = spot.fallbackImage;
+            }
+          }}
         />
         <span className="absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded-md bg-ink/80 text-white text-[9px] font-medium leading-none">
           {spot.typeLabel}
