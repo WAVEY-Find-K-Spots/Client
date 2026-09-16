@@ -50,7 +50,7 @@ export default function AppShell() {
         {/* Scrollable app content */}
         <div
           id="app-scroll"
-          className="absolute inset-0 overflow-y-auto no-scrollbar bg-page safe-top"
+          className="absolute inset-0 overflow-y-auto overflow-x-hidden no-scrollbar bg-page safe-top"
         >
           <Outlet />
         </div>
