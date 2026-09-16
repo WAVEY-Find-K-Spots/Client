@@ -47,12 +47,16 @@ export interface AuthUser {
   nickname: string | null;
   countryCode: CountryCode | null;
   language: UserLanguage;
+  locationEnabled: boolean;
+  marketingEnabled: boolean;
 }
 
 export interface UserProfileUpdateRequest {
   nickname?: string;
   countryCode?: CountryCode;
   language?: UserLanguage;
+  locationEnabled?: boolean;
+  marketingEnabled?: boolean;
 }
 
 export type SocialProvider = "google" | "kakao";

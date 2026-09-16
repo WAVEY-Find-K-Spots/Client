@@ -1,6 +1,10 @@
+import { useState } from "react";
 import StatusBar from "@/components/layout/StatusBar";
+import { ApiError } from "@/lib/auth/api";
+import { getCurrentCoords } from "@/lib/geo";
+import type { UserProfileUpdateRequest } from "@/lib/auth/types";
+import { useAuth } from "@/store/auth-context";
 import { useNotifications } from "@/store/notifications-context";
-import { useSettings } from "@/store/settings-context";
 import SubHeader from "./SubHeader";
 import Toggle from "./Toggle";
 import { Bell, MapPin, Megaphone, Globe, Shield, FileText, Info, ChevronRight } from "lucide-react";
@@ -17,10 +21,13 @@ interface SettingsViewProps {
   onToast: (msg: string) => void;
 }
 
-const LANGS = ["한국어", "English"];
+type ProfileSettingKey = "locationEnabled" | "marketingEnabled";
 
 export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewProps) {
-  const { settings, setSetting } = useSettings();
+  const { user, updateProfile } = useAuth();
+  const [profileSettingUpdating, setProfileSettingUpdating] = useState<
+    ProfileSettingKey | "language" | null
+  >(null);
   const {
     notificationSettings,
     settingsLoading,
@@ -28,9 +35,49 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
     updateNotificationSettings,
   } = useNotifications();
 
-  const cycleLang = () => {
-    const idx = LANGS.indexOf(settings.language);
-    setSetting("language", LANGS[(idx + 1) % LANGS.length]);
+  const cycleLang = async () => {
+    if (!user || profileSettingUpdating) return;
+    setProfileSettingUpdating("language");
+    try {
+      await updateProfile({ language: user.language === "KO" ? "EN" : "KO" });
+    } catch (error) {
+      onToast(
+        error instanceof ApiError
+          ? error.message
+          : "언어 설정을 변경하지 못했어요.",
+      );
+    } finally {
+      setProfileSettingUpdating(null);
+    }
+  };
+
+  const updateProfileSetting = async (
+    key: ProfileSettingKey,
+    enabled: boolean,
+  ) => {
+    if (!user || profileSettingUpdating) return;
+    setProfileSettingUpdating(key);
+    try {
+      if (key === "locationEnabled" && enabled) {
+        await getCurrentCoords();
+      }
+      const patch: UserProfileUpdateRequest = key === "locationEnabled"
+        ? { locationEnabled: enabled }
+        : { marketingEnabled: enabled };
+      await updateProfile(patch);
+    } catch (error) {
+      if (key === "locationEnabled" && enabled && !(error instanceof ApiError)) {
+        onToast("위치 서비스를 사용하려면 기기 위치 권한을 허용해 주세요.");
+      } else {
+        onToast(
+          error instanceof ApiError
+            ? error.message
+            : "설정을 변경하지 못했어요.",
+        );
+      }
+    } finally {
+      setProfileSettingUpdating(null);
+    }
   };
 
   const updatePushSetting = async (enabled: boolean) => {
@@ -92,8 +139,11 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
             </div>
             <Toggle
               label="위치 서비스"
-              on={settings.locationEnabled}
-              onChange={(v) => setSetting("locationEnabled", v)}
+              on={user?.locationEnabled ?? false}
+              disabled={!user || profileSettingUpdating !== null}
+              onChange={(enabled) =>
+                void updateProfileSetting("locationEnabled", enabled)
+              }
             />
           </div>
           <div className="flex items-center gap-3 px-4 h-[52px]">
@@ -103,8 +153,11 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
             <span className="flex-1 text-[14px] font-semibold text-ink">마케팅 정보 수신</span>
             <Toggle
               label="마케팅 정보 수신"
-              on={settings.marketingEnabled}
-              onChange={(v) => setSetting("marketingEnabled", v)}
+              on={user?.marketingEnabled ?? false}
+              disabled={!user || profileSettingUpdating !== null}
+              onChange={(enabled) =>
+                void updateProfileSetting("marketingEnabled", enabled)
+              }
             />
           </div>
         </div>
@@ -116,14 +169,17 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
         <div className="mt-2 bg-white rounded-[16px] shadow-soft overflow-hidden divide-y divide-[#F5F1EE]">
           <button
             type="button"
-            onClick={cycleLang}
-            className="w-full flex items-center gap-3 px-4 h-[52px] cursor-pointer text-left"
+            onClick={() => void cycleLang()}
+            disabled={!user || profileSettingUpdating !== null}
+            className="w-full flex items-center gap-3 px-4 h-[52px] cursor-pointer text-left disabled:opacity-50"
           >
             <span className="flex items-center justify-center w-9 h-9 rounded-full bg-cream shrink-0">
               <Globe size={18} color="#A8623E" strokeWidth={1.9} />
             </span>
             <span className="flex-1 text-[14px] font-semibold text-ink">언어</span>
-            <span className="text-[12px] text-muted">{settings.language}</span>
+            <span className="text-[12px] text-muted">
+              {user?.language === "EN" ? "English" : "한국어"}
+            </span>
             <ChevronRight size={16} color="#DDD4CE" strokeWidth={2} />
           </button>
           <button
