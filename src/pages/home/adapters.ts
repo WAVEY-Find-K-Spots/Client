@@ -1,6 +1,6 @@
 import type { SpotSearchItem } from "@/lib/spots-api";
-import type { SpotCategory } from "@/lib/routes-api";
 import { withImageFallback, hasRealImage } from "@/lib/image-fallback";
+import { categoryLabelByApi } from "@/lib/spot-categories";
 
 export interface HomeSpotView {
   id: string;
@@ -15,13 +15,6 @@ export interface HomeSpotView {
   saved: boolean;
 }
 
-const categoryToLabel: Record<SpotCategory, string> = {
-  K_DRAMA: "드라마",
-  K_POP: "K-POP",
-  K_MOVIE: "영화",
-  K_HERITAGE: "관광지",
-};
-
 export function toHomeSpotView(item: SpotSearchItem): HomeSpotView {
   return {
     id: String(item.spotId),
@@ -31,7 +24,7 @@ export function toHomeSpotView(item: SpotSearchItem): HomeSpotView {
     hasImage: hasRealImage(item.imageUrl),
     rating: item.avgRating,
     reviewCount: item.reviewCount,
-    typeLabel: categoryToLabel[item.category],
+    typeLabel: categoryLabelByApi[item.category],
     distanceKm:
       item.distanceMeters != null ? item.distanceMeters / 1000 : null,
     saved: item.saved,

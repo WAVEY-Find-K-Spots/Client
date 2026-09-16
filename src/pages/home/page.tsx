@@ -4,18 +4,24 @@ import SpotCard from "./components/SpotCard";
 import SpotListItem from "./components/SpotListItem";
 import SearchPanel from "./components/SearchPanel";
 import FilterSheet, { type SpotFilterState } from "./components/FilterSheet";
-import { spotCategories, type SpotType } from "@/mocks/spots";
 import { useNotifications } from "@/store/notifications-context";
 import {
-  searchSpots,
   saveSpot,
   unsaveSpot,
-  type SpotCategory,
   type SpotSort,
 } from "@/lib/spots-api";
+import { getHomeSpots } from "@/lib/home-page-api";
 import { getRegions, type Region } from "@/lib/regions-api";
 import { toHomeSpotView, type HomeSpotView } from "./adapters";
 import { sortByHasImage } from "@/lib/image-fallback";
+import { getCurrentCoords, type LatLng } from "@/lib/geo";
+import {
+  categoryLabel,
+  categoryToApi,
+  homeCategories,
+  type HomeCategoryKey,
+} from "@/lib/spot-categories";
+import waveyLogo from "@/assets/wavey-logo.png";
 import {
   Search,
   SlidersHorizontal,
@@ -29,44 +35,71 @@ import {
   SearchX,
 } from "lucide-react";
 
-type CatKey = "all" | SpotType;
-type SortKey = "popular" | "rating" | "recent";
+type CatKey = HomeCategoryKey;
+type SortKey = "popular" | "rating" | "recent" | "distance";
 type ViewMode = "grid" | "list";
 type Overlay = "none" | "sort" | "filter";
 
 const sortOptions: { key: SortKey; label: string }[] = [
   { key: "popular", label: "인기순" },
+  { key: "distance", label: "거리순" },
   { key: "rating", label: "평점순" },
   { key: "recent", label: "최신순" },
 ];
-
-const catToCategory: Record<Exclude<CatKey, "all">, SpotCategory> = {
-  drama: "K_DRAMA",
-  kpop: "K_POP",
-  movie: "K_MOVIE",
-  tour: "K_HERITAGE",
-};
 
 const sortToApi: Record<SortKey, SpotSort> = {
   popular: "POPULAR",
   rating: "RATING",
   recent: "LATEST",
+  distance: "DISTANCE",
 };
 
 const recommendedKw = [
-  "눈물의 여왕",
-  "BTS",
+  "방탄소년단",
   "경복궁",
-  "이태원 클라쓰",
   "한강",
-  "킹덤",
-  "사랑의 불시착",
+  "북촌한옥마을",
+  "광화문",
+  "이태원",
+  "제주",
+  "부산",
+  "해운대",
+  "전주",
 ];
 
 const defaultFilters: SpotFilterState = {
   regionId: null,
   minRating: 0,
+  radiusMeters: null,
 };
+
+const defaultRegions: Region[] = [
+  { regionId: 1, nameKo: "서울", nameEn: "Seoul" },
+  { regionId: 2, nameKo: "부산", nameEn: "Busan" },
+  { regionId: 3, nameKo: "대구", nameEn: "Daegu" },
+  { regionId: 4, nameKo: "인천", nameEn: "Incheon" },
+  { regionId: 5, nameKo: "광주", nameEn: "Gwangju" },
+  { regionId: 6, nameKo: "대전", nameEn: "Daejeon" },
+  { regionId: 7, nameKo: "울산", nameEn: "Ulsan" },
+  { regionId: 8, nameKo: "세종", nameEn: "Sejong" },
+  { regionId: 9, nameKo: "경기", nameEn: "Gyeonggi" },
+  { regionId: 10, nameKo: "강원", nameEn: "Gangwon" },
+  { regionId: 11, nameKo: "충북", nameEn: "Chungbuk" },
+  { regionId: 12, nameKo: "충남", nameEn: "Chungnam" },
+  { regionId: 13, nameKo: "전북", nameEn: "Jeonbuk" },
+  { regionId: 14, nameKo: "전남", nameEn: "Jeonnam" },
+  { regionId: 15, nameKo: "경북", nameEn: "Gyeongbuk" },
+  { regionId: 16, nameKo: "경남", nameEn: "Gyeongnam" },
+  { regionId: 17, nameKo: "제주", nameEn: "Jeju" },
+];
+
+function normalizeSearchKeyword(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function realImagesFirst(items: HomeSpotView[]) {
+  return sortByHasImage(items, (s) => s.hasImage);
+}
 
 export default function SpotList() {
   const navigate = (
@@ -87,11 +120,7 @@ export default function SpotList() {
     height: 700,
   });
   const [dropTop, setDropTop] = useState(0);
-  const [recent, setRecent] = useState<string[]>([
-    "경복궁",
-    "눈물의 여왕",
-    "남산타워",
-  ]);
+  const [recent, setRecent] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const sortPillRef = useRef<HTMLButtonElement>(null);
 
@@ -102,14 +131,15 @@ export default function SpotList() {
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [coords, setCoords] = useState<LatLng | null>(null);
 
   const isSearching = focusSearch && !query.trim();
   const isResults = debouncedQuery.trim().length > 0;
 
   useEffect(() => {
     getRegions()
-      .then(setRegions)
-      .catch(() => setRegions([]));
+      .then((result) => setRegions(result.length > 0 ? result : defaultRegions))
+      .catch(() => setRegions(defaultRegions));
   }, []);
 
   useEffect(() => {
@@ -117,26 +147,65 @@ export default function SpotList() {
     return () => clearTimeout(t);
   }, [query]);
 
+  useEffect(() => {
+    if ((sort !== "distance" && !filters.radiusMeters) || coords) return;
+    let cancelled = false;
+    getCurrentCoords()
+      .then((current) => {
+        if (!cancelled) setCoords(current);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSort("popular");
+        setFilters((current) => ({ ...current, radiusMeters: null }));
+        showToast("위치 권한이 필요해요");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [coords, filters.radiusMeters, sort]);
+
+  const buildSearchParams = useCallback(
+    (targetPage: number) => {
+      const keyword = normalizeSearchKeyword(debouncedQuery);
+      if (isResults) {
+        return { keyword, page: targetPage };
+      }
+
+      return {
+        category: categoryToApi(cat),
+        regionId: filters.regionId ?? undefined,
+        minRating: filters.minRating || undefined,
+        radiusMeters: filters.radiusMeters ?? undefined,
+        sort: sortToApi[sort],
+        latitude: sort === "distance" || filters.radiusMeters ? coords?.lat : undefined,
+        longitude: sort === "distance" || filters.radiusMeters ? coords?.lng : undefined,
+        page: targetPage,
+      };
+    },
+    [
+      cat,
+      coords?.lat,
+      coords?.lng,
+      debouncedQuery,
+      filters.minRating,
+      filters.radiusMeters,
+      filters.regionId,
+      isResults,
+      sort,
+    ],
+  );
+
   // 검색어/카테고리/필터/정렬이 바뀌면 첫 페이지부터 다시 불러온다
   useEffect(() => {
+    if ((sort === "distance" || filters.radiusMeters) && !coords) return;
     let cancelled = false;
     setLoading(true);
     setPage(0);
-    const params = isResults
-      ? { keyword: debouncedQuery.trim(), page: 0 }
-      : {
-          category: cat === "all" ? undefined : catToCategory[cat],
-          regionId: filters.regionId ?? undefined,
-          minRating: filters.minRating || undefined,
-          sort: sortToApi[sort],
-          page: 0,
-        };
-    searchSpots(params)
+    getHomeSpots(buildSearchParams(0))
       .then((result) => {
         if (cancelled) return;
-        setItems(
-          sortByHasImage(result.spots.map(toHomeSpotView), (s) => s.hasImage),
-        );
+        setItems(realImagesFirst(result.spots.map(toHomeSpotView)));
         setHasNext(result.hasNext);
         setTotalElements(result.totalElements);
       })
@@ -152,32 +221,35 @@ export default function SpotList() {
     return () => {
       cancelled = true;
     };
-  }, [isResults, debouncedQuery, cat, filters.regionId, filters.minRating, sort]);
+  }, [buildSearchParams, coords, filters.radiusMeters, sort]);
 
   const loadMore = () => {
     if (loadingMore || !hasNext) return;
     const nextPage = page + 1;
     setLoadingMore(true);
-    const params = isResults
-      ? { keyword: debouncedQuery.trim(), page: nextPage }
-      : {
-          category: cat === "all" ? undefined : catToCategory[cat],
-          regionId: filters.regionId ?? undefined,
-          minRating: filters.minRating || undefined,
-          sort: sortToApi[sort],
-          page: nextPage,
-        };
-    searchSpots(params)
+    getHomeSpots(buildSearchParams(nextPage))
       .then((result) => {
-        setItems((prev) => [
-          ...prev,
-          ...sortByHasImage(result.spots.map(toHomeSpotView), (s) => s.hasImage),
-        ]);
+        setItems((prev) => realImagesFirst([...prev, ...result.spots.map(toHomeSpotView)]));
         setHasNext(result.hasNext);
         setPage(nextPage);
       })
       .catch(() => setHasNext(false))
       .finally(() => setLoadingMore(false));
+  };
+
+  const selectSort = (nextSort: SortKey) => {
+    if (nextSort === "distance" && !coords) {
+      getCurrentCoords()
+        .then((current) => {
+          setCoords(current);
+          setSort(nextSort);
+        })
+        .catch(() => showToast("위치 권한이 필요해요"));
+      closeOverlay();
+      return;
+    }
+    setSort(nextSort);
+    closeOverlay();
   };
 
   // 무한 스크롤: 리스트 맨 아래 sentinel이 보이면 다음 페이지를 불러온다
@@ -237,15 +309,17 @@ export default function SpotList() {
   };
 
   const pushRecent = (kw: string) => {
-    const w = kw.trim();
+    const w = normalizeSearchKeyword(kw);
     if (!w) return;
     setRecent((p) => [w, ...p.filter((x) => x !== w)].slice(0, 6));
   };
 
   const pickKeyword = (kw: string) => {
-    setQuery(kw);
+    const next = normalizeSearchKeyword(kw);
+    setQuery(next);
+    setDebouncedQuery(next);
     setFocusSearch(false);
-    pushRecent(kw);
+    pushRecent(next);
   };
 
   const toggleSave = async (id: string) => {
@@ -272,15 +346,17 @@ export default function SpotList() {
   const sortLabel = sortOptions.find((o) => o.key === sort)?.label ?? "인기순";
 
   const hasActiveFilter =
-    cat !== "all" || filters.minRating > 0 || filters.regionId !== null;
+    cat !== "all" ||
+    filters.minRating > 0 ||
+    filters.regionId !== null ||
+    filters.radiusMeters !== null;
 
   const half = Math.ceil(items.length / 2);
   const leftCol = items.slice(0, half);
   const rightCol = items.slice(half);
 
   const browseHeaderTitle = useMemo(
-    () =>
-      cat === "all" ? "인기 스팟" : spotCategories.find((c) => c.key === cat)?.label,
+    () => (cat === "all" ? "전체" : categoryLabel(cat)),
     [cat],
   );
 
@@ -289,9 +365,13 @@ export default function SpotList() {
       <StatusBar variant="dark" />
 
       {/* Header */}
-      <div className="px-5 pt-1 flex items-center justify-between">
-        <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
-          WAVEY
+      <div className="px-4 sm:px-5 pt-1 flex items-center justify-between">
+        <h1 className="h-10 flex items-center">
+          <img
+            src={waveyLogo}
+            alt="WAVEY"
+            className="h-8 w-auto max-w-[132px] object-contain"
+          />
         </h1>
         <button
           type="button"
@@ -311,7 +391,7 @@ export default function SpotList() {
       </div>
 
       {/* Search bar */}
-      <div className="px-5 mt-4">
+      <div className="px-4 sm:px-5 mt-4">
         <div className="flex items-center gap-2">
           <div
             className={`flex-1 min-w-0 flex items-center gap-2.5 bg-white h-[52px] px-4 rounded-[24px] shadow-soft ${
@@ -330,24 +410,16 @@ export default function SpotList() {
               onBlur={() => setFocusSearch(false)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  pushRecent(query);
+                  const next = normalizeSearchKeyword(query);
+                  setQuery(next);
+                  setDebouncedQuery(next);
+                  pushRecent(next);
                   setFocusSearch(false);
                 }
               }}
               placeholder="장소명 또는 드라마명 검색"
               className="flex-1 min-w-0 bg-transparent outline-none text-[13px] text-ink placeholder:text-muted"
             />
-            {isResults && (
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setQuery("")}
-                className="flex items-center justify-center w-6 h-6 rounded-full bg-cream cursor-pointer"
-                aria-label="지우기"
-              >
-                <X size={14} color="#A8623E" />
-              </button>
-            )}
           </div>
 
           {isSearching || isResults ? (
@@ -355,6 +427,7 @@ export default function SpotList() {
               type="button"
               onClick={() => {
                 setQuery("");
+                setDebouncedQuery("");
                 setFocusSearch(false);
               }}
               className="shrink-0 flex items-center justify-center w-[52px] h-[52px] rounded-[18px] bg-cream cursor-pointer"
@@ -395,7 +468,7 @@ export default function SpotList() {
 
       {/* ---------- SEARCH RESULTS ---------- */}
       {isResults && (
-        <div className="px-5 mt-5 pb-28">
+        <div className="px-4 sm:px-5 mt-5 pb-28">
           <div className="flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-ink">
               {debouncedQuery.trim()} 검색 결과
@@ -420,6 +493,7 @@ export default function SpotList() {
                 type="button"
                 onClick={() => {
                   setQuery("");
+                  setDebouncedQuery("");
                   setFocusSearch(false);
                 }}
                 className="mt-1 px-5 h-11 rounded-full bg-cream text-brand text-[13px] font-semibold cursor-pointer whitespace-nowrap"
@@ -454,34 +528,30 @@ export default function SpotList() {
       {!isSearching && !isResults && (
         <>
           {/* Category chips */}
-          <div className="relative">
-            <div className="mt-4 px-5 overflow-x-auto no-scrollbar">
-              <div className="flex items-center gap-2 w-max">
-                {spotCategories.map((c) => {
-                  const isActive = cat === c.key;
-                  return (
-                    <button
-                      key={c.key}
-                      type="button"
-                      onClick={() => setCat(c.key)}
-                      className={`px-3.5 h-9 rounded-full text-[12px] font-medium cursor-pointer whitespace-nowrap ${
-                        isActive
-                          ? "bg-ink text-white"
-                          : "bg-white text-muted border border-line"
-                      }`}
-                    >
-                      {c.label}
-                    </button>
-                  );
-                })}
-              </div>
+          <div className="mt-4 px-4 sm:px-5 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-2 w-max">
+              {homeCategories.map((c) => {
+                const isActive = cat === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => setCat(c.key)}
+                    className={`px-3.5 h-9 rounded-full text-[12px] font-medium cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? "bg-ink text-white"
+                        : "bg-white text-muted border border-line"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
             </div>
-            {/* 스크롤 가능한 영역임을 알리는 우측 페이드 */}
-            <div className="absolute right-0 top-4 bottom-0 w-8 bg-gradient-to-l from-page to-transparent pointer-events-none" />
           </div>
 
           {/* Sort + view bar */}
-          <div className="mt-3 px-5 flex items-center justify-between">
+          <div className="mt-3 px-4 sm:px-5 flex items-center justify-between">
             <button
               ref={sortPillRef}
               type="button"
@@ -531,7 +601,7 @@ export default function SpotList() {
           </div>
 
           {/* Section header */}
-          <div className="mt-6 px-5 flex items-center justify-between">
+          <div className="mt-6 px-4 sm:px-5 flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-ink">
               {browseHeaderTitle}
             </h2>
@@ -541,7 +611,7 @@ export default function SpotList() {
           </div>
 
           {/* Cards */}
-          <div className="mt-3 px-5 pb-28">
+          <div className="mt-3 px-4 sm:px-5 pb-28">
             {!loading && items.length === 0 ? (
               <div className="py-16 flex flex-col items-center justify-center gap-4">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-cream">
@@ -558,8 +628,8 @@ export default function SpotList() {
                 <button
                   type="button"
                   onClick={() => {
-                    setFilters(defaultFilters);
-                    setCat("all");
+                  setFilters(defaultFilters);
+                  setCat("all");
                   }}
                   className="mt-1 px-5 h-11 rounded-full bg-cream text-brand text-[13px] font-semibold cursor-pointer whitespace-nowrap"
                 >
@@ -568,7 +638,7 @@ export default function SpotList() {
               </div>
             ) : viewMode === "grid" ? (
               <>
-                <div className="grid grid-cols-2 gap-3 items-start">
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 items-start">
                   <div className="flex flex-col gap-3">
                     {leftCol.map((s) => (
                       <SpotCard
@@ -646,8 +716,7 @@ export default function SpotList() {
                   key={o.key}
                   type="button"
                   onClick={() => {
-                    setSort(o.key);
-                    closeOverlay();
+                    selectSort(o.key);
                   }}
                   className={`flex items-center justify-between w-full px-3 h-12 text-left cursor-pointer ${
                     i > 0 ? "border-t border-[#F5F1EE]" : ""
