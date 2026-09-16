@@ -7,7 +7,6 @@ import NotiSettingsView from "./components/NotiSettingsView";
 import MyReviewsView from "./components/MyReviewsView";
 import SavedSpotsView from "./components/SavedSpotsView";
 import StaticDocView from "./components/StaticDocView";
-import { PRIVACY_DOC, TERMS_DOC } from "./components/legalDocs";
 
 export type MyPageView =
   | "main"
@@ -66,17 +65,13 @@ export default function MyPage() {
       )}
       {view === "policy" && (
         <StaticDocView
-          title="개인정보 처리방침"
-          updatedAt={PRIVACY_DOC.updatedAt}
-          sections={PRIVACY_DOC.sections}
+          documentType="PRIVACY"
           onBack={() => openView("settings")}
         />
       )}
       {view === "terms" && (
         <StaticDocView
-          title="이용약관"
-          updatedAt={TERMS_DOC.updatedAt}
-          sections={TERMS_DOC.sections}
+          documentType="TERMS"
           onBack={() => openView("settings")}
         />
       )}

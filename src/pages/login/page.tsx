@@ -92,8 +92,23 @@ export default function LoginPage() {
           )}
 
           <p className="mt-6 text-[11px] text-muted text-center leading-relaxed">
-            로그인 시 <span className="text-sub underline">이용약관</span> 및{" "}
-            <span className="text-sub underline">개인정보처리방침</span>에
+            로그인 시{" "}
+            <button
+              type="button"
+              onClick={() => navigate?.("/legal/terms")}
+              className="text-sub underline underline-offset-2 cursor-pointer"
+            >
+              이용약관
+            </button>{" "}
+            및{" "}
+            <button
+              type="button"
+              onClick={() => navigate?.("/legal/privacy")}
+              className="text-sub underline underline-offset-2 cursor-pointer"
+            >
+              개인정보처리방침
+            </button>
+            에
             <br />
             동의하게 됩니다
           </p>

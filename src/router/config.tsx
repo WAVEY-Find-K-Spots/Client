@@ -12,6 +12,7 @@ import WelcomePage from "@/pages/welcome/page";
 import NotificationsPage from "@/pages/notifications/page";
 import OAuthCallbackPage from "@/pages/login/callback";
 import VisionPage from "@/pages/vision/page";
+import LegalDocumentPage from "@/pages/legal/page";
 
 const routes: RouteObject[] = [
   {
@@ -29,6 +30,7 @@ const routes: RouteObject[] = [
       { path: "mypage", element: <MyPage /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "vision", element: <VisionPage /> },
+      { path: "legal/:type", element: <LegalDocumentPage /> },
     ],
   },
   {
