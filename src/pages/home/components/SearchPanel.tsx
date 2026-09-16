@@ -17,28 +17,37 @@ export default function SearchPanel({
 }: SearchPanelProps) {
   return (
     <div className="px-5 pb-6">
-      {/* recommended */}
-      <p className="text-[12px] font-medium text-muted">추천 검색어</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {recommended.map((kw) => (
-          <button
-            key={kw}
-            type="button"
-            onClick={() => onPick(kw)}
-            className="px-3.5 h-9 rounded-full bg-cream text-brand border border-[#EDCFB8] text-[13px] font-medium cursor-pointer whitespace-nowrap"
-          >
-            {kw}
-          </button>
-        ))}
-      </div>
+      {recommended.length > 0 && (
+        <>
+          <p className="text-[12px] font-medium text-muted">추천 검색어</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {recommended.map((kw) => (
+              <button
+                key={kw}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onPick(kw);
+                }}
+                className="px-3.5 h-9 rounded-full bg-cream text-brand border border-[#EDCFB8] text-[13px] font-medium cursor-pointer whitespace-nowrap"
+              >
+                {kw}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* recent */}
-      <div className="mt-7 flex items-center justify-between">
+      <div className={`${recommended.length > 0 ? "mt-7" : "mt-0"} flex items-center justify-between`}>
         <p className="text-[12px] font-medium text-muted">최근 검색</p>
         {recent.length > 0 && (
           <button
             type="button"
-            onClick={onClearRecent}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onClearRecent();
+            }}
             className="text-[11px] text-muted cursor-pointer whitespace-nowrap"
           >
             전체 삭제
@@ -55,7 +64,10 @@ export default function SearchPanel({
             <div
               key={kw}
               className="flex items-center justify-between h-11 cursor-pointer"
-              onClick={() => onPick(kw)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onPick(kw);
+              }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
@@ -70,7 +82,8 @@ export default function SearchPanel({
               </span>
               <button
                 type="button"
-                onClick={(e) => {
+                onMouseDown={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   onRemoveRecent(kw);
                 }}

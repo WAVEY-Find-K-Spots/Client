@@ -8,5 +8,5 @@ export interface Region {
 
 /** GET /api/v1/regions — 인증 필요 */
 export function getRegions() {
-  return apiRequest<Region[]>("/api/v1/regions");
+  return apiRequest<Region[]>("/api/v1/regions", { authenticated: false });
 }

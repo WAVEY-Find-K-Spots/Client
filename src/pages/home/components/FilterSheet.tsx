@@ -1,24 +1,26 @@
 import type { ReactNode } from "react";
 import type { Region } from "@/lib/regions-api";
+import { homeCategories } from "@/lib/spot-categories";
 
 export interface SpotFilterState {
   regionId: number | null;
   minRating: number;
+  radiusMeters: number | null;
 }
-
-const typeOptions: { key: string; label: string }[] = [
-  { key: "all", label: "전체" },
-  { key: "drama", label: "K-Drama" },
-  { key: "kpop", label: "K-POP" },
-  { key: "movie", label: "K-Movie" },
-  { key: "tour", label: "관광지" },
-];
 
 const ratingOptions: { value: number; label: string }[] = [
   { value: 0, label: "전체" },
   { value: 3, label: "3.0 이상" },
   { value: 4, label: "4.0 이상" },
   { value: 4.5, label: "4.5 이상" },
+];
+
+const distanceOptions: { value: number | null; label: string }[] = [
+  { value: null, label: "전체" },
+  { value: 1000, label: "1km 이내" },
+  { value: 3000, label: "3km 이내" },
+  { value: 5000, label: "5km 이내" },
+  { value: 10000, label: "10km 이내" },
 ];
 
 interface FilterSheetProps {
@@ -122,7 +124,7 @@ export default function FilterSheet({
         </Section>
 
         <Section title="콘텐츠 유형">
-          {typeOptions.map((t) => (
+          {homeCategories.map((t) => (
             <Pill
               key={t.key}
               active={type === t.key}
@@ -141,6 +143,18 @@ export default function FilterSheet({
               onClick={() => onChange({ minRating: r.value })}
             >
               {r.label}
+            </Pill>
+          ))}
+        </Section>
+
+        <Section title="거리">
+          {distanceOptions.map((d) => (
+            <Pill
+              key={d.value ?? "all"}
+              active={filters.radiusMeters === d.value}
+              onClick={() => onChange({ radiusMeters: d.value })}
+            >
+              {d.label}
             </Pill>
           ))}
         </Section>
