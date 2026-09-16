@@ -30,7 +30,7 @@ export function toDetailSpot(api: SpotDetail): Spot {
     type: categoryToType[api.category],
     typeLabel: categoryToLabel[api.category],
     size: "medium",
-    image: withImageFallback(api.imageUrl),
+    image: withImageFallback(api.imageUrl, api.category),
     desc: api.description ?? "",
     tags: [],
     info: {
