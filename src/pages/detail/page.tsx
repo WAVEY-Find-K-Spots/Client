@@ -35,6 +35,7 @@ import {
   distanceMeters,
   formatDistance,
   getCurrentCoords,
+  LocationServicesDisabledError,
   watchCoords,
   type LatLng,
 } from "@/lib/geo";
@@ -382,7 +383,7 @@ export default function SpotDetail() {
       const result = await claimStamp(numericSpotId, {
         latitude: coords.lat,
         longitude: coords.lng,
-      });
+      }, user?.language === "EN" ? "en" : "ko");
       setApiStamped(true);
       if (!result.newlyAcquired) {
         setToast("이미 획득한 스탬프예요");
@@ -416,6 +417,7 @@ export default function SpotDetail() {
   // auto check-in
   useEffect(() => {
     if (!spot) return;
+    if (!STAMP_TEST_MODE && !user?.locationEnabled) return;
     const mockSid = spotStampId(spot.id);
     if (numericSpotId == null && isEarned(mockSid)) return;
     if (numericSpotId != null && apiStamped) return;
@@ -436,7 +438,7 @@ export default function SpotDetail() {
     });
     return unwatch;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spot?.id, numericSpotId, apiStamped]);
+  }, [spot?.id, numericSpotId, apiStamped, user?.locationEnabled]);
 
   if (!spot && numericSpotId != null && apiSpotLoading) {
     return (
@@ -489,7 +491,7 @@ export default function SpotDetail() {
           setToast(`스팟에서 약 ${formatDistance(d)} 떨어져 있어요`);
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (STAMP_TEST_MODE) {
           // GPS 실패해도 애니메이션 확인
           if (numericSpotId != null) {
@@ -506,7 +508,11 @@ export default function SpotDetail() {
           }
           return;
         }
-        setToast("위치를 확인할 수 없어요. 위치 권한을 허용해 주세요");
+        setToast(
+          error instanceof LocationServicesDisabledError
+            ? "설정에서 위치 서비스를 먼저 켜 주세요"
+            : "위치를 확인할 수 없어요. 위치 권한을 허용해 주세요",
+        );
       })
       .finally(() => setScanning(false));
   };

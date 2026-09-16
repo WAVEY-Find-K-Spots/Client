@@ -14,7 +14,6 @@ import {
   type NotificationSettingsPatch,
 } from "@/lib/notifications-api";
 import { useAuth } from "./auth-context";
-import { useSettings } from "./settings-context";
 import {
   NotificationsContext,
   type NotificationsContextValue,
@@ -39,8 +38,7 @@ function mergeNotifications(
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { settings } = useSettings();
-  const language = settings.language === "English" ? "en" : "ko";
+  const language = user?.language === "EN" ? "en" : "ko";
   const requestId = useRef(0);
 
   const [items, setItems] = useState<NotificationItem[]>([]);

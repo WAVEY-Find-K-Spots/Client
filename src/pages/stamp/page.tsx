@@ -47,6 +47,7 @@ function errorMessage(err: unknown, fallback: string) {
 
 export default function StampTab() {
   const { user, initializing } = useAuth();
+  const stampLanguage = user?.language === "EN" ? "en" : "ko";
   const navigate = (
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
@@ -110,7 +111,7 @@ export default function StampTab() {
         const data = await getMyStamps({
           page: pageToLoad,
           size: PAGE_SIZE,
-          language: "ko",
+          language: stampLanguage,
           ...(filterRegionId != null ? { regionId: filterRegionId } : {}),
         });
         setCollectedCount(data.collectedCount);
@@ -131,26 +132,26 @@ export default function StampTab() {
         setLoadingMore(false);
       }
     },
-    [],
+    [stampLanguage],
   );
 
   const loadBadges = useCallback(async () => {
     setBadgeLoading(true);
     setBadgeError(null);
     try {
-      const data = await getMyBadges("ko");
+      const data = await getMyBadges(stampLanguage);
       setBadges(data);
     } catch (err) {
       setBadgeError(errorMessage(err, "배지함을 불러오지 못했어요."));
     } finally {
       setBadgeLoading(false);
     }
-  }, []);
+  }, [stampLanguage]);
 
   const handleClaimBadge = async (badgeId: number) => {
     setClaimingBadgeId(badgeId);
     try {
-      const result = await claimBadge(badgeId, "ko");
+      const result = await claimBadge(badgeId, stampLanguage);
       await loadBadges();
       if (result.newlyAcquired) {
         setPreviewBadge({
@@ -206,7 +207,7 @@ export default function StampTab() {
     }
     setActiveStamp(stamp);
     try {
-      const detail = await getStampDetail(stamp.stampId, "ko");
+      const detail = await getStampDetail(stamp.stampId, stampLanguage);
       setActiveStamp(detail);
     } catch {
       /* 목록 데이터 유지 */

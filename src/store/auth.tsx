@@ -3,24 +3,36 @@ import type { ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { AUTH_EXPIRED_EVENT, authApi } from "@/lib/auth/api";
+import { setLocationServicesEnabled } from "@/lib/geo";
 import { tokenStorage } from "@/lib/auth/tokenStorage";
 import type { AuthUser, SocialProvider } from "@/lib/auth/types";
+import i18n from "@/i18n";
 import { AuthContext, type AuthContextValue } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [initializing, setInitializing] = useState(tokenStorage.hasSession());
 
+  const applyUser = useCallback((nextUser: AuthUser | null) => {
+    setLocationServicesEnabled(nextUser?.locationEnabled ?? false);
+    if (nextUser) {
+      const language = nextUser.language === "EN" ? "en" : "ko";
+      document.documentElement.lang = language;
+      void i18n.changeLanguage(language);
+    }
+    setUser(nextUser);
+  }, []);
+
   useEffect(() => {
-    const expireSession = () => setUser(null);
+    const expireSession = () => applyUser(null);
     window.addEventListener(AUTH_EXPIRED_EVENT, expireSession);
 
     if (tokenStorage.hasSession()) {
       authApi.getCurrentUser()
-        .then(setUser)
+        .then(applyUser)
         .catch(() => {
           tokenStorage.clear();
-          setUser(null);
+          applyUser(null);
         })
         .finally(() => setInitializing(false));
     } else {
@@ -28,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, expireSession);
-  }, []);
+  }, [applyUser]);
 
   const beginSocialLogin = useCallback(async (provider: SocialProvider) => {
     const urls = await authApi.getLoginUrls();
@@ -51,41 +63,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const authenticatedUser = await authApi.getCurrentUser();
-      setUser(authenticatedUser);
+      applyUser(authenticatedUser);
       return { user: authenticatedUser, isNewUser: tokens.isNewUser };
     } catch (error) {
       tokenStorage.clear();
       throw error;
     }
-  }, []);
+  }, [applyUser]);
 
   const updateProfile = useCallback(async (patch: Parameters<typeof authApi.updateProfile>[0]) => {
     const updated = await authApi.updateProfile(patch);
-    setUser(updated);
+    applyUser(updated);
     return updated;
-  }, []);
+  }, [applyUser]);
 
   const confirmProfilePhoto = useCallback(async (photoUrl: string) => {
     const updated = await authApi.confirmPhoto(photoUrl);
-    setUser(updated);
+    applyUser(updated);
     return updated;
-  }, []);
+  }, [applyUser]);
 
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } finally {
-      setUser(null);
+      applyUser(null);
     }
-  }, []);
+  }, [applyUser]);
 
   const withdraw = useCallback(async () => {
     try {
       await authApi.withdraw();
     } finally {
-      setUser(null);
+      applyUser(null);
     }
-  }, []);
+  }, [applyUser]);
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
