@@ -7,11 +7,10 @@ import rehypeSanitize from "rehype-sanitize";
 import {
   getPolicy,
   getPolicyCategory,
-  getPolicyLanguage,
   type PolicyData,
   type LegalDocumentType,
 } from "@/lib/legal-documents-api";
-import { useSettings } from "@/store/settings-context";
+import { useAuth } from "@/store/auth-context";
 
 interface StaticDocViewProps {
   documentType: LegalDocumentType;
@@ -22,8 +21,8 @@ export default function StaticDocView({
   documentType,
   onBack,
 }: StaticDocViewProps) {
-  const { settings } = useSettings();
-  const language = getPolicyLanguage(settings.language);
+  const { user } = useAuth();
+  const language = user?.language === "EN" ? "en" : "ko";
   const [document, setDocument] = useState<PolicyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
