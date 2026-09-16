@@ -9,7 +9,13 @@ import { useAuth } from "@/store/auth-context";
 import { ApiError } from "@/lib/auth/api";
 import { claimStamp } from "@/lib/stamps-api";
 import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
-import { getSpot, getNearbySpots, saveSpot, unsaveSpot } from "@/lib/spots-api";
+import {
+  getSpot,
+  getNearbySpots,
+  saveSpot,
+  unsaveSpot,
+  searchSpots,
+} from "@/lib/spots-api";
 import { getSpotMedia, type SpotMediaResponse } from "@/lib/content-api";
 import {
   getSpotReviews,
@@ -24,7 +30,7 @@ import {
   type NearbySpotView,
   type ReviewView,
 } from "@/lib/spot-adapters";
-import { sortByHasImage } from "@/lib/image-fallback";
+import { sortByHasImage, withImageFallback, hasRealImage } from "@/lib/image-fallback";
 import {
   distanceMeters,
   formatDistance,
@@ -90,6 +96,7 @@ export default function SpotDetail() {
   const [apiSpotNotFound, setApiSpotNotFound] = useState(false);
   const [nearbyItems, setNearbyItems] = useState<NearbySpotView[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyIsFallback, setNearbyIsFallback] = useState(false);
   const [spotMedia, setSpotMedia] = useState<SpotMediaResponse | null>(null);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [reviewState, setReviewState] = useState<{
@@ -161,6 +168,30 @@ export default function SpotDetail() {
     if (numericSpotId == null) return;
     let cancelled = false;
     setNearbyLoading(true);
+    setNearbyIsFallback(false);
+
+    const loadPopularFallback = async () => {
+      try {
+        const result = await searchSpots({ sort: "POPULAR", page: 0 });
+        if (cancelled) return;
+        const items = result.spots
+          .filter((s) => s.spotId !== numericSpotId)
+          .slice(0, 4)
+          .map((s) => ({
+            id: String(s.spotId),
+            name: s.name,
+            loc: "",
+            desc: s.description ?? "",
+            image: withImageFallback(s.imageUrl, s.category),
+            hasImage: hasRealImage(s.imageUrl),
+            rating: s.avgRating,
+          }));
+        setNearbyIsFallback(items.length > 0);
+        setNearbyItems(sortByHasImage(items, (n) => n.hasImage));
+      } catch {
+        if (!cancelled) setNearbyItems([]);
+      }
+    };
 
     // 반경 안에 스팟이 없으면 점점 넓혀서 재시도 (시드 데이터 밀도가 지역마다 달라서)
     const RADII_M = [5000, 20000, 50000, 100000];
@@ -169,7 +200,7 @@ export default function SpotDetail() {
         if (cancelled) return;
         try {
           const items = await getNearbySpots(numericSpotId, radius);
-          if (items.length > 0 || radius === RADII_M[RADII_M.length - 1]) {
+          if (items.length > 0) {
             if (!cancelled) {
               setNearbyItems(
                 sortByHasImage(items.map(toNearbySpotView), (n) => n.hasImage),
@@ -177,8 +208,12 @@ export default function SpotDetail() {
             }
             return;
           }
+          if (radius === RADII_M[RADII_M.length - 1]) {
+            await loadPopularFallback();
+            return;
+          }
         } catch {
-          if (!cancelled) setNearbyItems([]);
+          await loadPopularFallback();
           return;
         }
       }
@@ -325,6 +360,7 @@ export default function SpotDetail() {
     setOverlayStamp(null);
     setApiStamped(false);
     setNearbyItems([]);
+    setNearbyIsFallback(false);
     setSpotMedia(null);
     setReviewState(null);
   }, [id]);
@@ -536,6 +572,7 @@ export default function SpotDetail() {
         <NearbyTab
           items={nearbyItems}
           loading={nearbyLoading}
+          isFallback={nearbyIsFallback}
           onOpen={(nid) => navigate?.(`/spot/${nid}`)}
         />
       )}
