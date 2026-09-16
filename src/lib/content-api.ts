@@ -1,6 +1,6 @@
 import { apiRequest } from "@/lib/auth/api";
 
-export type ContentCategory = "ARTIST" | "DRAMA" | "MOVIE";
+export type ContentCategory = "ARTIST" | "DRAMA" | "MOVIE" | "K_HERITAGE";
 
 export interface SpotContentItem {
   contentId: number;

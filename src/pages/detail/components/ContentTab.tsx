@@ -4,7 +4,8 @@ import type {
   SpotMediaContent,
   ContentVideo,
 } from "@/lib/content-api";
-import { Play, ChevronRight, Music, MapPin, Clapperboard } from "lucide-react";
+import { Play, ChevronRight, MapPin, Clapperboard, Landmark } from "lucide-react";
+import { SpotifyLogo, YouTubeLogo } from "./BrandIcons";
 
 interface ContentTabProps {
   spot: Spot;
@@ -16,9 +17,15 @@ const categoryLabel: Record<SpotMediaContent["category"], string> = {
   DRAMA: "관련 드라마",
   MOVIE: "관련 영화",
   ARTIST: "관련 아티스트",
+  K_HERITAGE: "관련 문화유산",
 };
 
-const categoryOrder: SpotMediaContent["category"][] = ["DRAMA", "MOVIE", "ARTIST"];
+const categoryOrder: SpotMediaContent["category"][] = [
+  "DRAMA",
+  "MOVIE",
+  "ARTIST",
+  "K_HERITAGE",
+];
 
 function formatDuration(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -74,7 +81,11 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
         return (
           <div key={cat}>
             <h4 className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
-              <Clapperboard size={16} color="#A8623E" />
+              {cat === "K_HERITAGE" ? (
+                <Landmark size={16} color="#A8623E" />
+              ) : (
+                <Clapperboard size={16} color="#A8623E" />
+              )}
               {categoryLabel[cat]}
             </h4>
             <div className="mt-2.5 flex flex-wrap gap-2">
@@ -93,7 +104,12 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
 
       {music.length > 0 && (
         <div>
-          <h4 className="text-[15px] font-semibold text-ink">연관 음악</h4>
+          <h4 className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
+            연관 음악
+            <span className="text-[#1DB954]">
+              <SpotifyLogo size={14} />
+            </span>
+          </h4>
           <div className="mt-3 grid grid-cols-2 gap-3">
             {music.map((m) => (
               <a
@@ -101,6 +117,7 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
                 href={m.spotifyUrl}
                 target="_blank"
                 rel="noreferrer"
+                aria-label={`${m.title} — Spotify에서 열기`}
                 className="bg-white rounded-2xl p-2 flex items-center gap-2.5 shadow-soft cursor-pointer"
               >
                 <div className="relative shrink-0 w-[60px] h-[60px] rounded-xl overflow-hidden bg-cream">
@@ -113,8 +130,8 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
                     />
                   )}
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-ink/30">
-                      <Play size={12} color="#FFFFFF" fill="#FFFFFF" />
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-ink/30 text-white">
+                      <SpotifyLogo size={12} />
                     </span>
                   </span>
                 </div>
@@ -136,7 +153,10 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
 
       {videos.length > 0 && (
         <div>
-          <h4 className="text-[15px] font-semibold text-ink">연관 영상</h4>
+          <h4 className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
+            연관 영상
+            <YouTubeLogo size={16} />
+          </h4>
           <div className="mt-3 grid grid-cols-3 gap-2.5">
             {videos.map((v) => (
               <a
@@ -144,6 +164,7 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
                 href={`https://www.youtube.com/watch?v=${v.videoId}`}
                 target="_blank"
                 rel="noreferrer"
+                aria-label={`${v.title} — YouTube에서 열기`}
                 className="relative h-[88px] rounded-xl overflow-hidden cursor-pointer bg-cream"
               >
                 <img
@@ -152,6 +173,9 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
+                <span className="absolute top-1.5 left-1.5 flex items-center justify-center drop-shadow">
+                  <YouTubeLogo size={14} />
+                </span>
                 <span className="absolute inset-0 flex items-center justify-center">
                   <span className="flex items-center justify-center w-7 h-7 rounded-full bg-ink/35 backdrop-blur-sm">
                     <Play size={12} color="#FFFFFF" fill="#FFFFFF" />
@@ -301,19 +325,23 @@ export default function ContentTab({ spot, media, mediaLoading }: ContentTabProp
       {/* Spotify CTA */}
       <button
         type="button"
-        className="mt-3 w-full h-[50px] rounded-full flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+        aria-label="Spotify에서 플레이리스트 열기"
+        className="mt-3 w-full h-[50px] rounded-full flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-white"
         style={{ backgroundColor: "#1DB954" }}
       >
         <span className="flex items-center justify-center w-5 h-5">
-          <Music size={18} color="#FFFFFF" fill="#FFFFFF" />
+          <SpotifyLogo size={18} />
         </span>
-        <span className="text-[14px] font-semibold text-white">
+        <span className="text-[14px] font-semibold">
           Spotify에서 플레이리스트 열기
         </span>
       </button>
 
       {/* related videos */}
-      <h4 className="mt-5 text-[15px] font-semibold text-ink">연관 영상</h4>
+      <h4 className="mt-5 text-[15px] font-semibold text-ink flex items-center gap-1.5">
+        연관 영상
+        <YouTubeLogo size={16} />
+      </h4>
       <div className="mt-3 grid grid-cols-3 gap-2.5">
         {spot.videos.map((v) => (
           <div
@@ -326,6 +354,9 @@ export default function ContentTab({ spot, media, mediaLoading }: ContentTabProp
               className="w-full h-full object-cover"
               loading="lazy"
             />
+            <span className="absolute top-1.5 right-1.5 flex items-center justify-center drop-shadow">
+              <YouTubeLogo size={14} />
+            </span>
             <span className="absolute inset-0 flex items-center justify-center">
               <span className="flex items-center justify-center w-7 h-7 rounded-full bg-ink/35 backdrop-blur-sm">
                 <Play size={12} color="#FFFFFF" fill="#FFFFFF" />
