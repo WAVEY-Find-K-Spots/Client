@@ -18,6 +18,8 @@ import {
   Trash2,
   Pencil,
   Compass,
+  Globe,
+  Lock,
 } from "lucide-react";
 
 type RouteMode = "empty" | "plan" | "nav";
@@ -38,6 +40,7 @@ export default function RouteTab() {
   const {
     routeId,
     routeName,
+    routeVisibility,
     stops,
     loading: routeLoading,
     addToRoute,
@@ -45,6 +48,7 @@ export default function RouteTab() {
     reorderRoute,
     clearRoute,
     renameRoute,
+    toggleRouteVisibility,
   } = useRoute();
   const [mode, setMode] = useState<RouteMode>("empty");
   const [modeInitialized, setModeInitialized] = useState(false);
@@ -176,11 +180,31 @@ export default function RouteTab() {
     showToast("루트 이름을 변경했어요");
   };
 
+  const handleToggleVisibility = () => {
+    const willBePublic = routeVisibility !== "PUBLIC";
+    void toggleRouteVisibility().then((ok) => {
+      showToast(
+        ok
+          ? willBePublic
+            ? "루트를 공개로 전환했어요"
+            : "루트를 비공개로 전환했어요"
+          : "공개 설정을 변경하지 못했어요",
+      );
+    });
+    closeMenu();
+  };
+
   const menuItems = [
     {
       icon: Pencil,
       label: "이름 변경",
       onClick: openRename,
+      disabled: routeId === null,
+    },
+    {
+      icon: routeVisibility === "PUBLIC" ? Lock : Globe,
+      label: routeVisibility === "PUBLIC" ? "비공개로 전환" : "공개로 전환",
+      onClick: handleToggleVisibility,
       disabled: routeId === null,
     },
     {
