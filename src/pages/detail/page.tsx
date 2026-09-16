@@ -161,20 +161,31 @@ export default function SpotDetail() {
     if (numericSpotId == null) return;
     let cancelled = false;
     setNearbyLoading(true);
-    getNearbySpots(numericSpotId)
-      .then((items) => {
-        if (!cancelled) {
-          setNearbyItems(
-            sortByHasImage(items.map(toNearbySpotView), (n) => n.hasImage),
-          );
+
+    // 반경 안에 스팟이 없으면 점점 넓혀서 재시도 (시드 데이터 밀도가 지역마다 달라서)
+    const RADII_M = [5000, 20000, 50000, 100000];
+    (async () => {
+      for (const radius of RADII_M) {
+        if (cancelled) return;
+        try {
+          const items = await getNearbySpots(numericSpotId, radius);
+          if (items.length > 0 || radius === RADII_M[RADII_M.length - 1]) {
+            if (!cancelled) {
+              setNearbyItems(
+                sortByHasImage(items.map(toNearbySpotView), (n) => n.hasImage),
+              );
+            }
+            return;
+          }
+        } catch {
+          if (!cancelled) setNearbyItems([]);
+          return;
         }
-      })
-      .catch(() => {
-        if (!cancelled) setNearbyItems([]);
-      })
-      .finally(() => {
-        if (!cancelled) setNearbyLoading(false);
-      });
+      }
+    })().finally(() => {
+      if (!cancelled) setNearbyLoading(false);
+    });
+
     return () => {
       cancelled = true;
     };
