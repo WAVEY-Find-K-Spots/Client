@@ -14,6 +14,8 @@ interface RouteMapProps {
   onLocateError?: () => void;
   /** 길찾기 API가 내려준 실제 도로 경로(GeoJSON LineString 좌표, [lng, lat] 순서) */
   routeGeometry?: [number, number][] | null;
+  /** 하단 시트가 지도를 가리는 높이(px). 바뀔 때마다 현재 위치가 가려지지 않도록 지도를 살짝 위로 이동시킨다 */
+  bottomInset?: number;
 }
 
 // Seoul city center — fallback view when no stops are selected
@@ -63,12 +65,25 @@ export default function RouteMap({
   onLocate,
   onLocateError,
   routeGeometry,
+  bottomInset = 0,
 }: RouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
   const [locating, setLocating] = useState(false);
+  const prevBottomInset = useRef(bottomInset);
+
+  // 하단 시트가 펼쳐지거나 접힐 때, 가려지는 높이만큼 지도를 부드럽게 이동시켜
+  // 현재 위치 마커가 시트 뒤로 숨지 않도록 한다
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const delta = bottomInset - prevBottomInset.current;
+    prevBottomInset.current = bottomInset;
+    if (delta === 0) return;
+    map.panBy([0, delta / 2], { animate: true, duration: 0.3 });
+  }, [bottomInset]);
 
   // init map once
   useEffect(() => {
