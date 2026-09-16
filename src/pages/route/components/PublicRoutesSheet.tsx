@@ -145,7 +145,7 @@ export default function PublicRoutesSheet({ onClose, onOpenSpot, layer }: Public
                           {i + 1}
                         </span>
                         <p className="text-[14px] font-semibold text-ink truncate">
-                          {r.name}
+                          {r.name || "이름 없는 루트"}
                         </p>
                       </div>
                       {r.description && (
@@ -192,7 +192,9 @@ export default function PublicRoutesSheet({ onClose, onOpenSpot, layer }: Public
                   />
                 </div>
                 <div className="px-5 py-4">
-                  <h4 className="text-[16px] font-bold text-ink">{detail.name}</h4>
+                  <h4 className="text-[16px] font-bold text-ink">
+                    {detail.name || "이름 없는 루트"}
+                  </h4>
                   {detail.description && (
                     <p className="mt-1 text-[13px] text-sub leading-relaxed">
                       {detail.description}

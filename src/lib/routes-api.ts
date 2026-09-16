@@ -6,7 +6,7 @@ export type TransportMode = "WALK" | "TRANSIT" | "CAR";
 
 export interface RouteSummary {
   routeId: number;
-  name: string;
+  name: string | null;
   description: string | null;
   visibility: RouteVisibility;
   spotCount: number;
@@ -29,7 +29,7 @@ export interface RouteSpotDetail {
 export interface RouteDetail {
   routeId: number;
   userId: number;
-  name: string;
+  name: string | null;
   description: string | null;
   visibility: RouteVisibility;
   spotCount: number;
