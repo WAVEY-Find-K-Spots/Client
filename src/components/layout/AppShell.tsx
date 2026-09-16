@@ -50,12 +50,12 @@ export default function AppShell() {
         {/* Scrollable app content */}
         <div
           id="app-scroll"
-          className="absolute inset-0 overflow-y-auto no-scrollbar bg-page"
+          className="absolute inset-0 overflow-y-auto no-scrollbar bg-page safe-top"
         >
           <Outlet />
         </div>
         {/* Detail CTA slot — mounted here, controlled by detail page via portal */}
-        <div id="detail-cta-slot" className="absolute z-30 inset-x-0 bottom-[94px] pointer-events-none" />
+        <div id="detail-cta-slot" className="absolute z-30 inset-x-0 bottom-[calc(94px+env(safe-area-inset-bottom,0px))] pointer-events-none" />
         {/* Floating pill bottom navigation */}
         {showNav && <BottomNav />}
       </div>
