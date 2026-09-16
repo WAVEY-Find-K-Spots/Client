@@ -200,7 +200,9 @@ export default function SpotDetail() {
       for (const radius of RADII_M) {
         if (cancelled) return;
         try {
-          const items = await getNearbySpots(numericSpotId, radius);
+          const items = (await getNearbySpots(numericSpotId, radius)).filter(
+            (s) => s.spotId !== numericSpotId,
+          );
           if (items.length > 0) {
             if (!cancelled) {
               setNearbyItems(
