@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Spot } from "@/mocks/spots";
 import type {
   SpotMediaResponse,
@@ -106,6 +106,19 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
   const artists = media.contents.filter((c) => c.category === "ARTIST");
   const hasAnyMedia = videos.length > 0 || music.length > 0;
   const [activeMedia, setActiveMedia] = useState<ActiveMedia | null>(null);
+
+  // 재생 시트가 떠 있는 동안 뒤 배경(app-scroll)이 스크롤되면서
+  // absolute 포지션인 시트가 화면 밖으로 같이 밀려나는 문제 방지
+  useEffect(() => {
+    if (!activeMedia) return;
+    const el = document.getElementById("app-scroll");
+    if (!el) return;
+    const prevOverflow = el.style.overflow;
+    el.style.overflow = "hidden";
+    return () => {
+      el.style.overflow = prevOverflow;
+    };
+  }, [activeMedia]);
 
   return (
     <div className="px-5 pt-5">
@@ -263,19 +276,20 @@ function MediaPlayerSheet({
               <iframe
                 src={`https://www.youtube.com/embed/${media.videoId}?autoplay=1`}
                 title={media.title}
-                className="w-full h-full"
+                className="w-full h-full border-0"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
               />
             </div>
           ) : (
-            <iframe
-              src={`https://open.spotify.com/embed/track/${media.spotifyTrackId}?autoplay=1`}
-              title={media.title}
-              className="w-full rounded-2xl"
-              style={{ height: 152 }}
-              allow="autoplay; encrypted-media; clipboard-write"
-            />
+            <div className="w-full h-[152px] rounded-2xl overflow-hidden">
+              <iframe
+                src={`https://open.spotify.com/embed/track/${media.spotifyTrackId}?autoplay=1`}
+                title={media.title}
+                className="w-full h-full border-0"
+                allow="autoplay; encrypted-media; clipboard-write"
+              />
+            </div>
           )}
         </div>
       </div>
