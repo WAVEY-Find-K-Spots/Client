@@ -314,7 +314,7 @@ export default function SpotList() {
       <div className="px-5 mt-4">
         <div className="flex items-center gap-2">
           <div
-            className={`flex-1 flex items-center gap-2.5 bg-white h-[52px] px-4 rounded-[24px] shadow-soft ${
+            className={`flex-1 min-w-0 flex items-center gap-2.5 bg-white h-[52px] px-4 rounded-[24px] shadow-soft ${
               isSearching || isResults
                 ? "border-2 border-brand"
                 : "border border-cta"
@@ -335,7 +335,7 @@ export default function SpotList() {
                 }
               }}
               placeholder="장소명 또는 드라마명 검색"
-              className="flex-1 bg-transparent outline-none text-[13px] text-ink placeholder:text-muted"
+              className="flex-1 min-w-0 bg-transparent outline-none text-[13px] text-ink placeholder:text-muted"
             />
             {isResults && (
               <button
