@@ -33,6 +33,15 @@ body {
   overscroll-behavior: contain;
 }
 
+/* Android edge-to-edge (SDK 35+) draws the WebView behind system bars —
+   reserve space so the header/content and bottom nav aren't hidden under them. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Route nav — current spot pulse ring (SVG circleMarker, scales from its own center) */
 @keyframes rm-pulse {
   0%   { transform: scale(0.6); opacity: 0.55; }
