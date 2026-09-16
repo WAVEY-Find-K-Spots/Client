@@ -12,7 +12,6 @@ import {
   Plus,
   MoreHorizontal,
   Map,
-  Eye,
   Check,
   Repeat,
   Share2,
@@ -22,14 +21,6 @@ import {
 } from "lucide-react";
 
 type RouteMode = "empty" | "plan" | "nav";
-
-const modeLabel: Record<RouteMode, string> = {
-  empty: "빈 상태",
-  plan: "루트 편집",
-  nav: "경로 탐색",
-};
-
-const modeOrder: RouteMode[] = ["empty", "plan", "nav"];
 
 const transportToApi: Record<TransportMode, ApiTransportMode> = {
   walk: "WALK",
@@ -123,19 +114,6 @@ export default function RouteTab() {
   };
 
   const getTransitLegs = (index: number) => directions?.segments[index]?.transitLegs ?? [];
-
-  const cycleMode = () => {
-    const idx = modeOrder.indexOf(mode);
-    const next = modeOrder[(idx + 1) % modeOrder.length];
-    if ((next === "plan" || next === "nav") && stops.length === 0) {
-      setMode("plan");
-      setPickerOpen(true);
-      return;
-    }
-    setMode(next);
-    setCurrent(0);
-    showToast(modeLabel[next]);
-  };
 
   const handleRemove = (id: string) => {
     const wasLast = stops.length <= 1;
@@ -397,24 +375,6 @@ export default function RouteTab() {
           />
         </div>
       )}
-
-      {/* preview / state switcher */}
-      <button
-        type="button"
-        onClick={cycleMode}
-        aria-label="화면 미리보기 전환"
-        className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1 cursor-pointer whitespace-nowrap"
-      >
-        <span
-          className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95"
-          style={{ boxShadow: "0 8px 18px rgba(44,24,16,0.18)" }}
-        >
-          <Eye size={16} color="#A8623E" strokeWidth={2} />
-        </span>
-        <span className="px-1.5 py-0.5 rounded-full bg-ink/80 text-[9px] font-medium text-white/90 leading-none">
-          {modeLabel[mode]}
-        </span>
-      </button>
 
       {/* toast */}
       {toast && (
