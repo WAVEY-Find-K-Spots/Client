@@ -107,7 +107,7 @@ function MediaCard({
 }
 
 function RealMediaContent({ media }: { media: SpotMediaResponse }) {
-  const videos: ContentVideo[] = media.contents.flatMap((c) => c.videos);
+  const videos: ContentVideo[] = media.contents.flatMap((c) => c.videos).slice(0, 2);
   const music: MusicItem[] = collectMusicItems(media.contents).slice(0, 2);
   const artists = media.contents.filter((c) => c.category === "ARTIST");
   const hasAnyMedia = videos.length > 0 || music.length > 0;
