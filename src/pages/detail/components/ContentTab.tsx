@@ -1,10 +1,15 @@
+import { useState } from "react";
 import type { Spot } from "@/mocks/spots";
 import type {
   SpotMediaResponse,
   SpotMediaContent,
   ContentVideo,
 } from "@/lib/content-api";
-import { Play, ChevronRight, Music, MapPin, Clapperboard } from "lucide-react";
+import { Play, ChevronRight, Music, MapPin, Clapperboard, X } from "lucide-react";
+
+type ActiveMedia =
+  | { kind: "video"; videoId: string; title: string }
+  | { kind: "track"; spotifyTrackId: string; title: string };
 
 interface ContentTabProps {
   spot: Spot;
@@ -31,7 +36,7 @@ interface MusicItem {
   title: string;
   artistName: string | null;
   imageUrl: string | null;
-  spotifyUrl: string;
+  spotifyTrackId: string;
 }
 
 function collectMusicItems(contents: SpotMediaContent[]): MusicItem[] {
@@ -44,7 +49,7 @@ function collectMusicItems(contents: SpotMediaContent[]): MusicItem[] {
           title: track.title,
           artistName: track.artistName,
           imageUrl: track.imageUrl ?? album.imageUrl,
-          spotifyUrl: track.spotifyUrl,
+          spotifyTrackId: track.spotifyTrackId,
         });
       }
     }
@@ -54,7 +59,7 @@ function collectMusicItems(contents: SpotMediaContent[]): MusicItem[] {
         title: track.title,
         artistName: track.artistName,
         imageUrl: track.imageUrl,
-        spotifyUrl: track.spotifyUrl,
+        spotifyTrackId: track.spotifyTrackId,
       });
     }
   }
@@ -65,6 +70,7 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
   const videos: ContentVideo[] = media.contents.flatMap((c) => c.videos);
   const music: MusicItem[] = collectMusicItems(media.contents);
   const hasAnyMedia = videos.length > 0 || music.length > 0;
+  const [activeMedia, setActiveMedia] = useState<ActiveMedia | null>(null);
 
   return (
     <div className="px-5 pt-5 flex flex-col gap-5">
@@ -77,16 +83,71 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
               <Clapperboard size={16} color="#A8623E" />
               {categoryLabel[cat]}
             </h4>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {group.map((c) => (
-                <span
-                  key={c.contentId}
-                  className="px-3.5 h-9 flex items-center rounded-full bg-cream text-[13px] font-medium text-ink"
-                >
-                  {c.title}
-                </span>
-              ))}
-            </div>
+            {cat === "ARTIST" ? (
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {group.map((c) => (
+                  <span
+                    key={c.contentId}
+                    className="px-3.5 h-9 flex items-center rounded-full bg-cream text-[13px] font-medium text-ink"
+                  >
+                    {c.title}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-2.5 grid grid-cols-2 gap-3">
+                {group.map((c) => {
+                  const poster = c.videos[0];
+                  return (
+                    <button
+                      key={c.contentId}
+                      type="button"
+                      disabled={!poster}
+                      onClick={() =>
+                        poster &&
+                        setActiveMedia({
+                          kind: "video",
+                          videoId: poster.videoId,
+                          title: c.title,
+                        })
+                      }
+                      className="bg-white rounded-2xl overflow-hidden shadow-soft text-left cursor-pointer disabled:cursor-default"
+                    >
+                      <div className="relative w-full h-[70px] overflow-hidden bg-cream">
+                        {poster && (
+                          <img
+                            src={poster.thumbnailUrl}
+                            alt={c.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        )}
+                        {poster && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-ink/35 backdrop-blur-sm">
+                              <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <p className="text-[13px] font-semibold text-ink leading-tight truncate">
+                          {c.title}
+                        </p>
+                        {poster && (
+                          <p className="flex items-center gap-0.5 text-[11px] font-medium text-brand mt-1.5">
+                            촬영 장면 보기
+                            <span className="flex items-center justify-center w-3 h-3">
+                              <ChevronRight size={12} />
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
@@ -96,12 +157,17 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
           <h4 className="text-[15px] font-semibold text-ink">연관 음악</h4>
           <div className="mt-3 grid grid-cols-2 gap-3">
             {music.map((m) => (
-              <a
+              <button
                 key={m.key}
-                href={m.spotifyUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="bg-white rounded-2xl p-2 flex items-center gap-2.5 shadow-soft cursor-pointer"
+                type="button"
+                onClick={() =>
+                  setActiveMedia({
+                    kind: "track",
+                    spotifyTrackId: m.spotifyTrackId,
+                    title: m.title,
+                  })
+                }
+                className="bg-white rounded-2xl p-2 flex items-center gap-2.5 shadow-soft text-left cursor-pointer"
               >
                 <div className="relative shrink-0 w-[60px] h-[60px] rounded-xl overflow-hidden bg-cream">
                   {m.imageUrl && (
@@ -127,8 +193,16 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
                       {m.artistName}
                     </p>
                   )}
+                  <p className="flex items-center gap-1 mt-1.5">
+                    <span className="flex items-center justify-center w-3.5 h-3.5">
+                      <Music size={12} color="#1DB954" fill="#1DB954" />
+                    </span>
+                    <span className="text-[10px] font-semibold" style={{ color: "#1DB954" }}>
+                      Spotify에서 듣기
+                    </span>
+                  </p>
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         </div>
@@ -139,11 +213,12 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
           <h4 className="text-[15px] font-semibold text-ink">연관 영상</h4>
           <div className="mt-3 grid grid-cols-3 gap-2.5">
             {videos.map((v) => (
-              <a
+              <button
                 key={v.id}
-                href={`https://www.youtube.com/watch?v=${v.videoId}`}
-                target="_blank"
-                rel="noreferrer"
+                type="button"
+                onClick={() =>
+                  setActiveMedia({ kind: "video", videoId: v.videoId, title: v.title })
+                }
                 className="relative h-[88px] rounded-xl overflow-hidden cursor-pointer bg-cream"
               >
                 <img
@@ -160,10 +235,10 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
                 <span className="absolute right-1.5 top-1.5 px-1.5 py-0.5 rounded bg-ink/70 text-[9px] text-white">
                   {formatDuration(v.durationSec)}
                 </span>
-                <span className="absolute left-2 bottom-1.5 right-2 text-[9px] text-white/95 truncate whitespace-nowrap">
+                <span className="absolute left-2 bottom-1.5 right-2 text-[9px] text-white/95 truncate whitespace-nowrap text-left">
                   {v.title}
                 </span>
-              </a>
+              </button>
             ))}
           </div>
         </div>
@@ -174,6 +249,60 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
           이 스팟과 연결된 영상·음악 카드는 아직 없어요.
         </p>
       )}
+
+      {activeMedia && (
+        <MediaPlayerSheet media={activeMedia} onClose={() => setActiveMedia(null)} />
+      )}
+    </div>
+  );
+}
+
+function MediaPlayerSheet({
+  media,
+  onClose,
+}: {
+  media: ActiveMedia;
+  onClose: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-[70] flex flex-col justify-end">
+      <div className="absolute inset-0 bg-ink/60" onClick={onClose} />
+      <div className="relative bg-white rounded-t-[26px] flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+          <p className="text-[14px] font-semibold text-ink truncate pr-3">
+            {media.title}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-cream cursor-pointer"
+          >
+            <X size={16} color="#2C1810" />
+          </button>
+        </div>
+        <div className="px-5 pb-6 safe-bottom">
+          {media.kind === "video" ? (
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-ink">
+              <iframe
+                src={`https://www.youtube.com/embed/${media.videoId}?autoplay=1`}
+                title={media.title}
+                className="w-full h-full"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <iframe
+              src={`https://open.spotify.com/embed/track/${media.spotifyTrackId}?autoplay=1`}
+              title={media.title}
+              className="w-full rounded-2xl"
+              style={{ height: 152 }}
+              allow="autoplay; encrypted-media; clipboard-write"
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
