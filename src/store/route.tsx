@@ -23,9 +23,6 @@ export function RouteProvider({ children }: { children: ReactNode }) {
   const [routeId, setRouteId] = useState<number | null>(null);
   const [routeName, setRouteName] = useState<string | null>(null);
   const [routeVisibility, setRouteVisibility] = useState<RouteVisibility | null>(null);
-  // 서버 PATCH가 요청에 없는 필드를 null로 덮어쓰는 버그(Server #140)가 있어,
-  // 이름/공개여부를 바꿀 때도 항상 현재 description을 함께 보내 유실을 막는다
-  const [routeDescription, setRouteDescription] = useState<string | null>(null);
   const [stops, setStops] = useState<RouteStop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +51,6 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           setRouteId(savedId);
           setRouteName(detail.name);
           setRouteVisibility(detail.visibility);
-          setRouteDescription(detail.description);
           setStops(detail.spots.map(toRouteStop));
           return;
         }
@@ -68,7 +64,6 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           persistRouteId(existing.routeId);
           setRouteName(detail.name);
           setRouteVisibility(detail.visibility);
-          setRouteDescription(detail.description);
           setStops(detail.spots.map(toRouteStop));
         }
       } catch {
@@ -76,7 +71,6 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           persistRouteId(null);
           setRouteName(null);
           setRouteVisibility(null);
-          setRouteDescription(null);
           setStops([]);
         }
       } finally {
@@ -109,7 +103,6 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           persistRouteId(detail.routeId);
           setRouteName(detail.name);
           setRouteVisibility(detail.visibility);
-          setRouteDescription(detail.description);
           setStops(detail.spots.map(toRouteStop));
           return true;
         }
@@ -179,7 +172,6 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       persistRouteId(null);
       setRouteName(null);
       setRouteVisibility(null);
-      setRouteDescription(null);
       setStops([]);
       return true;
     } catch {
@@ -196,7 +188,6 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       persistRouteId(id);
       setRouteName(detail.name);
       setRouteVisibility(detail.visibility);
-      setRouteDescription(detail.description);
       setStops(detail.spots.map(toRouteStop));
     } catch {
       setError("루트를 불러오지 못했어요.");
@@ -210,21 +201,13 @@ export function RouteProvider({ children }: { children: ReactNode }) {
       if (routeId === null) return;
       setError(null);
       try {
-        // 서버 PATCH가 요청에 없는 필드를 null로 덮어쓰는 버그(Server #140) 때문에,
-        // 고쳐질 때까지 현재 description/visibility도 항상 같이 보낸다
-        const detail = await updateRoute(routeId, {
-          name,
-          description: routeDescription ?? undefined,
-          visibility: routeVisibility ?? undefined,
-        });
+        const detail = await updateRoute(routeId, { name });
         setRouteName(detail.name);
-        setRouteDescription(detail.description);
-        setRouteVisibility(detail.visibility);
       } catch {
         setError("이름을 변경하지 못했어요.");
       }
     },
-    [routeId, routeDescription, routeVisibility],
+    [routeId],
   );
 
   const toggleRouteVisibility = useCallback(async () => {
@@ -234,29 +217,20 @@ export function RouteProvider({ children }: { children: ReactNode }) {
     const prev = routeVisibility;
     setRouteVisibility(next);
     try {
-      // 서버 PATCH가 요청에 없는 필드를 null로 덮어쓰는 버그(Server #140) 때문에,
-      // 고쳐질 때까지 현재 name/description도 항상 같이 보낸다
-      const detail = await updateRoute(routeId, {
-        visibility: next,
-        name: routeName ?? undefined,
-        description: routeDescription ?? undefined,
-      });
+      const detail = await updateRoute(routeId, { visibility: next });
       setRouteVisibility(detail.visibility);
-      setRouteDescription(detail.description);
-      setRouteName(detail.name);
       return true;
     } catch {
       setRouteVisibility(prev);
       setError("공개 설정을 변경하지 못했어요.");
       return false;
     }
-  }, [routeId, routeVisibility, routeName, routeDescription]);
+  }, [routeId, routeVisibility]);
 
   const clearRouteReference = useCallback(() => {
     persistRouteId(null);
     setRouteName(null);
     setRouteVisibility(null);
-    setRouteDescription(null);
     setStops([]);
   }, []);
 
