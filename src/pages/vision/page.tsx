@@ -293,7 +293,13 @@ export default function VisionPage() {
           )}
         </button>
 
-        {result && <VisionResults result={result} onReset={reset} />}
+        {result && (
+          <VisionResults
+            result={result}
+            imageUrl={previewUrl}
+            onReset={reset}
+          />
+        )}
       </main>
     </div>
   );
