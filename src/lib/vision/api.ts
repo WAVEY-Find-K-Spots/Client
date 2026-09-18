@@ -16,10 +16,23 @@ export interface CulturalTerm {
   ambiguous: boolean;
 }
 
+export interface OcrPoint {
+  x: number;
+  y: number;
+}
+
+export interface TranslationLayoutBlock {
+  originalText: string;
+  translatedText: string;
+  polygon: OcrPoint[];
+  confidence: number;
+}
+
 export interface TranslationResult {
   originalText: string;
   translatedText: string;
   terms: CulturalTerm[];
+  layoutBlocks?: TranslationLayoutBlock[];
 }
 
 export interface HeritageResult {
