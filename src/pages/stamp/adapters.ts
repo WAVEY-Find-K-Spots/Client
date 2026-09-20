@@ -43,11 +43,3 @@ export function nextBadgeProgressPercent(inProgress: BadgeItem[]): number {
   if (!next || next.requiredStamps <= 0) return 0;
   return Math.min(100, Math.round((next.progress / next.requiredStamps) * 100));
 }
-
-/** 획득한 스탬프 우선, 그다음 spotId ASC */
-export function sortStampBook(stamps: ApiStampItem[]): ApiStampItem[] {
-  return [...stamps].sort((a, b) => {
-    if (a.acquired !== b.acquired) return a.acquired ? -1 : 1;
-    return a.spotId - b.spotId;
-  });
-}
