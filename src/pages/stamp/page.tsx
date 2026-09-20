@@ -20,7 +20,6 @@ import {
   toOverlayStamp,
   remainingForNextBadge,
   nextBadgeProgressPercent,
-  sortStampBook,
   formatAcquiredShort,
   type OverlayStamp,
 } from "./adapters";
@@ -117,9 +116,8 @@ export default function StampTab() {
         setCollectedCount(data.collectedCount);
         setPage(data.page);
         setHasNext(data.hasNext);
-        setStamps((prev) =>
-          sortStampBook(append ? [...prev, ...data.stamps] : data.stamps),
-        );
+        // 정렬은 서버 기준(획득 최신순 → 미획득 spotId순)을 그대로 사용
+        setStamps((prev) => (append ? [...prev, ...data.stamps] : data.stamps));
       } catch (err) {
         if (!append) {
           setBookError(errorMessage(err, "스탬프북을 불러오지 못했어요."));
