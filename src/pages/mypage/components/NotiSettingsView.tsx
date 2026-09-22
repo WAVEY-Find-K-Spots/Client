@@ -145,7 +145,7 @@ export default function NotiSettingsView({
         </div>
       </div>
 
-      <div className="h-24" />
+      <div className="page-end-space" />
     </div>
   );
 }

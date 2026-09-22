@@ -5,6 +5,12 @@
 
 :root {
   font-family: "Pretendard Variable", Pretendard, -apple-system, system-ui, sans-serif;
+  --app-bottom-reserve: calc(104px + env(safe-area-inset-bottom, 0px));
+  --app-nav-bottom: calc(33px + env(safe-area-inset-bottom, 0px));
+  --app-detail-cta-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  --app-media-sheet-bottom: calc(var(--app-nav-bottom) + 75px);
+  --app-page-end-space: calc(28px + env(safe-area-inset-bottom, 0px));
+  --app-detail-end-space: calc(76px + env(safe-area-inset-bottom, 0px));
 }
 
 html, body, #root {
@@ -40,6 +46,26 @@ body {
 }
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-bottom-nav-space {
+  padding-bottom: var(--app-bottom-reserve);
+}
+
+.bottom-nav-offset {
+  bottom: var(--app-nav-bottom);
+}
+
+.detail-cta-offset {
+  bottom: var(--app-detail-cta-bottom);
+}
+
+.page-end-space {
+  height: var(--app-page-end-space);
+}
+
+.detail-page-end-space {
+  height: var(--app-detail-end-space);
 }
 
 /* Route nav — current spot pulse ring (SVG circleMarker, scales from its own center) */

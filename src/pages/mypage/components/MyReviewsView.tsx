@@ -136,7 +136,7 @@ export default function MyReviewsView({ onBack, onOpenSpot }: MyReviewsViewProps
         )}
       </div>
 
-      <div className="h-24" />
+      <div className="page-end-space" />
     </div>
   );
 }

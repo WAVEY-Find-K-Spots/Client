@@ -130,7 +130,7 @@ export default function SavedSpotsView({ onBack, onOpenSpot }: SavedSpotsViewPro
         )}
       </div>
 
-      <div className="h-24" />
+      <div className="page-end-space" />
     </div>
   );
 }

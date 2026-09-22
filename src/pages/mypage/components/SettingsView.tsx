@@ -211,7 +211,7 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
         </div>
       </div>
 
-      <div className="h-24" />
+      <div className="page-end-space" />
     </div>
   );
 }

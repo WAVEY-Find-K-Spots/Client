@@ -382,7 +382,7 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
         </div>
       )}
 
-      <div className="h-24" />
+      <div className="page-end-space" />
     </div>
   );
 }

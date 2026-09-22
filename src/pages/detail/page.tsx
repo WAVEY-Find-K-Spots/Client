@@ -479,7 +479,7 @@ export default function SpotDetail() {
 
   if (!spot) return null;
 
-  const collapsed = tab !== "info";
+  const collapsed = true;
   const routeAdded = inRoute(spot.id);
   const mockStampId = spotStampId(spot.id);
   const stamped =
@@ -597,7 +597,7 @@ export default function SpotDetail() {
         />
       )}
 
-      <div className="h-40" />
+      <div className="detail-page-end-space" />
 
       {ctaSlot &&
         createPortal(

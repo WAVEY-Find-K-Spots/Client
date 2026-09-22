@@ -159,7 +159,7 @@ export default function VisionPage() {
   };
 
   return (
-    <div className="min-h-full bg-page pb-28">
+    <div className="min-h-full bg-page pb-[var(--app-page-end-space)]">
       <StatusBar variant="dark" />
       <header className="flex items-center justify-between px-5 pt-1">
         <div>
