@@ -1,4 +1,5 @@
 import type { VisionAnalysisResult } from "@/lib/vision/api";
+import TranslatedImageBeta from "./TranslatedImageBeta";
 import {
   Check,
   ChevronRight,
@@ -12,10 +13,15 @@ import {
 
 interface VisionResultsProps {
   result: VisionAnalysisResult;
+  imageUrl: string | null;
   onReset: () => void;
 }
 
-export default function VisionResults({ result, onReset }: VisionResultsProps) {
+export default function VisionResults({
+  result,
+  imageUrl,
+  onReset,
+}: VisionResultsProps) {
   return (
     <section id="vision-results" className="scroll-mt-4 pt-7">
       <div className="flex items-center justify-between">
@@ -43,6 +49,12 @@ export default function VisionResults({ result, onReset }: VisionResultsProps) {
             <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-muted">{result.translation.originalText}</p>
             <div className="my-3 h-px bg-line" />
             <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-ink">{result.translation.translatedText}</p>
+            {imageUrl && (result.translation.layoutBlocks?.length ?? 0) > 0 && (
+              <TranslatedImageBeta
+                imageUrl={imageUrl}
+                blocks={result.translation.layoutBlocks ?? []}
+              />
+            )}
           </div>
           {result.translation.terms?.length > 0 && (
             <div className="border-t border-line bg-[#FCF4ED] px-4 py-4">
