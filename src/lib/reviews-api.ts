@@ -25,6 +25,7 @@ export interface SpotReviewList {
 export function getSpotReviews(spotId: number, page = 0, size = 20) {
   return apiRequest<SpotReviewList>(
     `/api/v1/spots/${spotId}/reviews?page=${page}&size=${size}`,
+    { authenticated: false },
   );
 }
 

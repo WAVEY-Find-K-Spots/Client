@@ -10,7 +10,7 @@ function withQuery(path: string, params: SpotSearchParams = {}) {
   return qs ? `${path}?${qs}` : path;
 }
 
-/** GET /api/v1/pages/home/spots — 홈 화면 전용 스팟 목록/검색 */
+/** GET /api/v1/pages/home/spots — 홈 화면 공개 스팟 목록/검색 */
 export function getHomeSpots(params: SpotSearchParams = {}) {
   return apiRequest<SpotSearchResult>(
     withQuery("/api/v1/pages/home/spots", params),
