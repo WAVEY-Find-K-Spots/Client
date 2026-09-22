@@ -468,7 +468,7 @@ export default function SpotList() {
 
       {/* ---------- SEARCH RESULTS ---------- */}
       {isResults && (
-        <div className="px-4 sm:px-5 mt-5 pb-28">
+        <div className="px-4 sm:px-5 mt-5 pb-[var(--app-page-end-space)]">
           <div className="flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-ink">
               {debouncedQuery.trim()} 검색 결과
@@ -611,7 +611,7 @@ export default function SpotList() {
           </div>
 
           {/* Cards */}
-          <div className="mt-3 px-4 sm:px-5 pb-28">
+          <div className="mt-3 px-4 sm:px-5 pb-[var(--app-page-end-space)]">
             {!loading && items.length === 0 ? (
               <div className="py-16 flex flex-col items-center justify-center gap-4">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-cream">

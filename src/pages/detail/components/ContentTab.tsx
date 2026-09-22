@@ -4,6 +4,7 @@ import type {
   SpotMediaResponse,
   SpotMediaContent,
   ContentVideo,
+  ContentTrack,
 } from "@/lib/content-api";
 import { Play, ChevronRight, Music, MapPin, X } from "lucide-react";
 
@@ -25,31 +26,41 @@ interface MusicItem {
   spotifyTrackId: string;
 }
 
-function collectMusicItems(contents: SpotMediaContent[]): MusicItem[] {
-  const items: MusicItem[] = [];
-  for (const c of contents) {
-    for (const album of c.albums) {
-      for (const track of album.tracks) {
-        items.push({
-          key: `track-${track.id}`,
-          title: track.title,
-          artistName: track.artistName,
-          imageUrl: track.imageUrl ?? album.imageUrl,
-          spotifyTrackId: track.spotifyTrackId,
-        });
-      }
-    }
-    for (const track of c.tracks) {
-      items.push({
-        key: `track-${track.id}`,
-        title: track.title,
-        artistName: track.artistName,
-        imageUrl: track.imageUrl,
-        spotifyTrackId: track.spotifyTrackId,
-      });
+function toMusicItem(
+  track: ContentTrack,
+  fallbackImageUrl?: string | null,
+): MusicItem {
+  return {
+    key: `track-${track.id}`,
+    title: track.title,
+    artistName: track.artistName,
+    imageUrl: track.imageUrl ?? fallbackImageUrl ?? null,
+    spotifyTrackId: track.spotifyTrackId,
+  };
+}
+
+function firstMusicItem(content: SpotMediaContent): MusicItem | null {
+  for (const album of content.albums) {
+    const track = album.tracks[0];
+    if (track) {
+      return toMusicItem(track, album.imageUrl);
     }
   }
-  return items;
+
+  const track = content.tracks[0];
+  return track ? toMusicItem(track) : null;
+}
+
+function pickRepresentativeVideos(contents: SpotMediaContent[]) {
+  return contents
+    .map((content) => content.videos[0])
+    .filter((video): video is ContentVideo => Boolean(video));
+}
+
+function pickRepresentativeMusic(contents: SpotMediaContent[]) {
+  return contents
+    .map(firstMusicItem)
+    .filter((item): item is MusicItem => Boolean(item));
 }
 
 function MediaCard({
@@ -101,8 +112,8 @@ function MediaCard({
 }
 
 function RealMediaContent({ media }: { media: SpotMediaResponse }) {
-  const videos: ContentVideo[] = media.contents.flatMap((c) => c.videos).slice(0, 2);
-  const music: MusicItem[] = collectMusicItems(media.contents).slice(0, 2);
+  const videos = pickRepresentativeVideos(media.contents);
+  const music = pickRepresentativeMusic(media.contents);
   const artists = media.contents.filter((c) => c.category === "ARTIST");
   const hasAnyMedia = videos.length > 0 || music.length > 0;
   const [activeMedia, setActiveMedia] = useState<ActiveMedia | null>(null);
@@ -254,44 +265,47 @@ function MediaPlayerSheet({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute inset-0 z-[70] flex flex-col justify-end">
+    <div className="absolute inset-0 z-[70] flex flex-col justify-end pb-[var(--app-media-sheet-bottom)]">
       <div className="absolute inset-0 bg-ink/60" onClick={onClose} />
-      <div className="relative bg-white rounded-t-[26px] flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <p className="text-[14px] font-semibold text-ink truncate pr-3">
-            {media.title}
-          </p>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-cream cursor-pointer"
-          >
-            <X size={16} color="#2C1810" />
-          </button>
+      <div className="relative w-full rounded-b-[26px] overflow-hidden">
+        <div className="relative bg-white rounded-t-[26px] flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-4 pb-2">
+            <p className="text-[14px] font-semibold text-ink truncate pr-3">
+              {media.title}
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="닫기"
+              className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-cream cursor-pointer"
+            >
+              <X size={16} color="#2C1810" />
+            </button>
+          </div>
+          <div className="px-5 pb-6 safe-bottom bg-white">
+            {media.kind === "video" ? (
+              <div className="w-full aspect-video rounded-2xl overflow-hidden bg-ink">
+                <iframe
+                  src={`https://www.youtube.com/embed/${media.videoId}?autoplay=1`}
+                  title={media.title}
+                  className="block w-full h-full border-0 bg-ink"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="w-full h-[152px] rounded-2xl overflow-hidden bg-ink">
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${media.spotifyTrackId}?autoplay=1`}
+                  title={media.title}
+                  className="block w-full h-full border-0 bg-ink"
+                  allow="autoplay; encrypted-media; clipboard-write"
+                />
+              </div>
+            )}
+          </div>
         </div>
-        <div className="px-5 pb-6 safe-bottom">
-          {media.kind === "video" ? (
-            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-ink">
-              <iframe
-                src={`https://www.youtube.com/embed/${media.videoId}?autoplay=1`}
-                title={media.title}
-                className="w-full h-full border-0"
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          ) : (
-            <div className="w-full h-[152px] rounded-2xl overflow-hidden">
-              <iframe
-                src={`https://open.spotify.com/embed/track/${media.spotifyTrackId}?autoplay=1`}
-                title={media.title}
-                className="w-full h-full border-0"
-                allow="autoplay; encrypted-media; clipboard-write"
-              />
-            </div>
-          )}
-        </div>
+        <div className="h-6 bg-white" aria-hidden="true" />
       </div>
     </div>
   );

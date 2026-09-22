@@ -53,7 +53,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="absolute z-40 bottom-[calc(22px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-[340px] h-[60px] rounded-[30px] bg-ink shadow-nav flex items-center justify-around px-2"
+      className="absolute z-40 bottom-nav-offset left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-[340px] h-[60px] rounded-[30px] bg-ink shadow-nav flex items-center justify-around px-2"
       aria-label="하단 내비게이션"
     >
       {tabs.map((tab) => {

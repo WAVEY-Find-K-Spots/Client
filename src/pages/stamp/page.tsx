@@ -368,7 +368,7 @@ export default function StampTab() {
         )}
       </div>
 
-      <div className="h-24" />
+      <div className="page-end-space" />
 
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 top-[64px] z-50 px-4 py-2 rounded-full bg-ink/90 text-[12px] font-medium text-white pointer-events-none whitespace-nowrap">

@@ -202,7 +202,7 @@ export default function MyRoutesView({ onBack, onToast }: MyRoutesViewProps) {
         </button>
       </div>
 
-      <div className="h-24" />
+      <div className="page-end-space" />
     </div>
   );
 }
