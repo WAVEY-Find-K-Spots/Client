@@ -16,6 +16,9 @@ interface RouteMapProps {
   routeGeometry?: [number, number][] | null;
   /** 하단 시트가 지도를 가리는 높이(px). 바뀔 때마다 현재 위치가 가려지지 않도록 지도를 살짝 위로 이동시킨다 */
   bottomInset?: number;
+  /** 상위 화면에서 위치 버튼을 배치할 때 내부 버튼을 숨긴다 */
+  showLocateControl?: boolean;
+  locateSignal?: number;
 }
 
 // Seoul city center — fallback view when no stops are selected
@@ -66,6 +69,8 @@ export default function RouteMap({
   onLocateError,
   routeGeometry,
   bottomInset = 0,
+  showLocateControl = true,
+  locateSignal = 0,
 }: RouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -221,6 +226,12 @@ export default function RouteMap({
       .finally(() => setLocating(false));
   };
 
+  useEffect(() => {
+    if (locateSignal > 0) locateMe();
+    // locateSignal intentionally triggers the existing map location flow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locateSignal]);
+
   // frame the whole route
   const fitToRoute = () => {
     const map = mapRef.current;
@@ -277,7 +288,7 @@ export default function RouteMap({
             );
           })}
         </div>
-      ) : (
+      ) : showLocateControl ? (
         <button
           type="button"
           onClick={locateMe}
@@ -293,7 +304,7 @@ export default function RouteMap({
             <Crosshair size={17} color={locating ? "#A8623E" : "#2C1810"} strokeWidth={1.9} />
           </span>
         </button>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -66,6 +66,7 @@ interface PlanSheetProps {
   getTransitLegs?: (index: number) => TransitLeg[];
   summaryDuration?: string;
   summaryDistance?: string;
+  onExpandChange?: (expanded: boolean) => void;
 }
 
 export default function PlanSheet({
@@ -80,10 +81,15 @@ export default function PlanSheet({
   getTransitLegs,
   summaryDuration,
   summaryDistance,
+  onExpandChange,
 }: PlanSheetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const handleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startY: 0, moved: false });
+
+  useEffect(() => {
+    onExpandChange?.(isExpanded);
+  }, [isExpanded, onExpandChange]);
 
   // ----- drag & drop reorder of the stop list -----
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
@@ -172,7 +178,7 @@ export default function PlanSheet({
 
   return (
     <div
-      className={`absolute bottom-[82px] left-0 right-0 z-30 bg-white rounded-t-[24px] shadow-soft flex flex-col overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'h-[540px]' : 'h-[320px]'}`}
+      className={`absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-[24px] shadow-soft flex flex-col overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'h-[540px]' : 'h-[320px]'}`}
     >
       {/* draggable header area: handle + summary + transport tabs */}
       <div

@@ -20,6 +20,7 @@ import {
   Compass,
   Globe,
   Lock,
+  Crosshair,
 } from "lucide-react";
 
 type RouteMode = "empty" | "plan" | "nav";
@@ -57,6 +58,8 @@ export default function RouteTab() {
   const [publicRoutesOpen, setPublicRoutesOpen] = useState(false);
   const [publicRoutesLayer, setPublicRoutesLayer] = useState({ top: 0, height: 0 });
   const [navSheetExpanded, setNavSheetExpanded] = useState(true);
+  const [planSheetExpanded, setPlanSheetExpanded] = useState(false);
+  const [locateSignal, setLocateSignal] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -273,7 +276,7 @@ export default function RouteTab() {
 
   if (routeLoading || !modeInitialized) {
     return (
-      <div className="relative h-full flex flex-col overflow-hidden pb-[88px] bg-page">
+      <div className="relative h-full flex flex-col overflow-hidden pb-[var(--app-bottom-reserve)] bg-page">
         <StatusBar variant="dark" />
         <div className="flex-1 flex items-center justify-center">
           <span className="w-8 h-8 rounded-full border-2 border-line border-t-brand animate-spin" />
@@ -283,7 +286,7 @@ export default function RouteTab() {
   }
 
   return (
-    <div className={`relative h-full flex flex-col overflow-hidden pb-[88px] ${mode === "plan" ? "bg-white" : "bg-page"}`}>
+    <div className="relative h-full flex flex-col overflow-hidden pb-[var(--app-bottom-reserve)] bg-page">
       <StatusBar variant="dark" />
 
       {mode === "empty" && (
@@ -309,10 +312,24 @@ export default function RouteTab() {
             </>
           )}
           <div className="relative flex-1 min-h-0">
-            <RouteMap variant="empty" stops={stops} />
+            <RouteMap
+              variant="empty"
+              stops={stops}
+              showLocateControl={false}
+              locateSignal={locateSignal}
+            />
           </div>
           {/* bottom empty guide card */}
-          <div className="bg-white rounded-t-[24px] px-6 pt-8 pb-6 mt-2 flex flex-col items-center text-center">
+          <div className="absolute left-0 right-0 bottom-0 z-30 bg-white rounded-t-[24px] px-6 pt-8 pb-6 flex flex-col items-center text-center shadow-soft">
+            <button
+              type="button"
+              onClick={() => setLocateSignal((value) => value + 1)}
+              aria-label="내 위치로 이동"
+              className="absolute right-3 -top-12 z-40 flex items-center justify-center w-9 h-9 rounded-full bg-white cursor-pointer whitespace-nowrap"
+              style={{ boxShadow: "0 8px 18px rgba(44,24,16,0.16)" }}
+            >
+              <Crosshair size={17} color="#2C1810" strokeWidth={1.9} />
+            </button>
             <span className="flex items-center justify-center w-12 h-12">
               <Map size={46} color="#DDD4CE" strokeWidth={1.5} />
             </span>
@@ -365,11 +382,13 @@ export default function RouteTab() {
               </button>
             </>
           )}
-          <div className="h-[55%] shrink-0">
+          <div className="h-[60%] shrink-0">
             <RouteMap
               variant="plan"
               stops={stops}
               routeGeometry={directions?.geometry.coordinates}
+              showLocateControl={false}
+              locateSignal={locateSignal}
             />
           </div>
           <PlanSheet
@@ -389,7 +408,20 @@ export default function RouteTab() {
             getTransitLegs={getTransitLegs}
             summaryDuration={directionsLoading ? "계산 중..." : directions?.total.durationText}
             summaryDistance={directionsLoading ? undefined : directions?.total.distanceText}
+            onExpandChange={setPlanSheetExpanded}
           />
+          <button
+            type="button"
+            onClick={() => setLocateSignal((value) => value + 1)}
+            aria-label="내 위치로 이동"
+            className="absolute right-3 z-40 flex items-center justify-center w-9 h-9 rounded-full bg-white cursor-pointer whitespace-nowrap"
+            style={{
+              bottom: planSheetExpanded ? "548px" : "328px",
+              boxShadow: "0 8px 18px rgba(44,24,16,0.16)",
+            }}
+          >
+            <Crosshair size={17} color="#2C1810" strokeWidth={1.9} />
+          </button>
         </>
       )}
 
