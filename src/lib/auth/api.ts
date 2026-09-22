@@ -7,8 +7,23 @@ import type {
   UserProfileUpdateRequest,
 } from "./types";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
-  .replace(/\/$/, "");
+function resolveApiBaseUrl() {
+  const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+  if (!configuredBaseUrl) return "";
+
+  try {
+    const apiUrl = new URL(configuredBaseUrl);
+    const isLocalApi = apiUrl.hostname === "localhost" || apiUrl.hostname === "127.0.0.1";
+    const isLocalPage =
+      window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+    return isLocalApi && !isLocalPage ? "" : configuredBaseUrl;
+  } catch {
+    return configuredBaseUrl;
+  }
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export const AUTH_EXPIRED_EVENT = "wavey:auth-expired";
 

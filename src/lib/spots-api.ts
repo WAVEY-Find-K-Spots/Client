@@ -92,13 +92,16 @@ export interface SpotNearbyItem {
 
 /** GET /api/v1/spots/{spotId} — 인증 필요 */
 export function getSpot(spotId: number) {
-  return apiRequest<SpotDetail>(`/api/v1/spots/${spotId}`);
+  return apiRequest<SpotDetail>(`/api/v1/spots/${spotId}`, {
+    authenticated: false,
+  });
 }
 
 /** GET /api/v1/spots/{spotId}/nearby — 인증 필요, radiusMeters 1~100000 */
 export function getNearbySpots(spotId: number, radiusMeters = 5000) {
   return apiRequest<SpotNearbyItem[]>(
     `/api/v1/spots/${spotId}/nearby?radiusMeters=${radiusMeters}`,
+    { authenticated: false },
   );
 }
 
