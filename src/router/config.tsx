@@ -13,6 +13,7 @@ import NotificationsPage from "@/pages/notifications/page";
 import OAuthCallbackPage from "@/pages/login/callback";
 import VisionPage from "@/pages/vision/page";
 import LegalDocumentPage from "@/pages/legal/page";
+import AdminPage from "@/pages/admin/page";
 
 const routes: RouteObject[] = [
   {
@@ -28,6 +29,7 @@ const routes: RouteObject[] = [
       { path: "stamp", element: <StampTab /> },
       { path: "stamp-api", element: <Navigate to="/stamp" replace /> },
       { path: "mypage", element: <MyPage /> },
+      { path: "admin", element: <AdminPage /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "vision", element: <VisionPage /> },
       { path: "legal/:type", element: <LegalDocumentPage /> },
