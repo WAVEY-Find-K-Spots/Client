@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import StatusBar from "@/components/layout/StatusBar";
 import {
   useNotifications,
   type AppNotification,
   type NotifType,
 } from "@/store/notifications-context";
+import { formatNotificationTime } from "./format";
 import {
   ChevronLeft,
   BadgeCheck,
@@ -43,30 +45,9 @@ function notificationLink(notification: AppNotification): string | undefined {
   }
 }
 
-function relativeTime(createdAt: string) {
-  const created = new Date(createdAt);
-  if (Number.isNaN(created.getTime())) return "";
-
-  const seconds = Math.max(0, Math.floor((Date.now() - created.getTime()) / 1000));
-  if (seconds < 60) return "방금 전";
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}분 전`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일 전`;
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: created.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(created);
-}
-
 export default function NotificationsPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === "en" ? "en" : "ko";
   const {
     items,
     unreadCount,
@@ -111,25 +92,29 @@ export default function NotificationsPage() {
         <button
           type="button"
           onClick={() => navigate?.("/mypage")}
-          aria-label="뒤로가기"
+          aria-label={t("notifications.back")}
           className="flex items-center justify-center w-9 h-9 rounded-2xl bg-cream cursor-pointer whitespace-nowrap"
         >
           <ChevronLeft size={20} color="#2C1810" strokeWidth={2} />
         </button>
-        <span className="text-[18px] font-semibold text-ink">알림</span>
+        <span className="text-[18px] font-semibold text-ink">
+          {t("notifications.title")}
+        </span>
         <button
           type="button"
           onClick={() => void readAll()}
           disabled={unreadCount === 0 || markingAll || loading}
           className="text-[12px] font-medium text-brand disabled:text-line cursor-pointer whitespace-nowrap"
         >
-          {markingAll ? "처리 중" : "모두 읽음"}
+          {markingAll
+            ? t("notifications.markingAll")
+            : t("notifications.markAll")}
         </button>
       </div>
 
       {unreadCount > 0 && (
         <p className="px-5 mt-3 text-[12px] text-muted">
-          읽지 않은 알림 {unreadCount}개
+          {t("notifications.unreadCount", { count: unreadCount })}
         </p>
       )}
 
@@ -145,7 +130,7 @@ export default function NotificationsPage() {
             className="flex items-center gap-1 text-[12px] font-semibold text-brand disabled:opacity-50"
           >
             <RefreshCw size={13} strokeWidth={2} />
-            다시 시도
+            {t("notifications.retry")}
           </button>
         </div>
       )}
@@ -153,7 +138,7 @@ export default function NotificationsPage() {
       {loading && items.length === 0 ? (
         <div className="px-5 mt-16 flex flex-col items-center text-muted">
           <RefreshCw size={22} className="animate-spin" />
-          <p className="mt-3 text-[12px]">알림을 불러오는 중이에요.</p>
+          <p className="mt-3 text-[12px]">{t("notifications.loading")}</p>
         </div>
       ) : items.length === 0 && !error ? (
         <div className="px-5 mt-16 flex flex-col items-center text-center">
@@ -161,10 +146,10 @@ export default function NotificationsPage() {
             <Bell size={24} color="#A8623E" strokeWidth={1.8} />
           </span>
           <p className="mt-4 text-[14px] font-semibold text-ink">
-            새로운 알림이 없어요
+            {t("notifications.emptyTitle")}
           </p>
           <p className="mt-1 text-[12px] text-muted">
-            여행 소식이 생기면 이곳에서 알려드릴게요.
+            {t("notifications.emptyDescription")}
           </p>
         </div>
       ) : (
@@ -200,7 +185,15 @@ export default function NotificationsPage() {
                     {notification.body}
                   </p>
                   <p className="mt-1.5 text-[11px] text-muted">
-                    {relativeTime(notification.createdAt)}
+                    {formatNotificationTime(notification.createdAt, locale, {
+                      justNow: t("notifications.time.justNow"),
+                      minutesAgo: (value) =>
+                        t("notifications.time.minutesAgo", { count: value }),
+                      hoursAgo: (value) =>
+                        t("notifications.time.hoursAgo", { count: value }),
+                      daysAgo: (value) =>
+                        t("notifications.time.daysAgo", { count: value }),
+                    })}
                   </p>
                 </div>
               </button>
@@ -214,7 +207,9 @@ export default function NotificationsPage() {
               disabled={loadingMore}
               className="h-11 rounded-[14px] bg-white border border-line text-[13px] font-semibold text-brand disabled:text-muted"
             >
-              {loadingMore ? "불러오는 중..." : "알림 더 보기"}
+              {loadingMore
+                ? t("notifications.loadingMore")
+                : t("notifications.loadMore")}
             </button>
           )}
         </div>

@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { ApiError } from "@/lib/auth/api";
 import {
   notificationsApi,
@@ -22,9 +23,13 @@ import {
 const PAGE_SIZE = 20;
 
 function errorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError || error instanceof Error
-    ? error.message
-    : fallback;
+  return error instanceof ApiError
+    ? error.code
+      ? `${fallback} (${error.code})`
+      : fallback
+    : error instanceof Error
+      ? error.message
+      : fallback;
 }
 
 function mergeNotifications(
@@ -37,6 +42,7 @@ function mergeNotifications(
 }
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const language = user?.language === "EN" ? "en" : "ko";
   const requestId = useRef(0);
@@ -97,7 +103,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       } catch (requestError) {
         if (currentRequestId !== requestId.current) return;
         setError(
-          errorMessage(requestError, "알림을 불러오지 못했습니다."),
+          errorMessage(requestError, t("notifications.errors.load")),
         );
       } finally {
         if (currentRequestId === requestId.current) {
@@ -106,7 +112,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [language, user],
+    [language, t, user],
   );
 
   const refresh = useCallback(
@@ -141,7 +147,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       .catch((requestError) => {
         if (active) {
           setSettingsError(
-            errorMessage(requestError, "알림 설정을 불러오지 못했습니다."),
+            errorMessage(requestError, t("notifications.errors.settingsLoad")),
           );
         }
       })
@@ -152,7 +158,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [t, user]);
 
   const markRead = useCallback(
     async (id: number) => {
@@ -179,12 +185,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         );
         setUnreadCount((count) => count + 1);
         setError(
-          errorMessage(requestError, "알림 읽음 처리에 실패했습니다."),
+          errorMessage(requestError, t("notifications.errors.read")),
         );
         throw requestError;
       }
     },
-    [items, language],
+    [items, language, t],
   );
 
   const markAllRead = useCallback(async () => {
@@ -204,11 +210,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       setItems(previousItems);
       setUnreadCount(previousUnreadCount);
       setError(
-        errorMessage(requestError, "전체 읽음 처리에 실패했습니다."),
+        errorMessage(requestError, t("notifications.errors.readAll")),
       );
       throw requestError;
     }
-  }, [items, unreadCount]);
+  }, [items, t, unreadCount]);
 
   const updateNotificationSettings = useCallback(
     async (patch: NotificationSettingsPatch) => {
@@ -225,14 +231,14 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       } catch (requestError) {
         setNotificationSettings(previous);
         setSettingsError(
-          errorMessage(requestError, "알림 설정 변경에 실패했습니다."),
+          errorMessage(requestError, t("notifications.errors.settingsUpdate")),
         );
         throw requestError;
       } finally {
         setSettingsUpdating(false);
       }
     },
-    [notificationSettings, settingsUpdating],
+    [notificationSettings, settingsUpdating, t],
   );
 
   const value = useMemo<NotificationsContextValue>(
