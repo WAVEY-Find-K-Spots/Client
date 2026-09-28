@@ -40,3 +40,6 @@ Thumbs.db
 
 # build
 /out
+
+# Claude Code
+.claude/
