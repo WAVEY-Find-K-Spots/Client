@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { RouteStop } from "@/lib/route-adapters";
-import type { TransitLeg } from "@/lib/routes-api";
+import type { TransitLeg, TransitOption } from "@/lib/routes-api";
+import { describeOption, displayRouteName } from "@/lib/transit-options";
+import { TransitTimeline } from "./TransitOptionsSheet";
 import { spotGradientMap } from "@/mocks/spots";
 import {
   MapPin,
@@ -17,6 +19,7 @@ import {
   ArrowUp,
   Bus,
   TrainFront,
+  ChevronRight,
 } from "lucide-react";
 
 export type TransportMode = "walk" | "transit" | "car";
@@ -47,10 +50,90 @@ export function TransitLegBadges({ legs }: { legs: TransitLeg[] }) {
           ) : (
             <Bus size={10} />
           )}
-          {leg.routeName}
+          {displayRouteName(leg.routeName)}
         </span>
       ))}
     </div>
+  );
+}
+
+/** 스팟 사이 구간 칩 — 대중교통 후보가 있으면 눌러서 경로 후보 시트를 연다 */
+function SegmentConnector({
+  icon: Icon,
+  label,
+  legs,
+  optionCount,
+  option,
+  onClick,
+}: {
+  icon: typeof Footprints;
+  label: string;
+  legs: TransitLeg[];
+  optionCount: number;
+  /** 지금 구간에 적용된 대중교통 경로 — 있으면 세부 타임라인을 바로 펼쳐 보여준다 */
+  option?: TransitOption;
+  onClick?: () => void;
+}) {
+  const clickable = optionCount > 0 && !!onClick;
+  const chip = (
+    <div className="relative w-full flex items-center justify-center">
+      <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-line" />
+      <span className="relative flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-line/70">
+        <span className="flex items-center justify-center w-3 h-3">
+          <Icon size={11} color="#A8623E" strokeWidth={2.2} />
+        </span>
+        <span className="text-[11px] text-sub leading-none">{label}</span>
+        {clickable && (
+          <>
+            <span className="text-[11px] text-line leading-none">|</span>
+            <span className="text-[11px] font-semibold text-brand leading-none">
+              경로 {optionCount}개
+            </span>
+            <ChevronRight size={11} color="#A8623E" strokeWidth={2.4} />
+          </>
+        )}
+      </span>
+    </div>
+  );
+
+  if (option && option.legs.length > 0) {
+    return (
+      <div className="flex flex-col gap-2 py-2.5">
+        {clickable ? (
+          <button type="button" onClick={onClick} className="w-full cursor-pointer">
+            {chip}
+          </button>
+        ) : (
+          chip
+        )}
+        <div className="rounded-[14px] bg-page border border-line/60 px-3 py-2.5">
+          <p className="mb-2 text-[11px] text-sub">{describeOption(option)}</p>
+          <TransitTimeline legs={option.legs} compact />
+        </div>
+      </div>
+    );
+  }
+
+  const content = (
+    <>
+      {chip}
+      <TransitLegBadges legs={legs} />
+    </>
+  );
+
+  if (!clickable) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-1.5 py-2.5">{content}</div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex flex-col items-center justify-center gap-1.5 py-2.5 cursor-pointer"
+    >
+      {content}
+    </button>
   );
 }
 
@@ -64,6 +147,12 @@ interface PlanSheetProps {
   onStart: () => void;
   travelToNext: (index: number) => string;
   getTransitLegs?: (index: number) => TransitLeg[];
+  /** 구간의 대중교통 경로 후보 개수 (0이면 후보 보기 버튼을 숨김) */
+  getOptionCount?: (index: number) => number;
+  /** 구간에 적용된 대중교통 경로 (선택한 후보, 없으면 추천 경로) */
+  getSelectedOption?: (index: number) => TransitOption | undefined;
+  /** 구간 칩을 눌러 대중교통 경로 후보 시트 열기 */
+  onSegmentClick?: (index: number) => void;
   summaryDuration?: string;
   summaryDistance?: string;
   onExpandChange?: (expanded: boolean) => void;
@@ -79,6 +168,9 @@ export default function PlanSheet({
   onStart,
   travelToNext,
   getTransitLegs,
+  getOptionCount,
+  getSelectedOption,
+  onSegmentClick,
   summaryDuration,
   summaryDistance,
   onExpandChange,
@@ -335,26 +427,14 @@ export default function PlanSheet({
                 </div>
 
                 {notLast && (
-                  <div className="flex flex-col items-center justify-center gap-1.5 py-2.5">
-                    <div className="relative w-full flex items-center justify-center">
-                      <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-line" />
-                      <span className="relative flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-line/70">
-                        <span className="flex items-center justify-center w-3 h-3">
-                          <ModeIcon
-                            size={11}
-                            color="#A8623E"
-                            strokeWidth={2.2}
-                          />
-                        </span>
-                        <span className="text-[11px] text-sub leading-none">
-                          {travelToNext(i)}
-                        </span>
-                      </span>
-                    </div>
-                    {transport === "transit" && (
-                      <TransitLegBadges legs={getTransitLegs?.(i) ?? []} />
-                    )}
-                  </div>
+                  <SegmentConnector
+                    icon={ModeIcon}
+                    label={travelToNext(i)}
+                    legs={transport === "transit" ? getTransitLegs?.(i) ?? [] : []}
+                    optionCount={transport === "transit" ? getOptionCount?.(i) ?? 0 : 0}
+                    option={transport === "transit" ? getSelectedOption?.(i) : undefined}
+                    onClick={onSegmentClick ? () => onSegmentClick(i) : undefined}
+                  />
                 )}
               </div>
             );

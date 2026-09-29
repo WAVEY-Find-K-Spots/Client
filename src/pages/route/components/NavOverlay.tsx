@@ -16,6 +16,10 @@ interface NavOverlayProps {
   onNext: () => void;
   travelToNext: (index: number) => string;
   getTransitLegs?: (index: number) => TransitLeg[];
+  /** 구간의 대중교통 경로 후보 개수 (0이면 후보 보기 버튼을 숨김) */
+  getOptionCount?: (index: number) => number;
+  /** 대중교통 경로 후보 시트 열기 */
+  onSegmentClick?: (index: number) => void;
   /** 하단 미니 시트가 펼쳐지고/접힐 때마다 알려줌 — 지도 위 버튼 위치 조정용 */
   onExpandChange?: (expanded: boolean) => void;
 }
@@ -29,6 +33,8 @@ export default function NavOverlay({
   onNext,
   travelToNext,
   getTransitLegs,
+  getOptionCount,
+  onSegmentClick,
   onExpandChange,
 }: NavOverlayProps) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -149,11 +155,24 @@ export default function NavOverlay({
                   ? "모든 스팟을 둘러봤어요. 도착했어요!"
                   : `다음: ${nextSpot!.name}까지 ${travelToNext(current)}`}
               </p>
-              {!isLast && (
-                <div className="mt-1.5">
-                  <TransitLegBadges legs={getTransitLegs?.(current) ?? []} />
-                </div>
-              )}
+              {!isLast &&
+                (onSegmentClick && (getOptionCount?.(current) ?? 0) > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => onSegmentClick(current)}
+                    className="mt-1.5 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <TransitLegBadges legs={getTransitLegs?.(current) ?? []} />
+                    <span className="flex items-center text-[11px] font-semibold text-brand whitespace-nowrap">
+                      경로 {getOptionCount?.(current)}개
+                      <ChevronRight size={12} strokeWidth={2.4} />
+                    </span>
+                  </button>
+                ) : (
+                  <div className="mt-1.5">
+                    <TransitLegBadges legs={getTransitLegs?.(current) ?? []} />
+                  </div>
+                ))}
 
               {/* progress bar */}
               <div className="mt-3 h-1.5 rounded-full bg-line overflow-hidden">

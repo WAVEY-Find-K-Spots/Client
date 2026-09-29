@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import StatusBar from "@/components/layout/StatusBar";
 import RouteMap from "./components/RouteMap";
@@ -6,8 +6,10 @@ import PlanSheet, { type TransportMode } from "./components/PlanSheet";
 import NavOverlay, { MINI_COLLAPSED, MINI_EXPANDED } from "./components/NavOverlay";
 import SpotPicker from "./components/SpotPicker";
 import PublicRoutesSheet from "./components/PublicRoutesSheet";
+import TransitOptionsSheet from "./components/TransitOptionsSheet";
 import { useRoute } from "@/store/route-context";
 import { getDirections, type DirectionsResult, type TransportMode as ApiTransportMode } from "@/lib/routes-api";
+import { formatDistance, formatDuration, getSegmentOptions, toMinutes } from "@/lib/transit-options";
 import {
   Plus,
   MoreHorizontal,
@@ -68,6 +70,9 @@ export default function RouteTab() {
   const [nameDraft, setNameDraft] = useState("");
   const [directions, setDirections] = useState<DirectionsResult | null>(null);
   const [directionsLoading, setDirectionsLoading] = useState(false);
+  /** 구간 index → 사용자가 고른 대중교통 경로 후보 index (없으면 0번 추천 경로) */
+  const [selectedOptions, setSelectedOptions] = useState<Record<number, number>>({});
+  const [optionsSheetIndex, setOptionsSheetIndex] = useState<number | null>(null);
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -112,34 +117,107 @@ export default function RouteTab() {
   const showToast = (msg: string) => setToast(msg);
 
   // 스팟이 2개 이상이고 편집/탐색 화면일 때 이동수단별 경로를 계산
+  // 편집 ↔ 탐색 전환만으로는 다시 계산하지 않도록(고른 경로 후보 유지) 두 화면을 하나로 묶고,
+  // 순서가 바뀌면 다시 계산하도록 스팟 구성을 키로 쓴다
+  const directionsActive = mode === "plan" || mode === "nav";
+  const stopsKey = stops.map((s) => s.id).join(",");
   useEffect(() => {
-    if (routeId === null || stops.length < 2 || (mode !== "plan" && mode !== "nav")) {
-      setDirections(null);
+    const resetDirections = (result: DirectionsResult | null) => {
+      setDirections(result);
+      setSelectedOptions({});
+      setOptionsSheetIndex(null);
+    };
+
+    if (routeId === null || stopsKey.split(",").length < 2 || !directionsActive) {
+      resetDirections(null);
       return;
     }
+
+    // 순서 변경은 낙관적으로 먼저 반영되므로, 드래그가 끝나고 서버 저장이 따라올 시간을 둔 뒤 요청하고
+    // 응답 구간 순서가 화면과 다르면(아직 저장 전) 한 번 더 요청한다
+    const matchesStops = (result: DirectionsResult) =>
+      result.segments.map((segment) => String(segment.fromRouteSpotId)).join(",") ===
+      stopsKey.split(",").slice(0, -1).join(",");
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
     let cancelled = false;
     setDirectionsLoading(true);
-    getDirections(routeId, transportToApi[transport])
-      .then((result) => {
-        if (!cancelled) setDirections(result);
-      })
-      .catch(() => {
-        if (!cancelled) setDirections(null);
-      })
-      .finally(() => {
+    void (async () => {
+      try {
+        await wait(300);
+        if (cancelled) return;
+        let result = await getDirections(routeId, transportToApi[transport]);
+        if (!cancelled && !matchesStops(result)) {
+          await wait(800);
+          if (cancelled) return;
+          result = await getDirections(routeId, transportToApi[transport]);
+        }
+        if (!cancelled) resetDirections(result);
+      } catch {
+        if (!cancelled) resetDirections(null);
+      } finally {
         if (!cancelled) setDirectionsLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [routeId, stops.length, transport, mode]);
+  }, [routeId, stopsKey, transport, directionsActive]);
+
+  const getOptions = (index: number) =>
+    transport === "transit" ? getSegmentOptions(directions?.segments[index]) : [];
+
+  /** 추천(0번)이 아닌 후보를 고른 구간이면 그 후보, 아니면 null */
+  const getCustomOption = (index: number) => {
+    const optionIndex = selectedOptions[index] ?? 0;
+    return optionIndex > 0 ? getOptions(index)[optionIndex] ?? null : null;
+  };
 
   const travelToNext = (index: number): string => {
     const segment = directions?.segments[index];
+    const custom = getCustomOption(index);
+    if (custom) return `대중교통 ${toMinutes(custom.durationSeconds)}분`;
     return segment?.durationText ?? travelFallback[transport];
   };
 
-  const getTransitLegs = (index: number) => directions?.segments[index]?.transitLegs ?? [];
+  const getTransitLegs = (index: number) =>
+    getCustomOption(index)?.legs ?? directions?.segments[index]?.transitLegs ?? [];
+
+  const getOptionCount = (index: number) => getOptions(index).length;
+
+  const getSelectedOption = (index: number) => {
+    const options = getOptions(index);
+    return options[selectedOptions[index] ?? 0] ?? options[0];
+  };
+
+  // 다른 후보를 고른 구간이 있으면 지도 경로선과 합계를 선택한 후보 기준으로 다시 계산
+  const selection = useMemo(() => {
+    if (!directions || transport !== "transit") return null;
+    const picked = directions.segments.map((segment, i) => {
+      const optionIndex = selectedOptions[i] ?? 0;
+      return optionIndex > 0 ? getSegmentOptions(segment)[optionIndex] ?? null : null;
+    });
+    if (picked.every((option) => option === null)) return null;
+
+    let durationSeconds = 0;
+    let distanceMeters = 0;
+    const coordinates: [number, number][] = [];
+    directions.segments.forEach((segment, i) => {
+      const source = picked[i] ?? segment;
+      durationSeconds += source.durationSeconds;
+      distanceMeters += source.distanceMeters;
+      coordinates.push(...source.geometry.coordinates);
+    });
+    return {
+      coordinates,
+      durationText: `약 ${formatDuration(durationSeconds)}`,
+      distanceText: formatDistance(distanceMeters),
+    };
+  }, [directions, transport, selectedOptions]);
+
+  const routeGeometry = selection?.coordinates ?? directions?.geometry.coordinates;
+  const summaryDuration = selection?.durationText ?? directions?.total.durationText;
+  const summaryDistance = selection?.distanceText ?? directions?.total.distanceText;
 
   const handleRemove = (id: string) => {
     const wasLast = stops.length <= 1;
@@ -386,7 +464,7 @@ export default function RouteTab() {
             <RouteMap
               variant="plan"
               stops={stops}
-              routeGeometry={directions?.geometry.coordinates}
+              routeGeometry={routeGeometry}
               showLocateControl={false}
               locateSignal={locateSignal}
             />
@@ -406,8 +484,11 @@ export default function RouteTab() {
             onStart={startNav}
             travelToNext={travelToNext}
             getTransitLegs={getTransitLegs}
-            summaryDuration={directionsLoading ? "계산 중..." : directions?.total.durationText}
-            summaryDistance={directionsLoading ? undefined : directions?.total.distanceText}
+            getOptionCount={getOptionCount}
+            getSelectedOption={getSelectedOption}
+            onSegmentClick={setOptionsSheetIndex}
+            summaryDuration={directionsLoading ? "계산 중..." : summaryDuration}
+            summaryDistance={directionsLoading ? undefined : summaryDistance}
             onExpandChange={setPlanSheetExpanded}
           />
           <button
@@ -431,7 +512,7 @@ export default function RouteTab() {
             variant="nav"
             stops={stops}
             currentIndex={current}
-            routeGeometry={directions?.geometry.coordinates}
+            routeGeometry={routeGeometry}
             onLocate={() => showToast("현재 위치로 이동했어요")}
             onLocateError={() => showToast("위치를 확인할 수 없어요. 권한을 허용해 주세요")}
             bottomInset={navSheetExpanded ? MINI_EXPANDED : MINI_COLLAPSED}
@@ -458,6 +539,8 @@ export default function RouteTab() {
             }}
             travelToNext={travelToNext}
             getTransitLegs={getTransitLegs}
+            getOptionCount={getOptionCount}
+            onSegmentClick={setOptionsSheetIndex}
           />
         </div>
       )}
@@ -475,6 +558,20 @@ export default function RouteTab() {
           routeId={routeId}
           onAdd={handleAdd}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {optionsSheetIndex !== null && stops[optionsSheetIndex + 1] && (
+        <TransitOptionsSheet
+          fromName={stops[optionsSheetIndex].name}
+          toName={stops[optionsSheetIndex + 1].name}
+          options={getOptions(optionsSheetIndex)}
+          selectedIndex={selectedOptions[optionsSheetIndex] ?? 0}
+          onSelect={(optionIndex) => {
+            setSelectedOptions((prev) => ({ ...prev, [optionsSheetIndex]: optionIndex }));
+            showToast("선택한 경로로 바꿨어요");
+          }}
+          onClose={() => setOptionsSheetIndex(null)}
         />
       )}
 
