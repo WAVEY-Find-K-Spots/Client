@@ -3,6 +3,7 @@ import { X, Check, Star, Share2, BookOpen } from "lucide-react";
 import type { OverlayStamp } from "../adapters";
 import StampAvatar from "./StampAvatar";
 import { getStampCategoryTheme } from "../stamp-themes";
+import CategoryThemeIcon from "../category-theme-icon";
 
 interface AcquiredOverlayProps {
   stamp: OverlayStamp;
@@ -88,13 +89,12 @@ export default function AcquiredOverlay({
                     background: theme.fallback,
                   }}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="select-none leading-none"
-                    style={{ fontSize: 68 }}
-                  >
-                    {theme.emoji}
-                  </span>
+                  <CategoryThemeIcon
+                    category={stamp.category}
+                    size={68}
+                    color="#FFFFFF"
+                    strokeWidth={1.8}
+                  />
                   <span className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-black/20">
                     <Check size={20} color="#FFFFFF" strokeWidth={2.6} />
                   </span>
