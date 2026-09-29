@@ -57,7 +57,7 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
       } else {
         onToast(
           error instanceof ApiError
-            ? error.message
+            ? `${t("mypage.settings.changeFailed")} (${error.code ?? error.status})`
             : t("mypage.settings.changeFailed"),
         );
       }
