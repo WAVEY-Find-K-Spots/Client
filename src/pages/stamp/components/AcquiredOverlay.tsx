@@ -83,13 +83,21 @@ export default function AcquiredOverlay({
                 />
               ) : (
                 <div
-                  className="w-full h-full rounded-full flex items-center justify-center"
+                  className="relative w-full h-full rounded-full flex items-center justify-center"
                   style={{
-                    background:
-                      stamp.gradient ?? theme.fallback,
+                    background: theme.fallback,
                   }}
                 >
-                  <Check size={32} color="#FFFFFF" strokeWidth={2.6} />
+                  <span
+                    aria-hidden="true"
+                    className="select-none leading-none"
+                    style={{ fontSize: 68 }}
+                  >
+                    {theme.emoji}
+                  </span>
+                  <span className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-black/20">
+                    <Check size={20} color="#FFFFFF" strokeWidth={2.6} />
+                  </span>
                 </div>
               )}
             </div>
