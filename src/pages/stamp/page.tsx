@@ -13,6 +13,7 @@ import {
   type StampItem,
 } from "@/lib/stamps-api";
 import { shareContent, type ShareResult } from "@/lib/share";
+import { CATEGORY_IMAGE_FALLBACK } from "@/lib/image-fallback";
 import { getRegions, type Region } from "@/lib/regions-api";
 import type { SpotCategory } from "@/lib/routes-api";
 import { useAuth } from "@/store/auth-context";
@@ -278,6 +279,18 @@ export default function StampTab() {
     });
   };
 
+  const playImageAcquireAnimation = (category: SpotCategory) => {
+    const label = testCategories.find((item) => item.value === category)?.label;
+    setPreviewBadge(null);
+    setPreviewOverlay({
+      name: `이미지 테스트 · ${label ?? "스탬프"}`,
+      category,
+      dateShort: "2026.03.24",
+      imageUrl: CATEGORY_IMAGE_FALLBACK[category],
+      kContent: "이미지 로딩 테스트",
+    });
+  };
+
   return (
     <div className="min-h-full bg-page">
       <StatusBar variant="dark" />
@@ -333,6 +346,18 @@ export default function StampTab() {
                 className="h-6 rounded-full bg-ink/90 text-[9px] font-semibold text-white cursor-pointer whitespace-nowrap"
               >
                 뱃지 · {category.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-4 gap-1">
+            {testCategories.map((category) => (
+              <button
+                key={`image-${category.value}`}
+                type="button"
+                onClick={() => playImageAcquireAnimation(category.value)}
+                className="h-6 rounded-full bg-brand/20 text-[9px] font-semibold text-brand cursor-pointer whitespace-nowrap"
+              >
+                이미지 · {category.label}
               </button>
             ))}
           </div>
