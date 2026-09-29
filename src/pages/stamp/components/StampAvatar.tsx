@@ -5,7 +5,6 @@ import {
   getStampCategoryTheme,
   type StampVisualState,
 } from "../stamp-themes";
-import CategoryThemeIcon from "../category-theme-icon";
 
 interface StampAvatarProps {
   name: string;
@@ -17,7 +16,7 @@ interface StampAvatarProps {
   showCheck?: boolean;
 }
 
-/** 원형 스탬프 이미지 — <img> 우선, 없으면 그라데이션 */
+/** 원형 스탬프 이미지 — <img> 우선, 없으면 카테고리 이모지 fallback */
 export default function StampAvatar({
   name,
   imageUrl,
@@ -51,12 +50,13 @@ export default function StampAvatar({
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center">
-          <CategoryThemeIcon
-            category={category}
-            size={Math.round(size * 0.32)}
-            color="#FFFFFF"
-            strokeWidth={1.8}
-          />
+          <span
+            aria-hidden="true"
+            className="select-none leading-none"
+            style={{ fontSize: Math.round(size * 0.36) }}
+          >
+            {theme.emoji}
+          </span>
         </div>
       )}
       {locked && (
