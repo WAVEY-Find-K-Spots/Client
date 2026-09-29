@@ -13,7 +13,6 @@ import {
   type StampItem,
 } from "@/lib/stamps-api";
 import { shareContent, type ShareResult } from "@/lib/share";
-import { CATEGORY_IMAGE_FALLBACK } from "@/lib/image-fallback";
 import { getRegions, type Region } from "@/lib/regions-api";
 import type { SpotCategory } from "@/lib/routes-api";
 import { useAuth } from "@/store/auth-context";
@@ -279,14 +278,17 @@ export default function StampTab() {
     });
   };
 
-  const playImageAcquireAnimation = (category: SpotCategory) => {
-    const label = testCategories.find((item) => item.value === category)?.label;
+  const imageTestStamps = stamps
+    .filter((stamp) => Boolean(stamp.imageUrl?.trim()))
+    .slice(0, 4);
+
+  const playImageAcquireAnimation = (stamp: StampItem) => {
     setPreviewBadge(null);
     setPreviewOverlay({
-      name: `이미지 테스트 · ${label ?? "스탬프"}`,
-      category,
+      name: stamp.name,
+      category: stamp.category,
       dateShort: "2026.03.24",
-      imageUrl: CATEGORY_IMAGE_FALLBACK[category],
+      imageUrl: stamp.imageUrl,
       kContent: "이미지 로딩 테스트",
     });
   };
@@ -350,16 +352,23 @@ export default function StampTab() {
             ))}
           </div>
           <div className="mt-2 grid grid-cols-4 gap-1">
-            {testCategories.map((category) => (
-              <button
-                key={`image-${category.value}`}
-                type="button"
-                onClick={() => playImageAcquireAnimation(category.value)}
-                className="h-6 rounded-full bg-brand/20 text-[9px] font-semibold text-brand cursor-pointer whitespace-nowrap"
-              >
-                이미지 · {category.label}
-              </button>
-            ))}
+            {imageTestStamps.length > 0 ? (
+              imageTestStamps.map((stamp) => (
+                <button
+                  key={`image-${stamp.spotId}`}
+                  type="button"
+                  onClick={() => playImageAcquireAnimation(stamp)}
+                  className="h-6 rounded-full bg-brand/20 px-2 text-[9px] font-semibold text-brand cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis"
+                  title={stamp.name}
+                >
+                  이미지 · {stamp.name}
+                </button>
+              ))
+            ) : (
+              <span className="col-span-4 text-center text-[9px] text-muted">
+                API 대표 이미지가 있는 스탬프가 없어요
+              </span>
+            )}
           </div>
           {showStateSamples && (
             <div className="mt-3 rounded-[10px] bg-white/75 p-2.5">
