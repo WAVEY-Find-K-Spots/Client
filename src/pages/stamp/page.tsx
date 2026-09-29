@@ -14,20 +14,15 @@ import {
 } from "@/lib/stamps-api";
 import { shareContent, type ShareResult } from "@/lib/share";
 import { getRegions, type Region } from "@/lib/regions-api";
-import type { SpotCategory } from "@/lib/routes-api";
 import { useAuth } from "@/store/auth-context";
-import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
 import {
   toOverlayStamp,
   remainingForNextBadge,
   nextBadgeProgressPercent,
   formatAcquiredShort,
-  type OverlayStamp,
 } from "./adapters";
 import StampbookView from "./components/StampbookView";
-import BadgeView, { BadgeHex } from "./components/BadgeView";
-import StampAvatar from "./components/StampAvatar";
-import { getStampCategoryTheme } from "./stamp-themes";
+import BadgeView from "./components/BadgeView";
 import BadgeAcquiredOverlay, {
   type OverlayBadge,
 } from "./components/BadgeAcquiredOverlay";
@@ -42,13 +37,6 @@ const PAGE_SIZE = 20;
 
 type View = "book" | "badge";
 
-const testCategories: Array<{ value: SpotCategory; label: string }> = [
-  { value: "K_DRAMA", label: "드라마" },
-  { value: "K_POP", label: "K-POP" },
-  { value: "K_MOVIE", label: "영화" },
-  { value: "K_HERITAGE", label: "문화재" },
-];
-
 function errorMessage(err: unknown, fallback: string) {
   if (err instanceof ApiError) return err.message || fallback;
   return fallback;
@@ -61,17 +49,11 @@ export default function StampTab() {
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
   const goLogin = () => navigate?.("/login");
-  const requireLogin = STAMP_TEST_MODE
-    ? false
-    : !initializing && !user;
+  const requireLogin = !initializing && !user;
 
   const [view, setView] = useState<View>("book");
   const [activeStamp, setActiveStamp] = useState<StampItem | null>(null);
-  const [previewOverlay, setPreviewOverlay] = useState<OverlayStamp | null>(
-    null,
-  );
   const [previewBadge, setPreviewBadge] = useState<OverlayBadge | null>(null);
-  const [showStateSamples, setShowStateSamples] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [regionKey, setRegionKey] = useState("all");
   const [regionId, setRegionId] = useState<number | null>(null);
@@ -181,7 +163,7 @@ export default function StampTab() {
   };
 
   useEffect(() => {
-    if (!STAMP_TEST_MODE && (initializing || !user)) {
+    if (initializing || !user) {
       setStamps([]);
       setCollectedCount(0);
       setHasNext(false);
@@ -190,18 +172,16 @@ export default function StampTab() {
       setBookError(null);
       return;
     }
-    if (!STAMP_TEST_MODE && initializing) return;
     void loadStampBook(regionId, 0, false);
   }, [initializing, user, regionId, loadStampBook]);
 
   useEffect(() => {
-    if (!STAMP_TEST_MODE && (initializing || !user)) {
+    if (initializing || !user) {
       setBadges(null);
       setBadgeLoading(false);
       setBadgeError(null);
       return;
     }
-    if (!STAMP_TEST_MODE && initializing) return;
     void loadBadges();
   }, [initializing, user, loadBadges]);
 
@@ -249,160 +229,11 @@ export default function StampTab() {
   };
 
   const title = view === "book" ? "스탬프북" : "뱃지 컬렉션";
-  const overlayStamp = previewOverlay
-    ?? (activeStamp ? toOverlayStamp(activeStamp) : null);
-
-  const playAcquireAnimation = (category?: SpotCategory) => {
-    setPreviewBadge(null);
-    setPreviewOverlay({
-      name: stamps[0]?.name ?? "경복궁",
-      category: category ?? stamps[0]?.category ?? "K_HERITAGE",
-      dateShort: "2026.03.24",
-      imageUrl: stamps[0]?.imageUrl ?? null,
-      gradient: "linear-gradient(158deg,#7a3d28,#c96a42)",
-      kContent: "테스트 획득 애니메이션",
-    });
-  };
-
-  const playBadgeAnimation = (category?: SpotCategory) => {
-    setPreviewOverlay(null);
-    setActiveStamp(null);
-    const sample = badges?.acquired[0] ?? badges?.inProgress[0];
-    setPreviewBadge({
-      name: sample?.name ?? "서울 탐험가",
-      category: category ?? sample?.category ?? "K_HERITAGE",
-      description:
-        sample?.description ?? "서울 스팟을 모아 획득한 특별한 뱃지예요",
-      imageUrl: sample?.imageUrl ?? null,
-      dateShort: "2026.03.24",
-    });
-  };
-
-  const imageTestStamps = stamps
-    .filter((stamp) => Boolean(stamp.imageUrl?.trim()))
-    .slice(0, 4);
-
-  const playImageAcquireAnimation = (stamp: StampItem) => {
-    setPreviewBadge(null);
-    setPreviewOverlay({
-      name: stamp.name,
-      category: stamp.category,
-      dateShort: "2026.03.24",
-      imageUrl: stamp.imageUrl,
-      kContent: "이미지 로딩 테스트",
-    });
-  };
+  const overlayStamp = activeStamp ? toOverlayStamp(activeStamp) : null;
 
   return (
     <div className="min-h-full bg-page">
       <StatusBar variant="dark" />
-
-      {STAMP_TEST_MODE && (
-        <div className="mx-5 mt-2 rounded-[12px] bg-brand/15 px-3 py-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium text-brand shrink-0">
-              TEST MODE
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => playAcquireAnimation()}
-                className="h-7 px-2.5 rounded-full bg-brand text-white text-[10px] font-semibold cursor-pointer whitespace-nowrap"
-              >
-                스탬프 기본
-              </button>
-              <button
-                type="button"
-                onClick={() => playBadgeAnimation()}
-                className="h-7 px-2.5 rounded-full bg-ink text-white text-[10px] font-semibold cursor-pointer whitespace-nowrap"
-              >
-                뱃지 기본
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowStateSamples((visible) => !visible)}
-                className="h-7 px-2.5 rounded-full bg-white text-brand text-[10px] font-semibold cursor-pointer whitespace-nowrap"
-              >
-                상태 전체
-              </button>
-            </div>
-          </div>
-          <div className="mt-2 grid grid-cols-4 gap-1">
-            {testCategories.map((category) => (
-              <button
-                key={`stamp-${category.value}`}
-                type="button"
-                onClick={() => playAcquireAnimation(category.value)}
-                className="h-6 rounded-full bg-white/80 text-[9px] font-semibold text-brand cursor-pointer whitespace-nowrap"
-              >
-                스탬프 · {category.label}
-              </button>
-            ))}
-          </div>
-          <div className="mt-1 grid grid-cols-4 gap-1">
-            {testCategories.map((category) => (
-              <button
-                key={`badge-${category.value}`}
-                type="button"
-                onClick={() => playBadgeAnimation(category.value)}
-                className="h-6 rounded-full bg-ink/90 text-[9px] font-semibold text-white cursor-pointer whitespace-nowrap"
-              >
-                뱃지 · {category.label}
-              </button>
-            ))}
-          </div>
-          <div className="mt-2 grid grid-cols-4 gap-1">
-            {imageTestStamps.length > 0 ? (
-              imageTestStamps.map((stamp) => (
-                <button
-                  key={`image-${stamp.spotId}`}
-                  type="button"
-                  onClick={() => playImageAcquireAnimation(stamp)}
-                  className="h-6 rounded-full bg-brand/20 px-2 text-[9px] font-semibold text-brand cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis"
-                  title={stamp.name}
-                >
-                  이미지 · {stamp.name}
-                </button>
-              ))
-            ) : (
-              <span className="col-span-4 text-center text-[9px] text-muted">
-                API 대표 이미지가 있는 스탬프가 없어요
-              </span>
-            )}
-          </div>
-          {showStateSamples && (
-            <div className="mt-3 rounded-[10px] bg-white/75 p-2.5">
-              <p className="text-[10px] font-bold text-ink">상태 전체 미리보기</p>
-              <div className="mt-2 grid grid-cols-4 gap-1.5">
-                {testCategories.map((category) => {
-                  const theme = getStampCategoryTheme(category.value);
-                  return (
-                    <div key={`sample-${category.value}`} className="min-w-0">
-                      <p className="truncate text-center text-[9px] font-semibold" style={{ color: theme.accent }}>
-                        {category.label}
-                      </p>
-                      <div className="mt-1 flex flex-col items-center gap-1">
-                        <StampAvatar name={category.label} category={category.value} state="locked" size={42} />
-                        <StampAvatar name={category.label} category={category.value} state="acquired" size={42} />
-                        <BadgeHex name={category.label} category={category.value} imageUrl={null} fallback={theme.fallback} state="locked" />
-                        <BadgeHex name={category.label} category={category.value} imageUrl={null} fallback={theme.fallback} state="claimable" />
-                        <BadgeHex name={category.label} category={category.value} imageUrl={null} fallback={theme.fallback} state="acquired" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[9px] text-muted">
-                <span>● 스탬프 잠김</span>
-                <span>● 스탬프 획득</span>
-                <span>⬡ 뱃지 잠김</span>
-                <span>⬡ 뱃지 대기</span>
-                <span>⬡ 뱃지 획득</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="px-5 pt-1 flex items-center justify-between">
         <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
@@ -494,13 +325,11 @@ export default function StampTab() {
             stamp={overlayStamp}
             onClose={() => {
               setActiveStamp(null);
-              setPreviewOverlay(null);
             }}
             onShare={() => activeStamp && void shareStamp(activeStamp)}
             onShowBook={() => {
               setView("book");
               setActiveStamp(null);
-              setPreviewOverlay(null);
               showToast("스탬프북을 확인해보세요");
             }}
           />,
