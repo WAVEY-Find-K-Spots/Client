@@ -454,6 +454,21 @@
 | `segments[].geometry` | GeoJSON `LineString` | 구간 폴리라인 (`[경도, 위도]`) | `RouteMap` 구간 강조 |
 | `geometry` | GeoJSON `LineString` | 전체 경로 폴리라인 | `RouteMap` polyline |
 | `calculatedAt` | datetime | 계산 시각 | — |
+| `segments[].transitLegs` | array | TRANSIT 세부 구간(도보/버스/지하철). 첫 번째 후보 기준 | 구간 노선 뱃지 |
+| `segments[].transitOptions` | array | TRANSIT 경로 후보 목록(추천 순, 최대 5개). WALK/CAR는 빈 배열 (Server #163) | `TransitOptionsSheet` |
+
+`segments[].transitOptions[]` 요소:
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `distanceMeters` / `durationSeconds` | number | 후보 총 거리 / 소요시간 |
+| `walkDistanceMeters` / `walkSeconds` | number | 총 도보 거리 / 시간 |
+| `transferCount` | number | 환승 횟수 |
+| `fare` | number | 요금(원), 정보가 없으면 0 |
+| `geometry` | GeoJSON `LineString` | 후보 폴리라인 |
+| `legs[]` | array | 세부 구간. `mode`, `routeName`, `routeColor`, `startName`, `endName`, `distanceMeters`, `durationSeconds`, `stationCount`(이동 정류장 수), `passStops`(경유 정류장 이름) |
+
+> 구간의 `distanceMeters`, `durationSeconds`, `durationText`, `geometry`, `transitLegs`와 `total`은 첫 번째(추천) 후보 기준. 클라이언트에서 다른 후보를 고르면 해당 구간의 소요시간, 지도 경로선, 합계를 클라이언트에서 다시 계산한다.
 
 **설계 메모**
 

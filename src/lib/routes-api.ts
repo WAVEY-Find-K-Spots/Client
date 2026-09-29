@@ -48,7 +48,15 @@ export interface SpringPage<T> {
   last: boolean;
 }
 
-export type TransitLegMode = "WALK" | "BUS" | "SUBWAY";
+/** Tmap 대중교통 세부 구간 수단 */
+export type TransitLegMode =
+  | "WALK"
+  | "BUS"
+  | "SUBWAY"
+  | "EXPRESSBUS"
+  | "TRAIN"
+  | "AIRPLANE"
+  | "FERRY";
 
 export interface TransitLeg {
   mode: TransitLegMode;
@@ -58,6 +66,23 @@ export interface TransitLeg {
   endName: string | null;
   distanceMeters: number;
   durationSeconds: number;
+  /** 이동하는 정류장/역 수 (도보 구간은 0) */
+  stationCount?: number;
+  /** 출발부터 도착까지 경유하는 정류장/역 이름 (도보 구간은 빈 배열) */
+  passStops?: string[];
+}
+
+/** 대중교통 경로 후보 하나 */
+export interface TransitOption {
+  distanceMeters: number;
+  durationSeconds: number;
+  walkDistanceMeters: number;
+  walkSeconds: number;
+  transferCount: number;
+  /** 요금(원). 정보가 없으면 0 */
+  fare: number;
+  geometry: { type: "LineString"; coordinates: [number, number][] };
+  legs: TransitLeg[];
 }
 
 export interface DirectionsSegment {
@@ -72,6 +97,8 @@ export interface DirectionsSegment {
   geometry: { type: "LineString"; coordinates: [number, number][] };
   /** TRANSIT일 때만 값이 있음(도보/버스/지하철 세부 구간). WALK/CAR는 빈 배열 */
   transitLegs: TransitLeg[];
+  /** TRANSIT일 때만 값이 있음(추천 순 경로 후보). 구간 대표값은 첫 번째 후보 기준 */
+  transitOptions?: TransitOption[];
 }
 
 export interface DirectionsResult {
