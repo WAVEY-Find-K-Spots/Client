@@ -103,16 +103,18 @@ function TimelineEndpoint({ label, name }: { label: string; name: string }) {
   );
 }
 
-function TimelineLeg({ leg }: { leg: TransitLeg }) {
+function TimelineLeg({ leg, compact = false }: { leg: TransitLeg; compact?: boolean }) {
   const [stopsOpen, setStopsOpen] = useState(false);
 
   if (leg.mode === "WALK") {
     return (
       <div className="flex gap-3">
         <span className="w-6 flex justify-center shrink-0">
-          <span className="w-0 border-l-2 border-dotted border-line min-h-[36px]" />
+          <span
+            className={`w-0 border-l-2 border-dotted border-line ${compact ? "min-h-[28px]" : "min-h-[36px]"}`}
+          />
         </span>
-        <p className="flex items-center gap-1.5 py-2 text-[12px] text-muted">
+        <p className={`flex items-center gap-1.5 text-[12px] text-muted ${compact ? "py-1.5" : "py-2"}`}>
           <Footprints size={13} color="#A89890" />
           도보 {toMinutes(leg.durationSeconds)}분 · {formatDistance(leg.distanceMeters)}
         </p>
@@ -169,6 +171,32 @@ function TimelineLeg({ leg }: { leg: TransitLeg }) {
 
         <p className="mt-2 text-[13px] font-semibold text-ink truncate">{leg.endName} 하차</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 경로 후보의 세부 구간 타임라인 (도보 → 승차 · N개 정류장 이동 · 하차 → …).
+ * fromName/toName을 주면 출발/도착 지점도 함께 그린다.
+ */
+export function TransitTimeline({
+  legs,
+  fromName,
+  toName,
+  compact = false,
+}: {
+  legs: TransitLeg[];
+  fromName?: string;
+  toName?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      {fromName && <TimelineEndpoint label="출발" name={fromName} />}
+      {legs.map((leg, i) => (
+        <TimelineLeg key={i} leg={leg} compact={compact} />
+      ))}
+      {toName && <TimelineEndpoint label="도착" name={toName} />}
     </div>
   );
 }
@@ -232,12 +260,8 @@ export default function TransitOptionsSheet({
                 <OptionSummary option={detail} />
               </div>
 
-              <div className="mt-5 flex flex-col gap-1">
-                <TimelineEndpoint label="출발" name={fromName} />
-                {detail.legs.map((leg, i) => (
-                  <TimelineLeg key={i} leg={leg} />
-                ))}
-                <TimelineEndpoint label="도착" name={toName} />
+              <div className="mt-5">
+                <TransitTimeline legs={detail.legs} fromName={fromName} toName={toName} />
               </div>
             </div>
             <div className="px-5 pt-2 pb-5 shrink-0">

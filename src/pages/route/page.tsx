@@ -185,6 +185,11 @@ export default function RouteTab() {
 
   const getOptionCount = (index: number) => getOptions(index).length;
 
+  const getSelectedOption = (index: number) => {
+    const options = getOptions(index);
+    return options[selectedOptions[index] ?? 0] ?? options[0];
+  };
+
   // 다른 후보를 고른 구간이 있으면 지도 경로선과 합계를 선택한 후보 기준으로 다시 계산
   const selection = useMemo(() => {
     if (!directions || transport !== "transit") return null;
@@ -480,6 +485,7 @@ export default function RouteTab() {
             travelToNext={travelToNext}
             getTransitLegs={getTransitLegs}
             getOptionCount={getOptionCount}
+            getSelectedOption={getSelectedOption}
             onSegmentClick={setOptionsSheetIndex}
             summaryDuration={directionsLoading ? "계산 중..." : summaryDuration}
             summaryDistance={directionsLoading ? undefined : summaryDistance}
