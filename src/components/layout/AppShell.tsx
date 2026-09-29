@@ -7,6 +7,7 @@ const NO_NAV_ROUTES = [
   "/login",
   "/oauth/callback",
   "/notifications",
+  "/admin",
   "/legal/terms",
   "/legal/privacy",
 ];

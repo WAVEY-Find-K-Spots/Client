@@ -315,6 +315,28 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
         </div>
       </div>
 
+      {user?.role === "ADMIN" && (
+        <div className="px-5 mt-6">
+          <button
+            type="button"
+            onClick={() => navigate?.("/admin")}
+            className="w-full flex items-center gap-3 rounded-[16px] bg-ink px-4 py-4 text-left shadow-soft"
+          >
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 shrink-0">
+              <Shield size={19} color="#F7EBE0" strokeWidth={1.9} />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[14px] font-semibold text-white">
+                {t("admin.entry")}
+              </span>
+              <span className="block mt-0.5 text-[11px] leading-relaxed text-white/60">
+                {t("admin.entryDescription")}
+              </span>
+            </span>
+            <ChevronRight size={17} color="#F7EBE0" strokeWidth={2} />
+          </button>
+        </div>
+      )}
       {/* 로그아웃 */}
       <div className="px-5 mt-6">
         <button
