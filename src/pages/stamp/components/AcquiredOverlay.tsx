@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { X, Check, Star, Share2, BookOpen } from "lucide-react";
 import type { OverlayStamp } from "../adapters";
 import StampAvatar from "./StampAvatar";
+import { getStampCategoryTheme } from "../stamp-themes";
 
 interface AcquiredOverlayProps {
   stamp: OverlayStamp;
@@ -30,6 +31,7 @@ export default function AcquiredOverlay({
   onShare,
 }: AcquiredOverlayProps) {
   const dateLabel = useMemo(() => formatVisitDate(stamp.dateShort), [stamp]);
+  const theme = getStampCategoryTheme(stamp.category);
 
   return (
     <div className="absolute inset-0 z-[60] bg-ink flex flex-col overflow-hidden">
@@ -51,7 +53,7 @@ export default function AcquiredOverlay({
           <div className="relative wv-pop">
             <div
               className="absolute -inset-5 rounded-full"
-              style={{ border: "2px dashed #A8623E" }}
+              style={{ border: `2px dashed ${theme.accent}` }}
             />
             {particles.map((p, i) => (
               <span
@@ -59,18 +61,23 @@ export default function AcquiredOverlay({
                 className="absolute wv-float flex items-center justify-center w-3 h-3"
                 style={{ ...p, animationDelay: `${i * 0.35}s` }}
               >
-                <Star size={12} color="#A8623E" fill="#A8623E" />
+                <Star size={12} color={theme.accent} fill={theme.accent} />
               </span>
             ))}
             <div
               className="absolute -inset-3 rounded-full opacity-0 wv-ring-grow"
-              style={{ border: "1px solid rgba(168,98,62,0.5)" }}
+              style={{ border: `1px solid ${theme.accent}80` }}
             />
-            <div className="w-[200px] h-[200px] rounded-full p-5 bg-cream">
+            <div
+              className="w-[200px] h-[200px] rounded-full p-5"
+              style={{ background: theme.background }}
+            >
               {stamp.imageUrl ? (
                 <StampAvatar
                   name={stamp.name}
                   imageUrl={stamp.imageUrl}
+                  category={stamp.category}
+                  state="acquired"
                   size={160}
                   showCheck
                 />
@@ -79,8 +86,7 @@ export default function AcquiredOverlay({
                   className="w-full h-full rounded-full flex items-center justify-center"
                   style={{
                     background:
-                      stamp.gradient ??
-                      "linear-gradient(158deg,#7a3d28,#c96a42)",
+                      stamp.gradient ?? theme.fallback,
                   }}
                 >
                   <Check size={32} color="#FFFFFF" strokeWidth={2.6} />
@@ -96,7 +102,7 @@ export default function AcquiredOverlay({
             <p className="mt-1.5 text-[13px] text-muted">{dateLabel}</p>
             {stamp.kContent && (
               <span className="mt-3 inline-flex items-center px-3.5 h-8 rounded-full bg-[#4A2C1A]">
-                <span className="text-[13px] font-medium text-brand">
+                <span className="text-[13px] font-medium" style={{ color: theme.accent }}>
                   {stamp.kContent}
                 </span>
               </span>
