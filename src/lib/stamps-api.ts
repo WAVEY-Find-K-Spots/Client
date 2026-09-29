@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/auth/api";
+import type { SpotCategory } from "@/lib/routes-api";
 
 export type StampLanguage = "ko" | "en";
 
@@ -6,6 +7,7 @@ export type StampItem = {
   stampId: number | null;
   spotId: number;
   regionId: number | null;
+  category: SpotCategory | null;
   name: string;
   imageUrl: string | null;
   acquired: boolean;
@@ -14,6 +16,7 @@ export type StampItem = {
 
 export type BadgeItem = {
   badgeId: number;
+  category: SpotCategory | null;
   name: string;
   description: string | null;
   imageUrl: string | null;

@@ -1,8 +1,9 @@
-import { Award, Check, Lock, CheckCircle } from "lucide-react";
+import { Award, Check, CheckCircle } from "lucide-react";
 import type { StampItem } from "@/lib/stamps-api";
 import { formatAcquiredShort } from "../adapters";
 import LoginGateCard from "./LoginGateCard";
 import StampAvatar from "./StampAvatar";
+import { getStampCategoryTheme } from "../stamp-themes";
 
 export interface RegionChip {
   key: string;
@@ -196,16 +197,24 @@ export default function StampbookView({
                 >
                   <div
                     className="relative w-[88px] h-[88px] rounded-full p-[6px] bg-cream"
-                    style={{ border: "2px solid #A8623E" }}
+                    style={{
+                      border: `2px solid ${getStampCategoryTheme(s.category).border}`,
+                      background: getStampCategoryTheme(s.category).background,
+                    }}
                   >
                     <StampAvatar
                       name={s.name}
                       imageUrl={s.imageUrl}
+                      category={s.category}
+                      state="acquired"
                       size={72}
                     />
                     <span
-                      className="absolute left-1/2 -translate-x-1/2 top-full -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-brand"
-                      style={{ boxShadow: "0 4px 10px rgba(168,98,62,0.45)" }}
+                      className="absolute left-1/2 -translate-x-1/2 top-full -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full"
+                      style={{
+                        background: getStampCategoryTheme(s.category).accent,
+                        boxShadow: `0 4px 10px ${getStampCategoryTheme(s.category).accent}73`,
+                      }}
                     >
                       <Check size={12} color="#FFFFFF" strokeWidth={3} />
                     </span>
@@ -224,9 +233,18 @@ export default function StampbookView({
                 >
                   <div
                     className="w-[88px] h-[88px] rounded-full flex items-center justify-center bg-[#F0EAE4]"
-                    style={{ border: "2px dashed #DDD4CE" }}
+                    style={{
+                      border: `2px dashed ${getStampCategoryTheme(s.category).border}55`,
+                      background: getStampCategoryTheme(s.category).background,
+                    }}
                   >
-                    <Lock size={24} color="#DDD4CE" strokeWidth={1.8} />
+                    <StampAvatar
+                      name={s.name}
+                      imageUrl={s.imageUrl}
+                      category={s.category}
+                      state="locked"
+                      size={72}
+                    />
                   </div>
                   <p className="mt-3 text-[11px] font-semibold text-muted text-center leading-tight">
                     {s.name}
