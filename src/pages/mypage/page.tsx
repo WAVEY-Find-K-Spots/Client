@@ -3,6 +3,7 @@ import MainView from "./components/MainView";
 import MyRoutesView from "./components/MyRoutesView";
 import EditProfileView from "./components/EditProfileView";
 import SettingsView from "./components/SettingsView";
+import PasswordChangeView from "./components/PasswordChangeView";
 import NotiSettingsView from "./components/NotiSettingsView";
 import MyReviewsView from "./components/MyReviewsView";
 import SavedSpotsView from "./components/SavedSpotsView";
@@ -14,6 +15,7 @@ export type MyPageView =
   | "edit"
   | "settings"
   | "notiSettings"
+  | "password"
   | "reviews"
   | "savedSpots"
   | "policy"
@@ -49,6 +51,12 @@ export default function MyPage() {
       {view === "edit" && <EditProfileView onBack={back} onToast={showToast} />}
       {view === "settings" && (
         <SettingsView onBack={back} onOpen={openView} onToast={showToast} />
+      )}
+      {view === "password" && (
+        <PasswordChangeView
+          onBack={() => openView("settings")}
+          onToast={showToast}
+        />
       )}
       {view === "notiSettings" && (
         <NotiSettingsView
