@@ -1,6 +1,9 @@
 import { createContext, useContext } from "react";
 import type {
   AuthUser,
+  LocalLoginRequest,
+  LocalPasswordChangeRequest,
+  LocalSignupRequest,
   SocialProvider,
   UserProfileUpdateRequest,
 } from "@/lib/auth/types";
@@ -14,6 +17,9 @@ export interface AuthContextValue {
   user: AuthUser | null;
   initializing: boolean;
   beginSocialLogin: (provider: SocialProvider) => Promise<void>;
+  loginLocal: (request: LocalLoginRequest) => Promise<SocialLoginResult>;
+  signupLocal: (request: LocalSignupRequest) => Promise<SocialLoginResult>;
+  changeLocalPassword: (request: LocalPasswordChangeRequest) => Promise<void>;
   completeSocialLogin: (code: string) => Promise<SocialLoginResult>;
   updateProfile: (patch: UserProfileUpdateRequest) => Promise<AuthUser>;
   confirmProfilePhoto: (photoUrl: string) => Promise<AuthUser>;

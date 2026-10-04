@@ -5,7 +5,13 @@ import { Browser } from "@capacitor/browser";
 import { AUTH_EXPIRED_EVENT, authApi } from "@/lib/auth/api";
 import { setLocationServicesEnabled } from "@/lib/geo";
 import { tokenStorage } from "@/lib/auth/tokenStorage";
-import type { AuthUser, SocialProvider } from "@/lib/auth/types";
+import type {
+  AuthUser,
+  LocalLoginRequest,
+  LocalPasswordChangeRequest,
+  LocalSignupRequest,
+  SocialProvider,
+} from "@/lib/auth/types";
 import i18n from "@/i18n";
 import { AuthContext, type AuthContextValue } from "./auth-context";
 
@@ -71,6 +77,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [applyUser]);
 
+  const completeLocalLogin = useCallback(async (
+    request: LocalLoginRequest | LocalSignupRequest,
+    signup: boolean,
+  ) => {
+    const tokens = signup
+      ? await authApi.signupLocal(request as LocalSignupRequest)
+      : await authApi.loginLocal(request);
+    tokenStorage.setTokens(tokens);
+
+    try {
+      const authenticatedUser = await authApi.getCurrentUser();
+      applyUser(authenticatedUser);
+      return { user: authenticatedUser, isNewUser: tokens.isNewUser };
+    } catch (error) {
+      tokenStorage.clear();
+      throw error;
+    }
+  }, [applyUser]);
+
+  const loginLocal = useCallback(
+    (request: LocalLoginRequest) => completeLocalLogin(request, false),
+    [completeLocalLogin],
+  );
+
+  const signupLocal = useCallback(
+    (request: LocalSignupRequest) => completeLocalLogin(request, true),
+    [completeLocalLogin],
+  );
+
+  const changeLocalPassword = useCallback(async (request: LocalPasswordChangeRequest) => {
+    await authApi.changeLocalPassword(request);
+    tokenStorage.clear();
+    applyUser(null);
+  }, [applyUser]);
+
   const updateProfile = useCallback(async (patch: Parameters<typeof authApi.updateProfile>[0]) => {
     const updated = await authApi.updateProfile(patch);
     applyUser(updated);
@@ -104,6 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializing,
     beginSocialLogin,
     completeSocialLogin,
+    loginLocal,
+    signupLocal,
+    changeLocalPassword,
     updateProfile,
     confirmProfilePhoto,
     logout,
@@ -113,6 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializing,
     beginSocialLogin,
     completeSocialLogin,
+    loginLocal,
+    signupLocal,
+    changeLocalPassword,
     updateProfile,
     confirmProfilePhoto,
     logout,
