@@ -77,9 +77,9 @@ const sectionMeta = [
 ];
 
 const inputClass =
-  "w-full h-11 rounded-[12px] border border-line bg-white px-3 text-[13px] text-ink outline-none focus:border-brand";
+  "w-full h-11 rounded-[12px] border border-line bg-white px-3 text-[13px] text-ink outline-none placeholder:text-[#B7AAA1] focus:border-brand";
 const textAreaClass =
-  "w-full rounded-[12px] border border-line bg-white px-3 py-2.5 text-[12px] leading-relaxed text-ink outline-none focus:border-brand";
+  "w-full rounded-[12px] border border-line bg-white px-3 py-2.5 text-[12px] leading-relaxed text-ink outline-none placeholder:text-[#B7AAA1] focus:border-brand";
 const buttonClass =
   "h-11 rounded-[12px] bg-ink px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -117,6 +117,7 @@ export default function AdminPage() {
     targetId: "",
     eventKey: "",
   });
+  const [notificationAttempted, setNotificationAttempted] = useState(false);
 
   const [resourceKind, setResourceKind] = useState<ResourceKind>("regions");
   const [resourceAction, setResourceAction] = useState<ResourceAction>("create");
@@ -222,6 +223,7 @@ export default function AdminPage() {
   };
 
   const sendNotification = () => {
+    setNotificationAttempted(true);
     if (!notification.title.trim() || !notification.body.trim() || !notification.eventKey.trim()) {
       setError(t("admin.required"));
       return;
@@ -396,33 +398,134 @@ export default function AdminPage() {
     </section>
   );
 
-  const renderNotifications = () => (
-    <section className="rounded-[18px] bg-white p-4 shadow-soft">
-      <p className="text-[12px] leading-relaxed text-muted">
-        {t("admin.notificationDescription")}
-      </p>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <input className={inputClass} placeholder={t("admin.titleKo")} value={notification.title} onChange={(e) => setNotification({ ...notification, title: e.target.value })} />
-        <input className={inputClass} placeholder={t("admin.titleEn")} value={notification.titleEn} onChange={(e) => setNotification({ ...notification, titleEn: e.target.value })} />
-      </div>
-      <textarea className={`${textAreaClass} mt-2 min-h-24`} placeholder={t("admin.bodyKo")} value={notification.body} onChange={(e) => setNotification({ ...notification, body: e.target.value })} />
-      <textarea className={`${textAreaClass} mt-2 min-h-20`} placeholder={t("admin.bodyEn")} value={notification.bodyEn} onChange={(e) => setNotification({ ...notification, bodyEn: e.target.value })} />
-      <input className={`${inputClass} mt-2`} placeholder={t("admin.recipientIds")} value={notification.recipients} onChange={(e) => setNotification({ ...notification, recipients: e.target.value })} />
-      <p className="mt-1 px-1 text-[10px] text-muted">{t("admin.recipientHint")}</p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <select className={inputClass} value={notification.targetType} onChange={(e) => setNotification({ ...notification, targetType: e.target.value })}>
-          {["SYSTEM", "STAMP", "BADGE", "ROUTE", "SPOT", "REVIEW"].map((value) => <option key={value}>{value}</option>)}
-        </select>
-        <input className={inputClass} inputMode="numeric" placeholder={t("admin.targetId")} value={notification.targetId} onChange={(e) => setNotification({ ...notification, targetId: e.target.value })} />
-      </div>
-      <input className={`${inputClass} mt-2`} placeholder={t("admin.eventKey")} value={notification.eventKey} onChange={(e) => setNotification({ ...notification, eventKey: e.target.value })} />
-      <button type="button" className={`${buttonClass} mt-3 flex w-full items-center justify-center gap-2`} disabled={Boolean(busy)} onClick={sendNotification}>
-        <Send size={15} />
-        {busy === "notification" ? t("admin.processing") : t("admin.sendNotification")}
-      </button>
-    </section>
-  );
+  const renderNotifications = () => {
+    const requiredClass = (value: string, baseClass: string) =>
+      `${baseClass} ${notificationAttempted && !value.trim() ? "border-[#C85B4F] bg-[#FFF9F8]" : ""}`;
 
+    return (
+      <section className="rounded-[18px] bg-white p-4 shadow-soft">
+        <p className="text-[12px] leading-relaxed text-muted">
+          {t("admin.notificationDescription")}
+        </p>
+        <p className="mt-1 text-[10px] text-[#A8623E]">{t("admin.requiredHint")}</p>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+              {t("admin.titleKoLabel")} <span className="text-[#C85B4F]">*</span>
+            </span>
+            <input
+              className={requiredClass(notification.title, inputClass)}
+              placeholder={t("admin.titleKoExample")}
+              value={notification.title}
+              onChange={(e) => setNotification({ ...notification, title: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+              {t("admin.titleEnLabel")} <span className="font-normal text-muted">({t("admin.optional")})</span>
+            </span>
+            <input
+              className={inputClass}
+              placeholder={t("admin.titleEnExample")}
+              value={notification.titleEn}
+              onChange={(e) => setNotification({ ...notification, titleEn: e.target.value })}
+            />
+          </label>
+        </div>
+
+        <label className="mt-3 block">
+          <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+            {t("admin.bodyKoLabel")} <span className="text-[#C85B4F]">*</span>
+          </span>
+          <textarea
+            className={requiredClass(notification.body, `${textAreaClass} min-h-24`)}
+            placeholder={t("admin.bodyKoExample")}
+            value={notification.body}
+            onChange={(e) => setNotification({ ...notification, body: e.target.value })}
+          />
+        </label>
+
+        <label className="mt-3 block">
+          <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+            {t("admin.bodyEnLabel")} <span className="font-normal text-muted">({t("admin.optional")})</span>
+          </span>
+          <textarea
+            className={`${textAreaClass} min-h-20`}
+            placeholder={t("admin.bodyEnExample")}
+            value={notification.bodyEn}
+            onChange={(e) => setNotification({ ...notification, bodyEn: e.target.value })}
+          />
+        </label>
+
+        <label className="mt-3 block">
+          <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+            {t("admin.recipientIdsLabel")} <span className="font-normal text-muted">({t("admin.optional")})</span>
+          </span>
+          <input
+            className={inputClass}
+            placeholder={t("admin.recipientIdsExample")}
+            value={notification.recipients}
+            onChange={(e) => setNotification({ ...notification, recipients: e.target.value })}
+          />
+          <span className="mt-1 block px-1 text-[10px] text-muted">{t("admin.recipientHint")}</span>
+        </label>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+              {t("admin.targetTypeLabel")}
+            </span>
+            <select
+              className={inputClass}
+              value={notification.targetType}
+              onChange={(e) => setNotification({ ...notification, targetType: e.target.value })}
+            >
+              {["SYSTEM", "STAMP", "BADGE", "ROUTE", "SPOT", "REVIEW"].map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+              {t("admin.targetIdLabel")} <span className="font-normal text-muted">({t("admin.optional")})</span>
+            </span>
+            <input
+              className={inputClass}
+              inputMode="numeric"
+              placeholder={t("admin.targetIdExample")}
+              value={notification.targetId}
+              onChange={(e) => setNotification({ ...notification, targetId: e.target.value })}
+            />
+          </label>
+        </div>
+        <p className="mt-1 px-1 text-[10px] text-muted">{t("admin.targetHint")}</p>
+
+        <label className="mt-3 block">
+          <span className="mb-1.5 block text-[10px] font-semibold text-sub">
+            {t("admin.eventKeyLabel")} <span className="text-[#C85B4F]">*</span>
+          </span>
+          <input
+            className={requiredClass(notification.eventKey, inputClass)}
+            placeholder={t("admin.eventKeyExample")}
+            value={notification.eventKey}
+            onChange={(e) => setNotification({ ...notification, eventKey: e.target.value })}
+          />
+          <span className="mt-1 block px-1 text-[10px] text-muted">{t("admin.eventKeyHint")}</span>
+        </label>
+
+        <button
+          type="button"
+          className={`${buttonClass} mt-4 flex w-full items-center justify-center gap-2`}
+          disabled={Boolean(busy)}
+          onClick={sendNotification}
+        >
+          <Send size={15} />
+          {busy === "notification" ? t("admin.processing") : t("admin.sendNotification")}
+        </button>
+      </section>
+    );
+  };
   const renderResources = () => (
     <div className="space-y-4">
       <section className="rounded-[18px] bg-white p-4 shadow-soft">

@@ -3,6 +3,11 @@ import type {
   ApiResponse,
   AuthUser,
   LoginUrls,
+  LocalLoginRequest,
+  LocalPasswordChangeRequest,
+  LocalPasswordResetConfirmRequest,
+  LocalPasswordResetRequest,
+  LocalSignupRequest,
   TokenResponse,
   UserProfileUpdateRequest,
 } from "./types";
@@ -146,6 +151,41 @@ export async function apiRequest<T>(
 export const authApi = {
   getLoginUrls: () =>
     apiRequest<LoginUrls>("/api/v1/auth/login-urls", { authenticated: false }),
+
+  loginLocal: (request: LocalLoginRequest) =>
+    apiRequest<TokenResponse>("/api/v1/auth/local/login", {
+      authenticated: false,
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  signupLocal: (request: LocalSignupRequest) =>
+    apiRequest<TokenResponse>("/api/v1/auth/local/signup", {
+      authenticated: false,
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  requestLocalPasswordReset: (request: LocalPasswordResetRequest) =>
+    apiRequest<void>("/api/v1/auth/local/password/reset/request", {
+      authenticated: false,
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  confirmLocalPasswordReset: (request: LocalPasswordResetConfirmRequest) =>
+    apiRequest<void>("/api/v1/auth/local/password/reset/confirm", {
+      authenticated: false,
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  changeLocalPassword: (request: LocalPasswordChangeRequest) =>
+    apiRequest<void>("/api/v1/auth/local/password", {
+      method: "PATCH",
+      retryOnUnauthorized: false,
+      body: JSON.stringify(request),
+    }),
 
   exchangeLoginCode: (code: string) =>
     apiRequest<TokenResponse>("/api/v1/auth/exchange", {
