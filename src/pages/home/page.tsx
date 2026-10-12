@@ -33,6 +33,7 @@ import {
   Check,
   Bell,
   SearchX,
+  RefreshCw,
 } from "lucide-react";
 
 type CatKey = HomeCategoryKey;
@@ -131,6 +132,8 @@ export default function SpotList() {
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [coords, setCoords] = useState<LatLng | null>(null);
 
   const isSearching = focusSearch && !query.trim();
@@ -201,6 +204,7 @@ export default function SpotList() {
     if ((sort === "distance" || filters.radiusMeters) && !coords) return;
     let cancelled = false;
     setLoading(true);
+    setLoadError(false);
     setPage(0);
     getHomeSpots(buildSearchParams(0))
       .then((result) => {
@@ -208,12 +212,14 @@ export default function SpotList() {
         setItems(realImagesFirst(result.spots.map(toHomeSpotView)));
         setHasNext(result.hasNext);
         setTotalElements(result.totalElements);
+        setLoadError(false);
       })
       .catch(() => {
         if (cancelled) return;
         setItems([]);
         setHasNext(false);
         setTotalElements(0);
+        setLoadError(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -221,7 +227,7 @@ export default function SpotList() {
     return () => {
       cancelled = true;
     };
-  }, [buildSearchParams, coords, filters.radiusMeters, sort]);
+  }, [buildSearchParams, coords, filters.radiusMeters, retryKey, sort]);
 
   const loadMore = () => {
     if (loadingMore || !hasNext) return;
@@ -612,7 +618,28 @@ export default function SpotList() {
 
           {/* Cards */}
           <div className="mt-3 px-4 sm:px-5 pb-[var(--app-page-end-space)]">
-            {!loading && items.length === 0 ? (
+            {!loading && loadError ? (
+              <div className="py-16 flex flex-col items-center justify-center gap-4">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-cream">
+                  <RefreshCw size={28} color="#DDD4CE" strokeWidth={1.8} />
+                </span>
+                <div className="text-center">
+                  <p className="text-[16px] font-semibold text-ink">
+                    스팟을 불러오지 못했어요
+                  </p>
+                  <p className="text-[13px] text-muted mt-1">
+                    잠시 후 다시 시도해 주세요
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRetryKey((key) => key + 1)}
+                  className="mt-1 px-5 h-11 rounded-full bg-cream text-brand text-[13px] font-semibold cursor-pointer whitespace-nowrap"
+                >
+                  다시 시도
+                </button>
+              </div>
+            ) : !loading && items.length === 0 ? (
               <div className="py-16 flex flex-col items-center justify-center gap-4">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-cream">
                   <SearchX size={30} color="#DDD4CE" strokeWidth={1.8} />
