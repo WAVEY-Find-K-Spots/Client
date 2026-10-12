@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Award, Lock, ChevronRight, Gift } from "lucide-react";
 import type { BadgeCollection, BadgeItem } from "@/lib/stamps-api";
+import { getStampCategoryTheme } from "../stamp-themes";
 import { formatAcquiredShort } from "../adapters";
 import LoginGateCard from "./LoginGateCard";
 
@@ -15,20 +16,24 @@ interface BadgeViewProps {
   claimingBadgeId?: number | null;
 }
 
-function BadgeHex({
+export function BadgeHex({
   name,
   imageUrl,
+  category,
   fallback,
-  locked = false,
+  state = "acquired",
 }: {
   name: string;
   imageUrl: string | null;
+  category: BadgeItem["category"];
   fallback: string;
-  locked?: boolean;
+  state?: "locked" | "claimable" | "acquired";
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   useEffect(() => setImgFailed(false), [imageUrl]);
-  const showImage = imageUrl && !imgFailed;
+  const showImage = imageUrl && !imgFailed && state !== "locked";
+  const theme = getStampCategoryTheme(category);
+  const locked = state === "locked";
 
   return (
     <div
@@ -36,7 +41,13 @@ function BadgeHex({
       style={{
         clipPath:
           "polygon(50% 0%,90% 25%,90% 75%,50% 100%,10% 75%,10% 25%)",
-        background: showImage ? undefined : fallback,
+          background: showImage
+            ? undefined
+            : state === "locked"
+              ? theme.background
+              : theme.fallback || fallback,
+          border: `2px solid ${state === "claimable" ? theme.accent : theme.border}`,
+          filter: locked ? "grayscale(0.8)" : undefined,
       }}
     >
       {showImage && (
@@ -50,9 +61,8 @@ function BadgeHex({
       )}
       {locked && (
         <>
-          <span className="absolute inset-0 bg-[#F0EAE4]/80" />
           <span className="absolute inset-0 flex items-center justify-center">
-            <Lock size={22} color="#C9BDB6" strokeWidth={1.9} />
+            <Lock size={22} color={theme.accent} strokeWidth={1.9} />
           </span>
         </>
       )}
@@ -69,7 +79,9 @@ function EarnedCard({ item }: { item: BadgeItem }) {
       <BadgeHex
         name={item.name}
         imageUrl={item.imageUrl}
+        category={item.category}
         fallback="linear-gradient(160deg,#A8623E,#6B3F28)"
+        state="acquired"
       />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-ink">{item.name}</p>
@@ -98,11 +110,16 @@ function ClaimableCard({
   claiming?: boolean;
 }) {
   return (
-    <div className="w-full bg-white rounded-[16px] p-4 shadow-soft flex items-center gap-4 overflow-hidden border border-brand/30">
+    <div
+      className="w-full bg-white rounded-[16px] p-4 shadow-soft flex items-center gap-4 overflow-hidden"
+      style={{ border: `1px solid ${getStampCategoryTheme(item.category).accent}66` }}
+    >
       <BadgeHex
         name={item.name}
         imageUrl={item.imageUrl}
+        category={item.category}
         fallback="linear-gradient(160deg,#A8623E,#6B3F28)"
+        state="claimable"
       />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-ink">{item.name}</p>
@@ -138,8 +155,9 @@ function PendingCard({ item }: { item: BadgeItem }) {
       <BadgeHex
         name={item.name}
         imageUrl={item.imageUrl}
+        category={item.category}
         fallback="#F0EAE4"
-        locked
+        state="locked"
       />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-muted">{item.name}</p>
@@ -150,7 +168,10 @@ function PendingCard({ item }: { item: BadgeItem }) {
           <div className="flex-1 h-1.5 rounded-[3px] bg-[#F0EAE4] overflow-hidden">
             <div
               className="h-full rounded-[3px]"
-              style={{ width: `${percent}%`, backgroundColor: "#A8623E" }}
+              style={{
+                width: `${percent}%`,
+                backgroundColor: getStampCategoryTheme(item.category).accent,
+              }}
             />
           </div>
           <span className="text-[10px] font-medium text-muted shrink-0">

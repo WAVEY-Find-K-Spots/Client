@@ -15,13 +15,11 @@ import {
 import { shareContent, type ShareResult } from "@/lib/share";
 import { getRegions, type Region } from "@/lib/regions-api";
 import { useAuth } from "@/store/auth-context";
-import { STAMP_TEST_MODE } from "@/lib/stamp-test-mode";
 import {
   toOverlayStamp,
   remainingForNextBadge,
   nextBadgeProgressPercent,
   formatAcquiredShort,
-  type OverlayStamp,
 } from "./adapters";
 import StampbookView from "./components/StampbookView";
 import BadgeView from "./components/BadgeView";
@@ -51,15 +49,10 @@ export default function StampTab() {
     window as unknown as { REACT_APP_NAVIGATE?: (p: string) => void }
   ).REACT_APP_NAVIGATE;
   const goLogin = () => navigate?.("/login");
-  const requireLogin = STAMP_TEST_MODE
-    ? false
-    : !initializing && !user;
+  const requireLogin = !initializing && !user;
 
   const [view, setView] = useState<View>("book");
   const [activeStamp, setActiveStamp] = useState<StampItem | null>(null);
-  const [previewOverlay, setPreviewOverlay] = useState<OverlayStamp | null>(
-    null,
-  );
   const [previewBadge, setPreviewBadge] = useState<OverlayBadge | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [regionKey, setRegionKey] = useState("all");
@@ -154,6 +147,7 @@ export default function StampTab() {
       if (result.newlyAcquired) {
         setPreviewBadge({
           name: result.badge.name,
+          category: result.badge.category,
           description: result.badge.description,
           imageUrl: result.badge.imageUrl,
           dateShort: formatAcquiredShort(result.badge.acquiredAt) ?? undefined,
@@ -169,7 +163,7 @@ export default function StampTab() {
   };
 
   useEffect(() => {
-    if (!STAMP_TEST_MODE && (initializing || !user)) {
+    if (initializing || !user) {
       setStamps([]);
       setCollectedCount(0);
       setHasNext(false);
@@ -178,18 +172,16 @@ export default function StampTab() {
       setBookError(null);
       return;
     }
-    if (!STAMP_TEST_MODE && initializing) return;
     void loadStampBook(regionId, 0, false);
   }, [initializing, user, regionId, loadStampBook]);
 
   useEffect(() => {
-    if (!STAMP_TEST_MODE && (initializing || !user)) {
+    if (initializing || !user) {
       setBadges(null);
       setBadgeLoading(false);
       setBadgeError(null);
       return;
     }
-    if (!STAMP_TEST_MODE && initializing) return;
     void loadBadges();
   }, [initializing, user, loadBadges]);
 
@@ -237,60 +229,11 @@ export default function StampTab() {
   };
 
   const title = view === "book" ? "스탬프북" : "뱃지 컬렉션";
-  const overlayStamp = previewOverlay
-    ?? (activeStamp ? toOverlayStamp(activeStamp) : null);
-
-  const playAcquireAnimation = () => {
-    setPreviewBadge(null);
-    setPreviewOverlay({
-      name: stamps[0]?.name ?? "경복궁",
-      dateShort: "2026.03.24",
-      imageUrl: stamps[0]?.imageUrl ?? null,
-      gradient: "linear-gradient(158deg,#7a3d28,#c96a42)",
-      kContent: "테스트 획득 애니메이션",
-    });
-  };
-
-  const playBadgeAnimation = () => {
-    setPreviewOverlay(null);
-    setActiveStamp(null);
-    const sample = badges?.acquired[0] ?? badges?.inProgress[0];
-    setPreviewBadge({
-      name: sample?.name ?? "서울 탐험가",
-      description:
-        sample?.description ?? "서울 스팟을 모아 획득한 특별한 뱃지예요",
-      imageUrl: sample?.imageUrl ?? null,
-      dateShort: "2026.03.24",
-    });
-  };
+  const overlayStamp = activeStamp ? toOverlayStamp(activeStamp) : null;
 
   return (
     <div className="min-h-full bg-page">
       <StatusBar variant="dark" />
-
-      {STAMP_TEST_MODE && (
-        <div className="mx-5 mt-2 rounded-[12px] bg-brand/15 px-3 py-2 flex items-center justify-between gap-2">
-          <span className="text-[11px] font-medium text-brand shrink-0">
-            TEST MODE
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={playAcquireAnimation}
-              className="h-7 px-2.5 rounded-full bg-brand text-white text-[10px] font-semibold cursor-pointer whitespace-nowrap"
-            >
-              스탬프 애니
-            </button>
-            <button
-              type="button"
-              onClick={playBadgeAnimation}
-              className="h-7 px-2.5 rounded-full bg-ink text-white text-[10px] font-semibold cursor-pointer whitespace-nowrap"
-            >
-              뱃지 애니
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="px-5 pt-1 flex items-center justify-between">
         <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
@@ -382,13 +325,11 @@ export default function StampTab() {
             stamp={overlayStamp}
             onClose={() => {
               setActiveStamp(null);
-              setPreviewOverlay(null);
             }}
             onShare={() => activeStamp && void shareStamp(activeStamp)}
             onShowBook={() => {
               setView("book");
               setActiveStamp(null);
-              setPreviewOverlay(null);
               showToast("스탬프북을 확인해보세요");
             }}
           />,
