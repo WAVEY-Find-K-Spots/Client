@@ -3,6 +3,7 @@ import StatusBar from "@/components/layout/StatusBar";
 import SpotCard from "./components/SpotCard";
 import SpotListItem from "./components/SpotListItem";
 import SearchPanel from "./components/SearchPanel";
+import SpotMapView from "./components/SpotMapView";
 import FilterSheet, { type SpotFilterState } from "./components/FilterSheet";
 import { useNotifications } from "@/store/notifications-context";
 import {
@@ -29,6 +30,7 @@ import {
   ChevronDown,
   LayoutGrid,
   List,
+  Map as MapIcon,
   ArrowUpDown,
   Check,
   Bell,
@@ -38,7 +40,7 @@ import {
 
 type CatKey = HomeCategoryKey;
 type SortKey = "popular" | "rating" | "recent" | "distance";
-type ViewMode = "grid" | "list";
+type ViewMode = "grid" | "list" | "map";
 type Overlay = "none" | "sort" | "filter";
 
 const sortOptions: { key: SortKey; label: string }[] = [
@@ -558,23 +560,29 @@ export default function SpotList() {
 
           {/* Sort + view bar */}
           <div className="mt-3 px-4 sm:px-5 flex items-center justify-between">
-            <button
-              ref={sortPillRef}
-              type="button"
-              onClick={openSort}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-full bg-cream cursor-pointer"
-              aria-label="정렬"
-            >
-              <span className="flex items-center justify-center w-3.5 h-3.5">
-                <ArrowUpDown size={14} color="#2C1810" strokeWidth={2} />
+            {viewMode === "map" ? (
+              <span className="h-9 flex items-center text-[12px] font-medium text-sub">
+                가까운 순으로 표시해요
               </span>
-              <span className="text-[12px] font-medium text-ink whitespace-nowrap">
-                {sortLabel}
-              </span>
-              <span className="flex items-center justify-center w-3.5 h-3.5">
-                <ChevronDown size={13} color="#A89890" strokeWidth={2.2} />
-              </span>
-            </button>
+            ) : (
+              <button
+                ref={sortPillRef}
+                type="button"
+                onClick={openSort}
+                className="flex items-center gap-1.5 h-9 px-3 rounded-full bg-cream cursor-pointer"
+                aria-label="정렬"
+              >
+                <span className="flex items-center justify-center w-3.5 h-3.5">
+                  <ArrowUpDown size={14} color="#2C1810" strokeWidth={2} />
+                </span>
+                <span className="text-[12px] font-medium text-ink whitespace-nowrap">
+                  {sortLabel}
+                </span>
+                <span className="flex items-center justify-center w-3.5 h-3.5">
+                  <ChevronDown size={13} color="#A89890" strokeWidth={2.2} />
+                </span>
+              </button>
+            )}
 
             <div className="flex items-center gap-1.5">
               <button
@@ -603,9 +611,36 @@ export default function SpotList() {
                   color={viewMode === "list" ? "#FFFFFF" : "#A89890"}
                 />
               </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("map")}
+                className={`flex items-center justify-center w-9 h-9 rounded-[10px] cursor-pointer ${
+                  viewMode === "map" ? "bg-ink" : "bg-cream"
+                }`}
+                aria-label="지도 뷰"
+                aria-pressed={viewMode === "map"}
+              >
+                <MapIcon
+                  size={17}
+                  color={viewMode === "map" ? "#FFFFFF" : "#A89890"}
+                />
+              </button>
             </div>
           </div>
 
+          {viewMode === "map" ? (
+            <div className="mt-3 px-4 sm:px-5 pb-[var(--app-page-end-space)]">
+              <SpotMapView
+                category={categoryToApi(cat)}
+                regionId={filters.regionId}
+                minRating={filters.minRating}
+                radiusMeters={filters.radiusMeters}
+                onOpen={(id) => navigate?.(`/spot/${id}`)}
+                onToast={showToast}
+              />
+            </div>
+          ) : (
+            <>
           {/* Section header */}
           <div className="mt-6 px-4 sm:px-5 flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-ink">
@@ -712,6 +747,8 @@ export default function SpotList() {
               </div>
             )}
           </div>
+            </>
+          )}
         </>
       )}
 

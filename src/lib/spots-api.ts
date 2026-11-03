@@ -26,6 +26,8 @@ export interface SpotSearchParams {
   radiusMeters?: number;
   sort?: SpotSort;
   page?: number;
+  /** 페이지 크기 (1~100, 기본 6) */
+  size?: number;
   excludeRouteId?: number;
   /** 내가 찜한 스팟만 조회 */
   savedOnly?: boolean;
@@ -41,6 +43,8 @@ export interface SpotSearchItem {
   reviewCount: number;
   saved: boolean;
   distanceMeters: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface SpotSearchResult {

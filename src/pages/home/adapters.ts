@@ -5,6 +5,8 @@ import {
   hasRealImage,
 } from "@/lib/image-fallback";
 import { categoryLabelByApi } from "@/lib/spot-categories";
+import type { LatLng } from "@/lib/geo";
+import type { SpotCategory } from "@/lib/routes-api";
 
 export interface HomeSpotView {
   id: string;
@@ -18,6 +20,9 @@ export interface HomeSpotView {
   typeLabel: string;
   distanceKm: number | null;
   saved: boolean;
+  category: SpotCategory;
+  /** 지도 표시에 쓰는 좌표. 서버가 내려주지 않으면 null */
+  coord: LatLng | null;
 }
 
 export function toHomeSpotView(item: SpotSearchItem): HomeSpotView {
@@ -34,5 +39,10 @@ export function toHomeSpotView(item: SpotSearchItem): HomeSpotView {
     distanceKm:
       item.distanceMeters != null ? item.distanceMeters / 1000 : null,
     saved: item.saved,
+    category: item.category,
+    coord:
+      item.latitude != null && item.longitude != null
+        ? { lat: item.latitude, lng: item.longitude }
+        : null,
   };
 }
