@@ -13,6 +13,7 @@ interface BadgeViewProps {
   onRetry: () => void;
   onClaim?: (badgeId: number) => void;
   claimingBadgeId?: number | null;
+  onOpenBadge?: (badge: BadgeItem) => void;
 }
 
 function BadgeHex({
@@ -60,11 +61,18 @@ function BadgeHex({
   );
 }
 
-function EarnedCard({ item }: { item: BadgeItem }) {
+function EarnedCard({
+  item,
+  onOpen,
+}: {
+  item: BadgeItem;
+  onOpen?: (badge: BadgeItem) => void;
+}) {
   return (
     <button
       type="button"
-      className="w-full bg-white rounded-[16px] p-4 shadow-soft flex items-center gap-4 cursor-pointer overflow-hidden"
+      onClick={() => onOpen?.(item)}
+      className="w-full bg-white rounded-[16px] p-4 shadow-soft flex items-center gap-4 cursor-pointer overflow-hidden text-left"
     >
       <BadgeHex
         name={item.name}
@@ -171,6 +179,7 @@ export default function BadgeView({
   onRetry,
   onClaim,
   claimingBadgeId,
+  onOpenBadge,
 }: BadgeViewProps) {
   const acquired = data?.acquired ?? [];
   const claimable = data?.claimable ?? [];
@@ -281,7 +290,7 @@ export default function BadgeView({
               </p>
             )}
             {acquired.map((b) => (
-              <EarnedCard key={b.badgeId} item={b} />
+              <EarnedCard key={b.badgeId} item={b} onOpen={onOpenBadge} />
             ))}
           </div>
           <div className="mt-7 flex items-center justify-between">
