@@ -1,3 +1,4 @@
+import { isDemoAccount } from "@/lib/demo-account";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import StatusBar from "@/components/layout/StatusBar";
@@ -354,15 +355,17 @@ export default function MainView({ onOpen, onToast }: MainViewProps) {
               : t("mypage.main.logout")}
           </span>
         </button>
-        <button
-          type="button"
-          onClick={() => setConfirmWithdraw(true)}
-          className="w-full mt-3 h-9 flex items-center justify-center cursor-pointer whitespace-nowrap"
-        >
-          <span className="text-[12px] font-medium text-[#B4453A]">
-            {t("mypage.main.withdraw")}
-          </span>
-        </button>
+        {!isDemoAccount(user?.email) && (
+          <button
+            type="button"
+            onClick={() => setConfirmWithdraw(true)}
+            className="w-full mt-3 h-9 flex items-center justify-center cursor-pointer whitespace-nowrap"
+          >
+            <span className="text-[12px] font-medium text-[#B4453A]">
+              {t("mypage.main.withdraw")}
+            </span>
+          </button>
+        )}
       </div>
 
       {confirmWithdraw && (

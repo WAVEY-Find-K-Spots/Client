@@ -1,3 +1,4 @@
+import { isDemoAccount } from "@/lib/demo-account";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import StatusBar from "@/components/layout/StatusBar";
@@ -170,7 +171,7 @@ export default function SettingsView({ onBack, onOpen, onToast }: SettingsViewPr
           {t("mypage.settings.general")}
         </h3>
         <div className="mt-2 bg-white rounded-[16px] shadow-soft overflow-hidden divide-y divide-[#F5F1EE]">
-          {user?.provider === "local" && (
+          {user?.provider === "local" && !isDemoAccount(user.email) && (
             <button
               type="button"
               onClick={() => onOpen("password")}
