@@ -17,7 +17,7 @@ export default function AppShell() {
   const showNav = !NO_NAV_ROUTES.includes(pathname);
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center gap-14 bg-[#f4e9de] lg:py-8 px-0">
+    <div className="relative mobile-full-height w-full flex items-center justify-center gap-14 bg-[#f4e9de] lg:py-8 px-0">
       {/* Desktop backdrop accent panel */}
       <div className="hidden lg:block absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-0 w-[46%] h-full bg-gradient-to-br from-[#efe1d1] to-[#f8f0e8]" />
@@ -53,7 +53,7 @@ export default function AppShell() {
       {/* Phone device frame — iPhone 16 ratio 393x852 */}
       <div
         id="phone-frame"
-        className="relative z-10 w-full max-w-[440px] min-h-screen lg:min-h-0 lg:max-w-none lg:w-[393px] lg:h-[852px] lg:rounded-[46px] lg:border-[10px] lg:border-ink/90 lg:shadow-2xl overflow-hidden bg-page phone-viewport"
+        className="relative z-10 w-full max-w-[440px] mobile-full-height lg:min-h-0 lg:max-w-none lg:w-[393px] lg:h-[852px] lg:rounded-[46px] lg:border-[10px] lg:border-ink/90 lg:shadow-2xl overflow-hidden bg-page phone-viewport"
       >
         {/* Scrollable app content */}
         <div

@@ -34,6 +34,14 @@ body {
   scrollbar-width: none;
 }
 
+/* 모바일 브라우저는 100vh가 주소창까지 포함하므로, 실제 보이는 높이를 쓴다 */
+@layer components {
+  .mobile-full-height {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
+
 /* Prevent horizontal overscroll bounce tint on the frame */
 .phone-viewport {
   overscroll-behavior: contain;

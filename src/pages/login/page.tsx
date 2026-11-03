@@ -1,3 +1,4 @@
+import { demoAccount } from "@/lib/demo-account";
 import { useState } from "react";
 import { ChevronLeft, Eye, EyeOff, Mail } from "lucide-react";
 import StatusBar from "@/components/layout/StatusBar";
@@ -38,7 +39,8 @@ function initialResetToken() {
 
 export default function LoginPage() {
   const resetToken = initialResetToken();
-  const [pending, setPending] = useState<SocialProvider | "local" | null>(null);
+  const [pending, setPending] = useState<SocialProvider | "local" | "demo" | null>(null);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [localOpen, setLocalOpen] = useState(Boolean(resetToken));
@@ -63,6 +65,25 @@ export default function LoginPage() {
       await beginSocialLogin(provider);
     } catch {
       setError("로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setPending(null);
+    }
+  };
+
+  const loginDemo = async () => {
+    if (pending || !demoAccount) return;
+    setPending("demo");
+    setError(null);
+    setNotice(null);
+    try {
+      await loginLocal(demoAccount);
+      navigate?.("/");
+    } catch (demoError) {
+      setError(
+        demoError instanceof ApiError
+          ? demoError.message
+          : "시연 계정으로 로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
       setPending(null);
     }
   };
@@ -197,7 +218,19 @@ export default function LoginPage() {
       <StatusBar variant="dark" />
 
       <div className="flex min-h-[calc(100%-32px)] flex-col items-center px-8 pb-10 pt-8">
-        <img src={waveyLogo} alt="WAVEY" className="h-auto w-[200px] max-w-[66%] select-none" />
+        {demoAccount ? (
+          <button
+            type="button"
+            onClick={() => setDemoOpen((open) => !open)}
+            aria-label="WAVEY 시연 계정 보기"
+            aria-expanded={demoOpen}
+            className="flex w-[200px] max-w-[66%] cursor-pointer justify-center"
+          >
+            <img src={waveyLogo} alt="WAVEY" className="h-auto w-full select-none" />
+          </button>
+        ) : (
+          <img src={waveyLogo} alt="WAVEY" className="h-auto w-[200px] max-w-[66%] select-none" />
+        )}
         <p className="mt-1 text-center text-[13px] leading-relaxed text-muted">
           드라마와 K-POP, 영화 속
           <br />
@@ -205,6 +238,33 @@ export default function LoginPage() {
         </p>
 
         <div className="mt-8 flex w-full max-w-[360px] flex-col items-center">
+          {demoAccount && demoOpen && (
+            <section className="mb-6 w-full rounded-[20px] bg-white p-4 shadow-soft">
+              <h2 className="text-[14px] font-semibold text-ink">시연 계정</h2>
+              <p className="mt-0.5 text-[11px] text-muted">
+                발표 시연용 공용 계정이에요. 모든 참여자가 같은 데이터를 봐요.
+              </p>
+              <dl className="mt-3 rounded-[12px] bg-cream px-3 py-2.5 text-[12px]">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="shrink-0 text-muted">이메일</dt>
+                  <dd className="min-w-0 truncate font-medium text-ink">{demoAccount.email}</dd>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-3">
+                  <dt className="shrink-0 text-muted">비밀번호</dt>
+                  <dd className="min-w-0 truncate font-medium text-ink">{demoAccount.password}</dd>
+                </div>
+              </dl>
+              <button
+                type="button"
+                onClick={() => void loginDemo()}
+                disabled={pending !== null}
+                className="mt-3 h-12 w-full cursor-pointer rounded-[14px] bg-ink text-[13px] font-semibold text-white disabled:opacity-50"
+              >
+                {pending === "demo" ? "로그인 중..." : "시연 계정으로 로그인"}
+              </button>
+            </section>
+          )}
+
           <span className="text-[12px] font-medium text-muted">간편 로그인</span>
 
           <div className="mt-4 flex items-center justify-center gap-5">

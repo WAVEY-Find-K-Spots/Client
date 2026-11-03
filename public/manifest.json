@@ -1,0 +1,14 @@
+{
+  "name": "WAVEY",
+  "short_name": "WAVEY",
+  "description": "K-드라마·K-POP 스팟 여행 가이드",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDF7F3",
+  "theme_color": "#FDF7F3",
+  "icons": [
+    { "src": "/icon.png", "sizes": "352x352", "type": "image/png", "purpose": "any" }
+  ]
+}
