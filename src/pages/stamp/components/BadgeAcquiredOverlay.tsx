@@ -10,6 +10,8 @@ export type OverlayBadge = {
   description?: string | null;
   imageUrl?: string | null;
   dateShort?: string;
+  /** 방금 수령한 뱃지면 true. 목록에서 다시 볼 때는 해제 문구를 숨긴다. */
+  isNew?: boolean;
 };
 
 interface BadgeAcquiredOverlayProps {
@@ -114,10 +116,15 @@ export default function BadgeAcquiredOverlay({
           </div>
 
           <div className="mt-9 text-center">
-            <p className="text-[13px] font-medium" style={{ color: theme.accent }}>
-              새로운 뱃지 해제
-            </p>
-            <h2 className="mt-1.5 text-[24px] font-extrabold tracking-tight text-white">
+            {badge.isNew && (
+              <p
+                className="mb-1.5 text-[13px] font-medium"
+                style={{ color: theme.accent }}
+              >
+                새로운 뱃지 해제
+              </p>
+            )}
+            <h2 className="text-[24px] font-extrabold tracking-tight text-white">
               {badge.name}
             </h2>
             {badge.description && (

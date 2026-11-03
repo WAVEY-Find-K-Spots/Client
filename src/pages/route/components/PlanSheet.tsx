@@ -70,10 +70,11 @@ function SegmentConnector({
   label: string;
   legs: TransitLeg[];
   optionCount: number;
-  /** 지금 구간에 적용된 대중교통 경로 — 있으면 세부 타임라인을 바로 펼쳐 보여준다 */
+  /** 지금 구간에 적용된 대중교통 경로 — 있으면 요약을 보여주고, 눌러서 세부 타임라인을 펼친다 */
   option?: TransitOption;
   onClick?: () => void;
 }) {
+  const [detailOpen, setDetailOpen] = useState(false);
   const clickable = optionCount > 0 && !!onClick;
   const chip = (
     <div className="relative w-full flex items-center justify-center">
@@ -107,8 +108,30 @@ function SegmentConnector({
           chip
         )}
         <div className="rounded-[14px] bg-page border border-line/60 px-3 py-2.5">
-          <p className="mb-2 text-[11px] text-sub">{describeOption(option)}</p>
-          <TransitTimeline legs={option.legs} compact />
+          <button
+            type="button"
+            onClick={() => setDetailOpen((open) => !open)}
+            aria-expanded={detailOpen}
+            className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
+          >
+            <div className="flex flex-col items-start gap-1.5 min-w-0">
+              <p className="text-[11px] text-sub">{describeOption(option)}</p>
+              {!detailOpen && <TransitLegBadges legs={option.legs} />}
+            </div>
+            <span className="flex items-center gap-0.5 text-[11px] text-muted leading-none shrink-0">
+              {detailOpen ? "접기" : "자세히"}
+              {detailOpen ? (
+                <ChevronUp size={13} color="#A89890" />
+              ) : (
+                <ChevronDown size={13} color="#A89890" />
+              )}
+            </span>
+          </button>
+          {detailOpen && (
+            <div className="mt-2">
+              <TransitTimeline legs={option.legs} compact />
+            </div>
+          )}
         </div>
       </div>
     );

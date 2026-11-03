@@ -10,6 +10,7 @@ import {
   getStampDetail,
   claimBadge,
   type BadgeCollection,
+  type BadgeItem,
   type StampItem,
 } from "@/lib/stamps-api";
 import { shareContent, type ShareResult } from "@/lib/share";
@@ -139,6 +140,16 @@ export default function StampTab() {
     }
   }, [stampLanguage]);
 
+  const openBadge = (badge: BadgeItem) => {
+    setPreviewBadge({
+      name: badge.name,
+      category: badge.category,
+      description: badge.description,
+      imageUrl: badge.imageUrl,
+      dateShort: formatAcquiredShort(badge.acquiredAt),
+    });
+  };
+
   const handleClaimBadge = async (badgeId: number) => {
     setClaimingBadgeId(badgeId);
     try {
@@ -151,6 +162,7 @@ export default function StampTab() {
           description: result.badge.description,
           imageUrl: result.badge.imageUrl,
           dateShort: formatAcquiredShort(result.badge.acquiredAt) ?? undefined,
+          isNew: true,
         });
       } else {
         showToast("이미 수령한 뱃지예요");
@@ -307,6 +319,7 @@ export default function StampTab() {
             onRetry={() => void loadBadges()}
             onClaim={(badgeId) => void handleClaimBadge(badgeId)}
             claimingBadgeId={claimingBadgeId}
+            onOpenBadge={openBadge}
           />
         )}
       </div>

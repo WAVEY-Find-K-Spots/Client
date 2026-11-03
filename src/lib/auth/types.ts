@@ -17,6 +17,29 @@ export interface TokenResponse {
   isNewUser: boolean;
 }
 
+export interface LocalLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LocalSignupRequest extends LocalLoginRequest {
+  name: string;
+}
+
+export interface LocalPasswordChangeRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface LocalPasswordResetRequest {
+  email: string;
+}
+
+export interface LocalPasswordResetConfirmRequest {
+  token: string;
+  newPassword: string;
+}
+
 export type CountryCode =
   | "KR"
   | "CN"
