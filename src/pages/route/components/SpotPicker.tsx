@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { spotGradientMap } from "@/mocks/spots";
 import { searchSpots, type SpotSearchParams } from "@/lib/spots-api";
-import { toSpotCandidate, type SpotCandidate } from "@/lib/route-adapters";
+import {
+  toSpotCandidate,
+  type RouteStop,
+  type SpotCandidate,
+} from "@/lib/route-adapters";
 import { sortByHasImage } from "@/lib/image-fallback";
 import type { SpotCategory } from "@/lib/routes-api";
-import { Check, Plus, Search, X } from "lucide-react";
+import { Check, Plus, Search, Star, X } from "lucide-react";
 
 interface SpotPickerProps {
   routeId: number | null;
-  /** 추가가 끝나면 시트를 닫아도 되는지 반환한다. false면 선택을 유지한 채 시트를 둔다. */
-  onAdd: (spotIds: number[]) => Promise<boolean>;
-  onClose: () => void;
+  stops: RouteStop[];
+  onAdd: (spotId: number) => Promise<boolean>;
+  onRemove: (spotId: number) => Promise<boolean>;
+  /** 시트를 연 뒤 추가된 스팟 수를 함께 전달한다. */
+  onClose: (addedCount: number) => void;
 }
 
 const CATEGORY_CHIPS: { key: SpotCategory | null; label: string }[] = [
@@ -23,12 +29,22 @@ const CATEGORY_CHIPS: { key: SpotCategory | null; label: string }[] = [
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps) {
+export default function SpotPicker({
+  routeId,
+  stops,
+  onAdd,
+  onRemove,
+  onClose,
+}: SpotPickerProps) {
+  // 첫 스팟을 담으면 루트가 새로 생기므로, 목록이 다시 불러와지지 않도록 연 시점의 값을 쓴다
+  const [excludeRouteId] = useState(routeId);
+  const [initialStopCount] = useState(stops.length);
   const [candidates, setCandidates] = useState<SpotCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
-  const [selected, setSelected] = useState<string[]>([]);
+  // 저장 중인 스팟과 저장 후 상태. 응답 전에 먼저 화면에 반영한다
+  const [pending, setPending] = useState<Record<string, boolean>>({});
   const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState<SpotCategory | null>(null);
@@ -36,8 +52,7 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
   const [hasNext, setHasNext] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   // 검색 조건이 바뀌면 이전 조건의 "더 보기" 응답을 버리기 위한 요청 번호
   const requestRef = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
@@ -51,7 +66,7 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
   }, [keywordInput]);
 
   const buildParams = (nextPage: number): SpotSearchParams => ({
-    ...(routeId ? { excludeRouteId: routeId } : {}),
+    ...(excludeRouteId ? { excludeRouteId } : {}),
     ...(keyword ? { keyword } : {}),
     ...(category ? { category } : {}),
     page: nextPage,
@@ -87,7 +102,7 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
     };
     // buildParams는 아래 의존성 값만 사용한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retryKey, routeId, keyword, category]);
+  }, [retryKey, excludeRouteId, keyword, category]);
 
   const loadMore = () => {
     if (loadingMore) return;
@@ -116,28 +131,32 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
       });
   };
 
-  const toggle = (id: string) => {
-    setSubmitError(false);
-    setSelected((p) =>
-      p.includes(id) ? p.filter((x) => x !== id) : [...p, id],
-    );
+  const addedIds = new Set(stops.map((s) => String(s.spotId)));
+  const isPending = Object.keys(pending).length > 0;
+  const addedCount = Math.max(0, stops.length - initialStopCount);
+
+  const toggle = async (spot: SpotCandidate) => {
+    if (spot.id in pending) return;
+    const wasAdded = addedIds.has(spot.id);
+    setActionError(null);
+    setPending((prev) => ({ ...prev, [spot.id]: !wasAdded }));
+    const ok = wasAdded ? await onRemove(spot.spotId) : await onAdd(spot.spotId);
+    setPending((prev) => {
+      const next = { ...prev };
+      delete next[spot.id];
+      return next;
+    });
+    if (!ok) {
+      setActionError(
+        wasAdded
+          ? `${spot.name}을(를) 빼지 못했어요. 다시 시도해주세요.`
+          : `${spot.name}을(를) 추가하지 못했어요. 다시 시도해주세요.`,
+      );
+    }
   };
 
   const close = () => {
-    if (!submitting) onClose();
-  };
-
-  const confirm = async () => {
-    if (selected.length === 0 || submitting) return;
-    setSubmitting(true);
-    setSubmitError(false);
-    const canClose = await onAdd(selected.map(Number));
-    if (canClose) {
-      onClose();
-      return;
-    }
-    setSubmitting(false);
-    setSubmitError(true);
+    if (!isPending) onClose(addedCount);
   };
 
   const emptyMessage = loadError
@@ -158,11 +177,11 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
             <button
               type="button"
               onClick={close}
-              disabled={submitting}
+              disabled={isPending}
               aria-label="닫기"
-              className="text-[13px] font-medium text-muted cursor-pointer disabled:opacity-40"
+              className="flex items-center justify-center w-8 h-8 -mr-1.5 rounded-full cursor-pointer disabled:opacity-40"
             >
-              취소
+              <X size={18} color="#2C1810" />
             </button>
           </div>
         </div>
@@ -227,7 +246,7 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
                   key={i}
                   className="flex items-center gap-3 rounded-[16px] border border-line p-2.5 animate-pulse"
                 >
-                  <span className="w-12 h-12 rounded-xl shrink-0 bg-cream" />
+                  <span className="w-[72px] h-[72px] rounded-[12px] shrink-0 bg-cream" />
                   <span className="flex-1 min-w-0">
                     <span className="block h-3.5 w-2/3 rounded bg-cream" />
                     <span className="block h-2.5 w-1/2 rounded bg-cream mt-2" />
@@ -251,22 +270,16 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
           ) : (
             <div className="flex flex-col gap-2">
               {candidates.map((s) => {
-                const checked = selected.includes(s.id);
+                const added = s.id in pending ? pending[s.id] : addedIds.has(s.id);
                 return (
-                  <button
+                  <div
                     key={s.id}
-                    type="button"
-                    onClick={() => toggle(s.id)}
-                    disabled={submitting}
-                    aria-pressed={checked}
-                    className={`flex items-center gap-3 rounded-[16px] p-2.5 text-left cursor-pointer border disabled:opacity-60 ${
-                      checked
-                        ? "border-brand bg-cream/50"
-                        : "border-line bg-white"
+                    className={`flex items-center gap-3 rounded-[16px] p-2.5 border transition-colors ${
+                      added ? "border-brand bg-cream/50" : "border-line bg-white"
                     }`}
                   >
                     <span
-                      className="w-12 h-12 rounded-xl shrink-0 overflow-hidden"
+                      className="w-[72px] h-[72px] rounded-[12px] shrink-0 overflow-hidden"
                       style={{ background: spotGradientMap[s.type] ?? "#A8623E" }}
                     >
                       <img
@@ -277,25 +290,43 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
                       />
                     </span>
                     <span className="flex-1 min-w-0">
-                      <span className="block truncate text-[14px] font-semibold text-ink">
+                      <span className="block text-[11px] font-semibold text-brand">
+                        {s.typeLabel}
+                      </span>
+                      <span className="block truncate text-[14px] font-semibold text-ink mt-0.5">
                         {s.name}
                       </span>
-                      <span className="block truncate text-[11px] text-muted mt-0.5">
-                        {s.loc ? `${s.typeLabel} · ${s.loc}` : s.typeLabel}
-                      </span>
-                    </span>
-                    <span
-                      className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${
-                        checked ? "bg-brand" : "bg-cream"
-                      }`}
-                    >
-                      {checked ? (
-                        <Check size={13} color="#FFFFFF" strokeWidth={3} />
-                      ) : (
-                        <Plus size={14} color="#A89890" />
+                      {s.loc && (
+                        <span className="block truncate text-[11px] text-muted mt-0.5">
+                          {s.loc}
+                        </span>
+                      )}
+                      {s.reviewCount > 0 && (
+                        <span className="flex items-center gap-1 text-[11px] text-muted mt-1">
+                          <Star size={11} color="#A8623E" fill="#A8623E" />
+                          <span className="font-semibold text-ink">
+                            {s.avgRating.toFixed(1)}
+                          </span>
+                          <span>({s.reviewCount})</span>
+                        </span>
                       )}
                     </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => void toggle(s)}
+                      aria-pressed={added}
+                      aria-label={added ? `${s.name} 루트에서 빼기` : `${s.name} 루트에 추가`}
+                      className={`flex items-center justify-center w-10 h-10 rounded-full shrink-0 cursor-pointer transition-colors ${
+                        added ? "bg-brand" : "bg-cream"
+                      }`}
+                    >
+                      {added ? (
+                        <Check size={17} color="#FFFFFF" strokeWidth={3} />
+                      ) : (
+                        <Plus size={18} color="#A8623E" strokeWidth={2.4} />
+                      )}
+                    </button>
+                  </div>
                 );
               })}
               {hasNext && (
@@ -318,22 +349,22 @@ export default function SpotPicker({ routeId, onAdd, onClose }: SpotPickerProps)
 
         {/* confirm */}
         <div className="px-5 pb-6 pt-2 shrink-0">
-          {submitError && (
+          {actionError && (
             <p role="alert" className="mb-2 text-center text-[12px] text-brand">
-              스팟을 추가하지 못했어요. 다시 시도해주세요.
+              {actionError}
             </p>
           )}
           <button
             type="button"
-            onClick={() => void confirm()}
-            disabled={selected.length === 0 || submitting}
+            onClick={close}
+            disabled={isPending}
             className="w-full h-[50px] rounded-full bg-ink text-white text-[14px] font-semibold cursor-pointer whitespace-nowrap disabled:opacity-40"
           >
-            {submitting
-              ? "추가하는 중..."
-              : selected.length > 0
-                ? `${selected.length}개 스팟 추가하기`
-                : "스팟을 선택해주세요"}
+            {isPending
+              ? "저장하는 중..."
+              : addedCount > 0
+                ? `${addedCount}개 추가 완료`
+                : "닫기"}
           </button>
         </div>
       </div>

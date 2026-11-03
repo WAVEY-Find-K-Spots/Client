@@ -120,7 +120,19 @@ export default function RouteTab() {
   // 편집 ↔ 탐색 전환만으로는 다시 계산하지 않도록(고른 경로 후보 유지) 두 화면을 하나로 묶고,
   // 순서가 바뀌면 다시 계산하도록 스팟 구성을 키로 쓴다
   const directionsActive = mode === "plan" || mode === "nav";
-  const stopsKey = stops.map((s) => s.id).join(",");
+  const latestStopsKey = stops.map((s) => s.id).join(",");
+  // 스팟 추가 시트를 연 동안에는 스팟을 담을 때마다 경로를 다시 계산하지 않고, 닫을 때 한 번만 계산한다
+  const [stopsKey, setStopsKey] = useState(latestStopsKey);
+  useEffect(() => {
+    if (!pickerOpen) setStopsKey(latestStopsKey);
+  }, [pickerOpen, latestStopsKey]);
+
+  // 스팟 추가 시트 뒤의 화면을 담긴 스팟 유무에 맞춘다
+  useEffect(() => {
+    if (!pickerOpen || !modeInitialized) return;
+    setMode(stops.length ? "plan" : "empty");
+  }, [pickerOpen, modeInitialized, stops.length]);
+
   useEffect(() => {
     const resetDirections = (result: DirectionsResult | null) => {
       setDirections(result);
@@ -231,20 +243,23 @@ export default function RouteTab() {
     });
   };
 
-  const handleAdd = async (spotIds: number[]) => {
-    const wasEmpty = stops.length === 0;
-    const added = await addToRoute(spotIds);
-    if (added === 0) return false;
-    if (wasEmpty) {
-      setMode("plan");
-      setCurrent(0);
-    }
-    showToast(
-      added === spotIds.length
-        ? `${added}개 스팟을 추가했어요`
-        : `${spotIds.length}개 중 ${added}개만 추가했어요`,
-    );
-    return true;
+  const handlePickerAdd = async (spotId: number) => {
+    const added = await addToRoute([spotId]);
+    return added > 0;
+  };
+
+  const handlePickerRemove = async (spotId: number) => {
+    const stop = stops.find((s) => s.spotId === spotId);
+    if (!stop) return false;
+    const ok = await removeFromRoute(Number(stop.id));
+    if (ok) setCurrent(0);
+    return ok;
+  };
+
+  const closePicker = (addedCount: number) => {
+    setPickerOpen(false);
+    setCurrent(0);
+    if (addedCount > 0) showToast(`${addedCount}개 스팟을 추가했어요`);
   };
 
   const startNav = () => {
@@ -445,6 +460,14 @@ export default function RouteTab() {
             <>
               <button
                 type="button"
+                onClick={() => setPickerOpen(true)}
+                aria-label="스팟 추가"
+                className="flex items-center justify-center w-9 h-9 rounded-2xl bg-ink cursor-pointer whitespace-nowrap"
+              >
+                <Plus size={18} color="#F7EBE0" />
+              </button>
+              <button
+                type="button"
                 onClick={() => showToast("루트를 저장했어요")}
                 className="flex items-center gap-1 text-[13px] font-semibold text-brand cursor-pointer whitespace-nowrap"
               >
@@ -557,8 +580,10 @@ export default function RouteTab() {
       {pickerOpen && (
         <SpotPicker
           routeId={routeId}
-          onAdd={handleAdd}
-          onClose={() => setPickerOpen(false)}
+          stops={stops}
+          onAdd={handlePickerAdd}
+          onRemove={handlePickerRemove}
+          onClose={closePicker}
         />
       )}
 
