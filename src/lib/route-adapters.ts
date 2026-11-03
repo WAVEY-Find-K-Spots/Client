@@ -50,6 +50,8 @@ export interface SpotCandidate {
   hasImage: boolean;
   type: StopType;
   typeLabel: string;
+  avgRating: number;
+  reviewCount: number;
 }
 
 export function toSpotCandidate(spot: SpotSearchItem): SpotCandidate {
@@ -63,5 +65,7 @@ export function toSpotCandidate(spot: SpotSearchItem): SpotCandidate {
     hasImage: hasRealImage(spot.imageUrl),
     type: meta?.type ?? "tour",
     typeLabel: meta?.label ?? "스팟",
+    avgRating: spot.avgRating,
+    reviewCount: spot.reviewCount,
   };
 }

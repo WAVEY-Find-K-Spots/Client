@@ -88,6 +88,14 @@ body {
   animation: wv-slidein 0.32s ease both;
 }
 
+@keyframes wv-sheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.wv-sheet-up {
+  animation: wv-sheet-up 0.24s ease-out both;
+}
+
 /* Stamp acquired animation */
 @keyframes wv-float {
   0%, 100% { transform: translateY(0); }

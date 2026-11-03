@@ -26,7 +26,8 @@ export interface RouteContextValue {
   inRoute: (spotId: string) => boolean;
   toggleRoute: (spotId: string) => void;
   /** 성공하면 true, 실패하면 false를 반환(에러 메시지는 error에 반영됨) */
-  addToRoute: (spotIds: number[]) => Promise<boolean>;
+  /** 실제로 추가된 스팟 수를 반환한다. 0이면 하나도 추가하지 못한 것. */
+  addToRoute: (spotIds: number[]) => Promise<number>;
   removeFromRoute: (routeSpotId: number) => Promise<boolean>;
   reorderRoute: (orderedRouteSpotIds: number[]) => Promise<boolean>;
   clearRoute: () => Promise<boolean>;

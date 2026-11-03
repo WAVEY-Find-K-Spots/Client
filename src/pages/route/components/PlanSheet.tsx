@@ -432,11 +432,11 @@ export default function PlanSheet({
                   </span>
                   {/* center text */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-ink leading-tight">
+                    <p className="truncate text-[14px] font-semibold text-ink leading-tight">
                       {s.name}
                     </p>
-                    <p className="text-[11px] text-muted mt-0.5">
-                      {s.typeLabel} · {s.tags[0]}
+                    <p className="truncate text-[11px] text-muted mt-0.5">
+                      {s.tags[0] ? `${s.typeLabel} · ${s.tags[0]}` : s.typeLabel}
                     </p>
                   </div>
                   <button

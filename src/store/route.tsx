@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   addRouteSpot,
@@ -26,6 +26,23 @@ export function RouteProvider({ children }: { children: ReactNode }) {
   const [stops, setStops] = useState<RouteStop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 연달아 추가해도 렌더를 기다리지 않고 최신 값으로 저장하도록 ref로 함께 관리한다
+  const routeIdRef = useRef(routeId);
+  const stopCountRef = useRef(stops.length);
+  const mutationQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  useEffect(() => {
+    routeIdRef.current = routeId;
+    stopCountRef.current = stops.length;
+  }, [routeId, stops.length]);
+
+  /** 추가·삭제를 순서대로 실행해 순서 번호 충돌과 루트 중복 생성을 막는다. */
+  const enqueueMutation = useCallback(<T,>(task: () => Promise<T>) => {
+    const run = mutationQueueRef.current.then(task, task);
+    mutationQueueRef.current = run.catch(() => undefined);
+    return run;
+  }, []);
 
   const persistRouteId = (id: number | null) => {
     setRouteId(id);
@@ -86,56 +103,68 @@ export function RouteProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async (id: number) => {
     const detail = await getRouteDetail(id);
+    stopCountRef.current = detail.spots.length;
     setStops(detail.spots.map(toRouteStop));
   }, []);
 
   const addToRoute = useCallback(
-    async (spotIds: number[]) => {
-      if (spotIds.length === 0) return false;
-      setError(null);
-      try {
-        if (routeId === null) {
-          const detail = await createRoute({
-            name: "내 루트",
-            visibility: "PRIVATE",
-            spots: spotIds.map((spotId, i) => ({ spotId, sequenceOrder: i + 1 })),
-          });
-          persistRouteId(detail.routeId);
-          setRouteName(detail.name);
-          setRouteVisibility(detail.visibility);
-          setStops(detail.spots.map(toRouteStop));
-          return true;
-        }
+    (spotIds: number[]) =>
+      enqueueMutation(async () => {
+        if (spotIds.length === 0) return 0;
+        setError(null);
+        const currentRouteId = routeIdRef.current;
+        let added = 0;
+        try {
+          if (currentRouteId === null) {
+            const detail = await createRoute({
+              name: "내 루트",
+              visibility: "PRIVATE",
+              spots: spotIds.map((spotId, i) => ({ spotId, sequenceOrder: i + 1 })),
+            });
+            routeIdRef.current = detail.routeId;
+            stopCountRef.current = detail.spots.length;
+            persistRouteId(detail.routeId);
+            setRouteName(detail.name);
+            setRouteVisibility(detail.visibility);
+            setStops(detail.spots.map(toRouteStop));
+            return spotIds.length;
+          }
 
-        let nextOrder = stops.length + 1;
-        for (const spotId of spotIds) {
-          await addRouteSpot(routeId, spotId, nextOrder);
-          nextOrder += 1;
+          for (const spotId of spotIds) {
+            await addRouteSpot(currentRouteId, spotId, stopCountRef.current + 1);
+            stopCountRef.current += 1;
+            added += 1;
+          }
+          await refresh(currentRouteId);
+          return added;
+        } catch {
+          setError("스팟을 추가하지 못했어요.");
+          // 중간에 실패해도 이미 추가된 스팟은 목록에 반영한다
+          if (added > 0 && currentRouteId !== null) {
+            await refresh(currentRouteId).catch(() => undefined);
+          }
+          return added;
         }
-        await refresh(routeId);
-        return true;
-      } catch {
-        setError("스팟을 추가하지 못했어요.");
-        return false;
-      }
-    },
-    [routeId, stops.length, refresh],
+      }),
+    [enqueueMutation, refresh],
   );
 
   const removeFromRoute = useCallback(
-    async (routeSpotId: number) => {
-      if (routeId === null) return false;
-      setError(null);
-      try {
-        await removeRouteSpot(routeId, routeSpotId);
-        await refresh(routeId);
-        return true;
-      } catch {
-        setError("스팟을 삭제하지 못했어요.");
-        return false;
-      }
-    },
-    [routeId, refresh],
+    (routeSpotId: number) =>
+      enqueueMutation(async () => {
+        const currentRouteId = routeIdRef.current;
+        if (currentRouteId === null) return false;
+        setError(null);
+        try {
+          await removeRouteSpot(currentRouteId, routeSpotId);
+          await refresh(currentRouteId);
+          return true;
+        } catch {
+          setError("스팟을 삭제하지 못했어요.");
+          return false;
+        }
+      }),
+    [enqueueMutation, refresh],
   );
 
   const reorderRoute = useCallback(
