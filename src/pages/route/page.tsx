@@ -231,19 +231,20 @@ export default function RouteTab() {
     });
   };
 
-  const handleAdd = (spotIds: number[]) => {
+  const handleAdd = async (spotIds: number[]) => {
     const wasEmpty = stops.length === 0;
-    void addToRoute(spotIds).then((ok) => {
-      if (!ok) {
-        showToast("스팟을 추가하지 못했어요");
-        return;
-      }
-      if (wasEmpty) {
-        setMode("plan");
-        setCurrent(0);
-      }
-      showToast(`${spotIds.length}개 스팟을 추가했어요`);
-    });
+    const added = await addToRoute(spotIds);
+    if (added === 0) return false;
+    if (wasEmpty) {
+      setMode("plan");
+      setCurrent(0);
+    }
+    showToast(
+      added === spotIds.length
+        ? `${added}개 스팟을 추가했어요`
+        : `${spotIds.length}개 중 ${added}개만 추가했어요`,
+    );
+    return true;
   };
 
   const startNav = () => {

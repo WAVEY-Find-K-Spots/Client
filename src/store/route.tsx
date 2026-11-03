@@ -91,8 +91,9 @@ export function RouteProvider({ children }: { children: ReactNode }) {
 
   const addToRoute = useCallback(
     async (spotIds: number[]) => {
-      if (spotIds.length === 0) return false;
+      if (spotIds.length === 0) return 0;
       setError(null);
+      let added = 0;
       try {
         if (routeId === null) {
           const detail = await createRoute({
@@ -104,19 +105,24 @@ export function RouteProvider({ children }: { children: ReactNode }) {
           setRouteName(detail.name);
           setRouteVisibility(detail.visibility);
           setStops(detail.spots.map(toRouteStop));
-          return true;
+          return spotIds.length;
         }
 
         let nextOrder = stops.length + 1;
         for (const spotId of spotIds) {
           await addRouteSpot(routeId, spotId, nextOrder);
+          added += 1;
           nextOrder += 1;
         }
         await refresh(routeId);
-        return true;
+        return added;
       } catch {
         setError("스팟을 추가하지 못했어요.");
-        return false;
+        // 중간에 실패해도 이미 추가된 스팟은 목록에 반영한다
+        if (added > 0 && routeId !== null) {
+          await refresh(routeId).catch(() => undefined);
+        }
+        return added;
       }
     },
     [routeId, stops.length, refresh],
