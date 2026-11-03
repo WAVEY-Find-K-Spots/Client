@@ -1,4 +1,5 @@
 import type { BadgeItem, StampItem as ApiStampItem } from "@/lib/stamps-api";
+import type { SpotCategory } from "@/lib/routes-api";
 
 const FALLBACK_GRADIENT =
   "linear-gradient(158deg,#7a3d28,#c96a42)";
@@ -6,6 +7,7 @@ const FALLBACK_GRADIENT =
 /** AcquiredOverlay용 공통 모델 */
 export type OverlayStamp = {
   name: string;
+  category?: SpotCategory | null;
   dateShort?: string;
   imageUrl?: string | null;
   gradient?: string;
@@ -26,6 +28,7 @@ export function formatAcquiredShort(
 export function toOverlayStamp(stamp: ApiStampItem): OverlayStamp {
   return {
     name: stamp.name,
+    category: stamp.category,
     dateShort: formatAcquiredShort(stamp.acquiredAt),
     imageUrl: stamp.imageUrl,
     gradient: FALLBACK_GRADIENT,

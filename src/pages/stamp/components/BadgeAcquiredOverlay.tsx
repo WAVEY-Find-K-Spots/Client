@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { X, Award, Share2, Star } from "lucide-react";
+import type { SpotCategory } from "@/lib/routes-api";
+import { getStampCategoryTheme } from "../stamp-themes";
+import CategoryThemeIcon from "../category-theme-icon";
 
 export type OverlayBadge = {
   name: string;
+  category?: SpotCategory | null;
   description?: string | null;
   imageUrl?: string | null;
   dateShort?: string;
@@ -43,6 +47,7 @@ export default function BadgeAcquiredOverlay({
   const [imgFailed, setImgFailed] = useState(false);
   useEffect(() => setImgFailed(false), [badge.imageUrl]);
   const showImage = Boolean(badge.imageUrl) && !imgFailed;
+  const theme = getStampCategoryTheme(badge.category);
 
   return (
     <div className="absolute inset-0 z-[60] bg-ink flex flex-col overflow-hidden">
@@ -65,7 +70,7 @@ export default function BadgeAcquiredOverlay({
             {/* 바깥 육각 점선 느낌 — 원형 링으로 통일감 */}
             <div
               className="absolute -inset-6 rounded-full"
-              style={{ border: "2px dashed #A8623E" }}
+              style={{ border: `2px dashed ${theme.accent}` }}
             />
             {particles.map((p, i) => (
               <span
@@ -73,12 +78,12 @@ export default function BadgeAcquiredOverlay({
                 className="absolute wv-float flex items-center justify-center w-3 h-3"
                 style={{ ...p, animationDelay: `${i * 0.35}s` }}
               >
-                <Star size={12} color="#A8623E" fill="#A8623E" />
+                <Star size={12} color={theme.accent} fill={theme.accent} />
               </span>
             ))}
             <div
               className="absolute -inset-4 rounded-full opacity-0 wv-ring-grow"
-              style={{ border: "1px solid rgba(168,98,62,0.5)" }}
+              style={{ border: `1px solid ${theme.accent}80` }}
             />
 
             {/* 육각 배지 */}
@@ -89,7 +94,8 @@ export default function BadgeAcquiredOverlay({
                   clipPath: HEX,
                   background: showImage
                     ? undefined
-                    : "linear-gradient(160deg,#A8623E,#6B3F28)",
+                    : theme.fallback,
+                  border: `3px solid ${theme.border}`,
                 }}
               >
                 {showImage ? (
@@ -101,7 +107,7 @@ export default function BadgeAcquiredOverlay({
                   />
                 ) : (
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <Award size={56} color="#FFFFFF" strokeWidth={1.6} />
+                    <CategoryThemeIcon category={badge.category} size={56} color="#FFFFFF" strokeWidth={1.6} />
                   </span>
                 )}
                 <span className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
@@ -111,7 +117,10 @@ export default function BadgeAcquiredOverlay({
 
           <div className="mt-9 text-center">
             {badge.isNew && (
-              <p className="mb-1.5 text-[13px] font-medium text-brand">
+              <p
+                className="mb-1.5 text-[13px] font-medium"
+                style={{ color: theme.accent }}
+              >
                 새로운 뱃지 해제
               </p>
             )}
