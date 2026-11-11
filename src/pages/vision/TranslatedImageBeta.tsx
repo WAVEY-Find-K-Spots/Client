@@ -4,9 +4,11 @@ import {
   CircleAlert,
   Image as ImageIcon,
   LoaderCircle,
+  Maximize2,
   Sparkles,
 } from "lucide-react";
 import { createTranslatedImage } from "./translated-image";
+import ZoomableImageViewer from "./ZoomableImageViewer";
 
 interface TranslatedImageBetaProps {
   imageUrl: string;
@@ -23,6 +25,7 @@ export default function TranslatedImageBeta({
   const [mode, setMode] = useState<ImageMode>("original");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   useEffect(() => {
     setMode("original");
@@ -110,18 +113,43 @@ export default function TranslatedImageBeta({
               번역 이미지
             </ModeButton>
           </div>
-          <div className="mt-3 overflow-hidden rounded-[16px] border border-line bg-page">
+          <button
+            type="button"
+            onClick={() => setViewerOpen(true)}
+            aria-label="이미지 크게 보기"
+            className="relative mt-3 block w-full overflow-hidden rounded-[16px] border border-line bg-page cursor-zoom-in"
+          >
             <img
               src={mode === "translated" ? translatedUrl : imageUrl}
               alt={mode === "translated" ? "영문 번역이 합성된 이미지" : "원본 이미지"}
               className="h-auto max-h-[520px] w-full object-contain"
             />
-          </div>
+            <span className="absolute right-2.5 bottom-2.5 flex items-center gap-1 rounded-full bg-ink/70 px-2.5 py-1 text-[9.5px] font-semibold text-white">
+              <Maximize2 size={11} />
+              크게 보기
+            </span>
+          </button>
           <p className="mt-2 flex items-start gap-1.5 text-[9.5px] leading-relaxed text-muted">
             <ImageIcon size={11} className="mt-0.5 shrink-0" />
             자동 합성 결과로 원본 글꼴·배경과 다르게 표시될 수 있어요.
           </p>
         </div>
+      )}
+
+      {viewerOpen && translatedUrl && (
+        <ZoomableImageViewer
+          images={[
+            { key: "original", label: "원본 이미지", src: imageUrl, alt: "원본 이미지" },
+            {
+              key: "translated",
+              label: "번역 이미지",
+              src: translatedUrl,
+              alt: "영문 번역이 합성된 이미지",
+            },
+          ]}
+          initialKey={mode}
+          onClose={() => setViewerOpen(false)}
+        />
       )}
 
       {error && (
