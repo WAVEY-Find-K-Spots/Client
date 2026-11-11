@@ -6,6 +6,11 @@ import type {
 const MAX_CANVAS_EDGE = 2048;
 const MIN_FONT_SIZE = 8;
 const ABSOLUTE_MIN_FONT_SIZE = 4;
+/**
+ * 이미지는 화면 너비에 맞춰 축소되어 보이므로, 이미지 너비에 비례한 최소 글씨 크기를 둔다.
+ * 2048px 너비 이미지가 약 360px 화면에 보일 때 화면상 약 9px이 된다.
+ */
+const READABLE_FONT_RATIO = 0.025;
 
 interface RgbColor {
   red: number;
@@ -44,10 +49,11 @@ export async function createTranslatedImage(
   }
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-  blocks.forEach((block) => {
+  // 원문을 모두 지운 뒤 번역문을 그린다. 넓힌 번역 상자가 다음 영역을 지울 때 함께 지워지지 않게 하기 위함
+  const prepared = blocks.flatMap((block) => {
     const text = block.translatedText?.trim();
-    if (!text || block.polygon.length < 4) return;
-    renderBlock(
+    if (!text || block.polygon.length < 4) return [];
+    const layout = eraseBlock(
       context,
       block.polygon.map((point) => ({
         x: point.x * scale,
@@ -55,7 +61,13 @@ export async function createTranslatedImage(
       })),
       text,
     );
+    return layout ? [layout] : [];
   });
+  const minReadableSize = Math.max(
+    MIN_FONT_SIZE,
+    Math.round(canvas.width * READABLE_FONT_RATIO),
+  );
+  prepared.forEach((layout) => drawBlockText(context, layout, minReadableSize));
 
   return canvasToBlob(canvas);
 }
@@ -69,13 +81,23 @@ function loadImage(source: string): Promise<HTMLImageElement> {
   });
 }
 
-function renderBlock(
+interface BlockLayout {
+  origin: Point;
+  text: string;
+  width: number;
+  height: number;
+  angle: number;
+  background: RgbColor;
+}
+
+/** 원문 글자 영역을 주변 배경색으로 지우고, 번역문을 그릴 위치 정보를 돌려준다 */
+function eraseBlock(
   context: CanvasRenderingContext2D,
   points: Point[],
   text: string,
-) {
+): BlockLayout | null {
   const bounds = polygonBounds(points, context.canvas.width, context.canvas.height);
-  if (bounds.width < 4 || bounds.height < 4) return;
+  if (bounds.width < 4 || bounds.height < 4) return null;
 
   const background = sampleSurroundingColor(context, bounds);
   fillPolygon(context, points, background);
@@ -91,10 +113,18 @@ function renderBlock(
     points[1].x - points[0].x,
   );
 
+  return { origin: points[0], text, width, height, angle, background };
+}
+
+function drawBlockText(
+  context: CanvasRenderingContext2D,
+  layout: BlockLayout,
+  minReadableSize: number,
+) {
   context.save();
-  context.translate(points[0].x, points[0].y);
-  context.rotate(angle);
-  drawFittedText(context, text, width, height, background);
+  context.translate(layout.origin.x, layout.origin.y);
+  context.rotate(layout.angle);
+  drawFittedText(context, layout, minReadableSize);
   context.restore();
 }
 
@@ -258,24 +288,26 @@ function fillPolygon(
 
 function drawFittedText(
   context: CanvasRenderingContext2D,
-  text: string,
-  width: number,
-  height: number,
-  background: RgbColor,
+  layout: BlockLayout,
+  minReadableSize: number,
 ) {
+  const { text, width, height, background } = layout;
   const padding = Math.max(2, Math.min(width, height) * 0.06);
   const availableWidth = Math.max(1, width - padding * 2);
   const availableHeight = Math.max(1, height - padding * 2);
   const normalizedText = text.replace(/\s+/g, " ").trim();
+  // 원래 영역이 작아도 읽을 수 있는 크기보다 작게 줄이지 않는다
+  const minSize = Math.max(ABSOLUTE_MIN_FONT_SIZE, minReadableSize);
   let selectedSize = Math.max(
     MIN_FONT_SIZE,
-    Math.floor(Math.min(availableHeight * 0.82, 48)),
+    Math.floor(Math.min(availableHeight * 0.82, Math.max(48, minSize))),
   );
   let selectedLines = [normalizedText];
+  let fits = false;
 
   for (
-    let fontSize = selectedSize;
-    fontSize >= ABSOLUTE_MIN_FONT_SIZE;
+    let fontSize = Math.max(selectedSize, minSize);
+    fontSize >= minSize;
     fontSize -= 1
   ) {
     context.font = `600 ${fontSize}px Arial, sans-serif`;
@@ -290,12 +322,14 @@ function drawFittedText(
     ) {
       selectedSize = fontSize;
       selectedLines = lines;
+      fits = true;
       break;
     }
-    if (fontSize === ABSOLUTE_MIN_FONT_SIZE) {
-      selectedSize = fontSize;
-      selectedLines = lines;
-    }
+  }
+
+  if (!fits) {
+    drawExpandedLabel(context, layout, normalizedText, minSize);
+    return;
   }
 
   const lineHeight = selectedSize * 1.15;
@@ -311,6 +345,65 @@ function drawFittedText(
       multiline ? padding : width / 2,
       padding + (availableHeight - totalHeight) / 2 + lineHeight * (index + 0.5),
       availableWidth,
+    );
+  });
+}
+
+/**
+ * 최소 글씨 크기로도 원래 영역에 들어가지 않으면, 배경 상자를 넓혀서 번역문을 그린다.
+ * 상자는 원래 영역의 왼쪽 위에서 시작하고 이미지 밖으로 나가지 않게 위치를 보정한다.
+ */
+function drawExpandedLabel(
+  context: CanvasRenderingContext2D,
+  layout: BlockLayout,
+  text: string,
+  fontSize: number,
+) {
+  const canvasWidth = context.canvas.width;
+  const canvasHeight = context.canvas.height;
+  const padding = Math.round(fontSize * 0.35);
+  const lineHeight = fontSize * 1.15;
+  const maxTextWidth = Math.max(
+    layout.width - padding * 2,
+    canvasWidth * 0.6 - padding * 2,
+    fontSize * 4,
+  );
+
+  context.font = `600 ${fontSize}px Arial, sans-serif`;
+  const lines = wrapText(context, text, maxTextWidth);
+  const widestLine = Math.max(
+    ...lines.map((line) => context.measureText(line).width),
+  );
+  const boxWidth = Math.min(
+    canvasWidth,
+    Math.max(layout.width, widestLine + padding * 2),
+  );
+  const boxHeight = Math.max(layout.height, lines.length * lineHeight + padding * 2);
+
+  // 회전 각도가 작다고 보고, 이미지 좌표 기준으로 넘치는 만큼 안쪽으로 당긴다
+  const offsetX =
+    Math.max(0, -layout.origin.x) -
+    Math.max(0, layout.origin.x + boxWidth - canvasWidth);
+  const offsetY =
+    Math.max(0, -layout.origin.y) -
+    Math.max(0, layout.origin.y + boxHeight - canvasHeight);
+
+  const { red, green, blue } = layout.background;
+  context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+  context.beginPath();
+  context.roundRect(offsetX, offsetY, boxWidth, boxHeight, padding * 0.6);
+  context.fill();
+
+  context.fillStyle = readableTextColor(layout.background);
+  context.textAlign = "left";
+  context.textBaseline = "middle";
+  const textTop = offsetY + (boxHeight - lines.length * lineHeight) / 2;
+  lines.forEach((line, index) => {
+    context.fillText(
+      line,
+      offsetX + padding,
+      textTop + lineHeight * (index + 0.5),
+      boxWidth - padding * 2,
     );
   });
 }
