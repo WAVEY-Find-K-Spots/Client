@@ -94,6 +94,16 @@ export default function SpotMapView({
   const [moved, setMoved] = useState(false);
   const [zoomTick, setZoomTick] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedCardRef = useRef<HTMLDivElement>(null);
+
+  // 지도 아래쪽이 하단 네비바와 겹치면 카드가 가려지므로, 선택할 때 카드가 보이도록 스크롤한다
+  useEffect(() => {
+    if (!selectedId) return;
+    const frame = requestAnimationFrame(() => {
+      selectedCardRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedId]);
 
   const filterKey = [category, regionId, minRating, radiusMeters].join("|");
   const area = manualArea?.filterKey === filterKey ? manualArea : null;
@@ -399,7 +409,11 @@ export default function SpotMapView({
       )}
 
       {selected && (
-        <div className="absolute z-[1000] inset-x-3 bottom-7 flex items-center gap-3 rounded-[16px] bg-white p-2.5 shadow-soft">
+        <div
+          ref={selectedCardRef}
+          className="absolute z-[1000] inset-x-3 bottom-7 flex items-center gap-3 rounded-[16px] bg-white p-2.5 shadow-soft"
+          style={{ scrollMarginBottom: "var(--app-bottom-reserve)" }}
+        >
           <button
             type="button"
             onClick={() => onOpen(selected.id)}
