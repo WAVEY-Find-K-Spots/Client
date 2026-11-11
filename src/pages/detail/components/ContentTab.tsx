@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Spot } from "@/mocks/spots";
 import type {
+  ContentCategory,
   SpotMediaResponse,
   SpotMediaContent,
   ContentVideo,
@@ -39,28 +40,53 @@ function toMusicItem(
   };
 }
 
-function firstMusicItem(content: SpotMediaContent): MusicItem | null {
-  for (const album of content.albums) {
-    const track = album.tracks[0];
-    if (track) {
-      return toMusicItem(track, album.imageUrl);
+/** 작품 하나가 목록을 독차지하지 않도록 작품당 최대 개수를 둔다 */
+const MAX_ITEMS_PER_CONTENT = 3;
+const MAX_ITEMS = 10;
+
+const CONTENT_CATEGORY_LABEL: Record<ContentCategory, string> = {
+  DRAMA: "드라마",
+  MOVIE: "영화",
+  ARTIST: "아티스트",
+};
+
+/** 작품별 목록을 한 개씩 번갈아 꺼내 섞고, 같은 key는 한 번만 담는다 */
+function interleave<T>(lists: T[][], keyOf: (item: T) => string): T[] {
+  const result: T[] = [];
+  const seen = new Set<string>();
+  const longest = Math.max(0, ...lists.map((list) => list.length));
+
+  for (let i = 0; i < longest && result.length < MAX_ITEMS; i++) {
+    for (const list of lists) {
+      const item = list[i];
+      if (!item || seen.has(keyOf(item))) continue;
+      seen.add(keyOf(item));
+      result.push(item);
+      if (result.length >= MAX_ITEMS) break;
     }
   }
-
-  const track = content.tracks[0];
-  return track ? toMusicItem(track) : null;
+  return result;
 }
 
-function pickRepresentativeVideos(contents: SpotMediaContent[]) {
-  return contents
-    .map((content) => content.videos[0])
-    .filter((video): video is ContentVideo => Boolean(video));
+function musicItemsOf(content: SpotMediaContent): MusicItem[] {
+  const items = [
+    ...content.albums.flatMap((album) =>
+      album.tracks.map((track) => toMusicItem(track, album.imageUrl)),
+    ),
+    ...content.tracks.map((track) => toMusicItem(track)),
+  ];
+  return items.slice(0, MAX_ITEMS_PER_CONTENT);
 }
 
-function pickRepresentativeMusic(contents: SpotMediaContent[]) {
-  return contents
-    .map(firstMusicItem)
-    .filter((item): item is MusicItem => Boolean(item));
+function pickVideos(contents: SpotMediaContent[]) {
+  return interleave(
+    contents.map((content) => content.videos.slice(0, MAX_ITEMS_PER_CONTENT)),
+    (video: ContentVideo) => video.videoId,
+  );
+}
+
+function pickMusic(contents: SpotMediaContent[]) {
+  return interleave(contents.map(musicItemsOf), (item) => item.spotifyTrackId);
 }
 
 function MediaCard({
@@ -77,7 +103,7 @@ function MediaCard({
       type="button"
       disabled={!onPlay}
       onClick={() => onPlay?.()}
-      className="bg-white rounded-2xl overflow-hidden shadow-soft text-left cursor-pointer disabled:cursor-default"
+      className="w-full bg-white rounded-2xl overflow-hidden shadow-soft text-left cursor-pointer disabled:cursor-default"
     >
       <div className="relative w-full h-[70px] overflow-hidden bg-cream">
         {thumbnailUrl && (
@@ -97,7 +123,9 @@ function MediaCard({
         )}
       </div>
       <div className="p-3">
-        <p className="text-[13px] font-semibold text-ink leading-tight">{title}</p>
+        <p className="text-[13px] font-semibold text-ink leading-tight line-clamp-2">
+          {title}
+        </p>
         {onPlay && (
           <p className="flex items-center gap-0.5 text-[11px] font-medium text-brand mt-1.5">
             재생하기
@@ -112,8 +140,9 @@ function MediaCard({
 }
 
 function RealMediaContent({ media }: { media: SpotMediaResponse }) {
-  const videos = pickRepresentativeVideos(media.contents);
-  const music = pickRepresentativeMusic(media.contents);
+  const videos = pickVideos(media.contents);
+  const music = pickMusic(media.contents);
+  const works = media.contents.filter((c) => c.category !== "ARTIST");
   const artists = media.contents.filter((c) => c.category === "ARTIST");
   const hasAnyMedia = videos.length > 0 || music.length > 0;
   const [activeMedia, setActiveMedia] = useState<ActiveMedia | null>(null);
@@ -133,20 +162,25 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
 
   return (
     <div className="px-5 pt-5">
-      {/* related videos */}
-      {videos.length > 0 && (
+      {works.length > 0 && (
         <div className="mt-5 first:mt-0">
-          <h4 className="text-[15px] font-semibold text-ink">연관 영상</h4>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {videos.map((v) => (
-              <MediaCard
-                key={v.id}
-                thumbnailUrl={v.thumbnailUrl}
-                title={v.title}
-                onPlay={() =>
-                  setActiveMedia({ kind: "video", videoId: v.videoId, title: v.title })
-                }
-              />
+          <h4 className="text-[15px] font-semibold text-ink">
+            연관 작품
+            <span className="ml-1.5 text-[12px] font-medium text-muted">
+              {works.length}
+            </span>
+          </h4>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {works.map((c) => (
+              <span
+                key={c.contentId}
+                className="px-3.5 h-9 flex items-center gap-1.5 rounded-full bg-cream text-[13px] font-medium text-ink"
+              >
+                <span className="text-[11px] text-brand">
+                  {CONTENT_CATEGORY_LABEL[c.category] ?? c.category}
+                </span>
+                {c.title}
+              </span>
             ))}
           </div>
         </div>
@@ -168,11 +202,31 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
         </div>
       )}
 
+      {/* related videos */}
+      {videos.length > 0 && (
+        <div className="mt-5 first:mt-0">
+          <h4 className="text-[15px] font-semibold text-ink">연관 영상</h4>
+          <div className="mt-3 -mx-5 px-5 pb-1 flex gap-3 overflow-x-auto no-scrollbar">
+            {videos.map((v) => (
+              <div key={v.id} className="shrink-0 w-[150px]">
+                <MediaCard
+                  thumbnailUrl={v.thumbnailUrl}
+                  title={v.title}
+                  onPlay={() =>
+                    setActiveMedia({ kind: "video", videoId: v.videoId, title: v.title })
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* related music */}
       {music.length > 0 && (
         <>
           <h4 className="mt-5 text-[15px] font-semibold text-ink">연관 음악</h4>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-3 -mx-5 px-5 pb-1 flex gap-3 overflow-x-auto no-scrollbar">
             {music.map((m) => (
               <button
                 key={m.key}
@@ -184,7 +238,7 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
                     title: m.title,
                   })
                 }
-                className="bg-white rounded-2xl p-2 flex items-center gap-2.5 shadow-soft text-left cursor-pointer"
+                className="shrink-0 w-[200px] bg-white rounded-2xl p-2 flex items-center gap-2.5 shadow-soft text-left cursor-pointer"
               >
                 <div className="relative shrink-0 w-[60px] h-[60px] rounded-xl overflow-hidden">
                   {m.imageUrl && (
@@ -246,7 +300,7 @@ function RealMediaContent({ media }: { media: SpotMediaResponse }) {
 
       {!hasAnyMedia && (
         <p className="text-center text-[11px] text-muted py-4">
-          이 스팟과 연결된 영상·음악 카드는 아직 없어요.
+          연결된 작품의 영상·음악은 아직 준비 중이에요.
         </p>
       )}
 
